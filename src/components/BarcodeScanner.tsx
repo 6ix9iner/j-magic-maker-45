@@ -12,11 +12,13 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isScanning, setIsScanning] = useState(false);
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const scanIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     // Initialize the barcode reader with hints for better performance
@@ -29,19 +31,66 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       BarcodeFormat.UPC_E,
       BarcodeFormat.CODE_128,
       BarcodeFormat.CODE_39,
-      BarcodeFormat.CODE_93
+      BarcodeFormat.CODE_93,
+      BarcodeFormat.QR_CODE,
+      BarcodeFormat.DATA_MATRIX
     ]);
+    // Additional hints for better performance
     hints.set(DecodeHintType.TRY_HARDER, true);
+    hints.set(DecodeHintType.ASSUME_GS1, true);
     
-    const codeReader = new BrowserMultiFormatReader(hints);
+    const codeReader = new BrowserMultiFormatReader(hints, 500); // Increased timeout
     codeReaderRef.current = codeReader;
 
     return () => {
       if (codeReaderRef.current) {
         codeReaderRef.current.reset();
       }
+      if (scanIntervalRef.current) {
+        clearInterval(scanIntervalRef.current);
+      }
     };
   }, []);
+
+  // Manual processing using canvas
+  const processVideoFrame = () => {
+    if (!videoRef.current || !canvasRef.current || !codeReaderRef.current) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+    
+    if (!context) return;
+    
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    // Draw video frame to canvas
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    try {
+      // Get image data from canvas
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      
+      // Process the image data with ZXing
+      const result = codeReaderRef.current.decodeBitmap(imageData);
+      
+      if (result) {
+        const barcodeValue = result.getText();
+        console.log("Barcode detected from canvas:", barcodeValue);
+        
+        if (barcodeValue && barcodeValue.trim() !== '') {
+          onDetected(barcodeValue);
+          stopScanning();
+          toast.success("Barcode detected!");
+        }
+      }
+    } catch (err) {
+      // Silent failure for this method as we're trying repeatedly
+      // Most frames won't contain a valid barcode
+    }
+  };
 
   const startScanning = async () => {
     if (!codeReaderRef.current) return;
@@ -51,10 +100,18 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setError(null);
     
     try {
-      // Request camera permission
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment' } // Use the back camera if available
-      });
+      // Request camera permission with specific constraints for better results
+      const constraints = {
+        video: { 
+          facingMode: 'environment', // Use the back camera if available
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+          frameRate: { ideal: 15 },
+          focusMode: 'continuous'
+        }
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       setHasPermission(true);
       
@@ -62,29 +119,35 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         // Connect the stream to our video element
         videoRef.current.srcObject = stream;
         
-        // Start continuous scanning
-        codeReaderRef.current.decodeFromVideoDevice(
-          undefined, 
-          videoRef.current,
-          (result, error) => {
-            if (result) {
-              // Barcode detected!
-              const barcodeValue = result.getText();
-              console.log("Barcode detected:", barcodeValue);
+        // Wait for video to be ready
+        videoRef.current.onloadedmetadata = () => {
+          // Start continuous scanning with ZXing
+          codeReaderRef.current?.decodeFromVideoDevice(
+            undefined, 
+            videoRef.current!,
+            (result, error) => {
+              if (result) {
+                const barcodeValue = result.getText();
+                console.log("Barcode detected from stream:", barcodeValue);
+                
+                if (barcodeValue && barcodeValue.trim() !== '') {
+                  onDetected(barcodeValue);
+                  stopScanning();
+                  toast.success("Barcode detected!");
+                }
+              }
               
-              // Only callback and close if we have a valid barcode
-              if (barcodeValue && barcodeValue.trim() !== '') {
-                onDetected(barcodeValue);
-                stopScanning();
-                toast.success("Barcode detected!");
+              if (error && !(error.name === 'NotFoundException')) {
+                console.error("Scanning error:", error);
               }
             }
-            
-            if (error && !(error.name === 'NotFoundException')) {
-              console.error("Scanning error:", error);
-            }
-          }
-        );
+          );
+          
+          // Backup method - process frames manually on an interval
+          scanIntervalRef.current = window.setInterval(() => {
+            processVideoFrame();
+          }, 200);
+        };
       }
     } catch (err: any) {
       console.error("Error accessing camera:", err);
@@ -97,6 +160,11 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const stopScanning = () => {
     if (codeReaderRef.current) {
       codeReaderRef.current.reset();
+    }
+    
+    if (scanIntervalRef.current) {
+      clearInterval(scanIntervalRef.current);
+      scanIntervalRef.current = null;
     }
     
     if (videoRef.current && videoRef.current.srcObject) {
@@ -142,6 +210,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                   playsInline
                   muted
                 ></video>
+                <canvas 
+                  ref={canvasRef} 
+                  className="hidden" 
+                />
                 <div className="absolute inset-0 border-2 border-blue-500 opacity-70 pointer-events-none">
                   <div className="absolute top-1/2 left-0 right-0 border-t-2 border-blue-500"></div>
                 </div>

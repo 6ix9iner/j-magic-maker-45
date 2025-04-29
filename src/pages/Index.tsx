@@ -15,10 +15,10 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-10 px-4 sm:px-6">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">
       <div className="max-w-md mx-auto">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold text-gray-900">Barcode Scanner</h1>
+        <header className="mb-6 sm:mb-10 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Barcode Scanner</h1>
           <p className="mt-2 text-gray-600">
             Quickly scan product barcodes using your camera
           </p>
@@ -39,7 +39,7 @@ const Index = () => {
           )}
           
           <div className="text-center text-sm text-gray-500">
-            <p>Supports EAN, UPC, CODE-128 and other common barcode formats</p>
+            <p>Supports EAN, UPC, CODE-128, QR codes and other common barcode formats</p>
           </div>
         </div>
       </div>

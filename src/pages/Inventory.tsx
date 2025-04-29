@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { barcode } from 'lucide-react';
+import { Barcode } from 'lucide-react';
 
 interface Product {
   id: string;
@@ -69,7 +69,7 @@ const Inventory = () => {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    let parsedValue = value;
+    let parsedValue: string | number = value;
     
     // Convert numeric fields
     if (name === 'price' || name === 'purchase_price' || name === 'stock_count') {
@@ -285,7 +285,7 @@ const Inventory = () => {
                   className="flex-1"
                 />
                 <Button variant="outline" size="icon">
-                  <barcode className="h-4 w-4" />
+                  <Barcode className="h-4 w-4" />
                 </Button>
               </div>
             </div>

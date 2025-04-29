@@ -38,7 +38,7 @@ const Dashboard = () => {
         if (salesError) throw salesError;
         
         // Calculate total sales
-        const totalSalesAmount = salesData.reduce((sum, sale) => sum + parseFloat(sale.total_amount), 0);
+        const totalSalesAmount = salesData.reduce((sum, sale) => sum + parseFloat(sale.total_amount.toString()), 0);
         setTotalSales(totalSalesAmount);
         
         // Fetch sales by date for the chart (last 7 days)
@@ -61,7 +61,7 @@ const Dashboard = () => {
           
           salesByDateMap.set(date, {
             date,
-            total: existingSummary.total + parseFloat(sale.total_amount),
+            total: existingSummary.total + parseFloat(sale.total_amount.toString()),
             count: existingSummary.count + 1
           });
         });
@@ -95,7 +95,7 @@ const Dashboard = () => {
           productMap.set(productName, {
             product_name: productName,
             total_quantity: existingProduct.total_quantity + item.quantity,
-            total_revenue: existingProduct.total_revenue + (parseFloat(item.price_at_sale) * item.quantity)
+            total_revenue: existingProduct.total_revenue + (parseFloat(item.price_at_sale.toString()) * item.quantity)
           });
         });
         
@@ -196,14 +196,16 @@ const Dashboard = () => {
                   <ChartContainer config={{
                     sales: { color: "#2563eb" },
                   }}>
-                    <BarChart data={salesByDate}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="date" />
-                      <YAxis />
-                      <Tooltip content={<ChartTooltipContent />} />
-                      <Legend />
-                      <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
-                    </BarChart>
+                    <ResponsiveContainer>
+                      <BarChart data={salesByDate}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" />
+                        <YAxis />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend />
+                        <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
+                      </BarChart>
+                    </ResponsiveContainer>
                     <ChartTooltip />
                   </ChartContainer>
                 ) : (
@@ -226,14 +228,16 @@ const Dashboard = () => {
                   <ChartContainer config={{
                     revenue: { color: "#10b981" },
                   }}>
-                    <BarChart data={topProducts} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" />
-                      <YAxis dataKey="product_name" type="category" width={150} />
-                      <Tooltip content={<ChartTooltipContent />} />
-                      <Legend />
-                      <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
-                    </BarChart>
+                    <ResponsiveContainer>
+                      <BarChart data={topProducts} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" />
+                        <YAxis dataKey="product_name" type="category" width={150} />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend />
+                        <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
+                      </BarChart>
+                    </ResponsiveContainer>
                     <ChartTooltip />
                   </ChartContainer>
                 ) : (

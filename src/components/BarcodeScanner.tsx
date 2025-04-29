@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   BrowserMultiFormatReader, 
@@ -141,7 +140,15 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       if (videoRef.current) {
         // Connect the stream to our video element
         videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(e => console.error("Video play error:", e));
+        
+        // Important: Set playsInline again programmatically
+        videoRef.current.playsInline = true;
+        
+        // Play the video and handle any errors
+        videoRef.current.play().catch(e => {
+          console.error("Video play error:", e);
+          setError("Failed to start video stream: " + e.message);
+        });
         
         // Wait for video to be ready
         videoRef.current.onloadedmetadata = () => {
@@ -149,42 +156,69 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           
           console.log("Video ready with dimensions:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
           
+          // Keep the video playing
+          videoRef.current.play().catch(e => console.error("Video play retry error:", e));
+          
           // Reset any previous scanning attempts
           if (codeReaderRef.current) {
             codeReaderRef.current.reset();
           }
           
-          // Start continuous scanning with ZXing
-          codeReaderRef.current?.decodeFromVideoDevice(
-            undefined, 
-            videoRef.current,
-            (result, error) => {
-              if (result) {
-                const barcodeValue = result.getText();
-                console.log("Barcode detected from stream:", barcodeValue);
+          // Start continuous scanning with ZXing directly on video element
+          try {
+            codeReaderRef.current?.decodeFromVideoElement(
+              videoRef.current,
+              (result, error) => {
+                if (result) {
+                  const barcodeValue = result.getText();
+                  console.log("Barcode detected from stream:", barcodeValue);
+                  
+                  if (barcodeValue && barcodeValue.trim() !== '') {
+                    onDetected(barcodeValue);
+                    stopScanning();
+                    toast.success("Barcode detected!");
+                  }
+                }
                 
-                if (barcodeValue && barcodeValue.trim() !== '') {
-                  onDetected(barcodeValue);
-                  stopScanning();
-                  toast.success("Barcode detected!");
+                if (error && !(error.name === 'NotFoundException')) {
+                  console.error("Scanning error:", error);
                 }
               }
-              
-              if (error && !(error.name === 'NotFoundException')) {
-                console.error("Scanning error:", error);
-              }
-            }
-          );
+            );
+          } catch (err) {
+            console.error("Failed to start ZXing scanner:", err);
+            // Fallback to canvas method only
+          }
           
           // Backup method - process frames manually on an interval
-          // Using a shorter interval for more reliable detection
           if (scanIntervalRef.current) {
             clearInterval(scanIntervalRef.current);
           }
           
           scanIntervalRef.current = window.setInterval(() => {
             processVideoFrame();
+            
+            // Check if video is still playing and restart if needed
+            if (videoRef.current && (videoRef.current.paused || videoRef.current.ended)) {
+              videoRef.current.play().catch(e => console.error("Video auto-restart error:", e));
+            }
           }, 150); // Faster scanning interval
+        };
+        
+        // Add event listeners to handle video issues
+        videoRef.current.onpause = () => {
+          console.log("Video paused - attempting to resume");
+          if (isScanning && videoRef.current) {
+            videoRef.current.play().catch(e => console.error("Resume error:", e));
+          }
+        };
+        
+        videoRef.current.onended = () => {
+          console.log("Video ended - attempting to restart");
+          if (isScanning && videoRef.current && streamRef.current) {
+            videoRef.current.srcObject = streamRef.current;
+            videoRef.current.play().catch(e => console.error("Restart error:", e));
+          }
         };
       }
     } catch (err: any) {
@@ -207,20 +241,28 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       scanIntervalRef.current = null;
     }
     
-    // Stop all tracks on the media stream
-    if (streamRef.current) {
-      const tracks = streamRef.current.getTracks();
+    // Stop all tracks on the media stream but keep a reference temporarily
+    const tempStream = streamRef.current;
+    
+    // Clear the video source
+    if (videoRef.current) {
+      if (videoRef.current.srcObject) {
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+      }
+    }
+    
+    // Now stop the tracks after clearing the video element
+    if (tempStream) {
+      const tracks = tempStream.getTracks();
       tracks.forEach(track => {
         console.log("Stopping track:", track.kind);
         track.stop();
       });
-      streamRef.current = null;
     }
     
-    // Clear the video source
-    if (videoRef.current && videoRef.current.srcObject) {
-      videoRef.current.srcObject = null;
-    }
+    // Finally clear the stream reference
+    streamRef.current = null;
     
     setIsScanning(false);
     setIsOpen(false);

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface SaleSummary {
   date: string;
@@ -25,6 +26,7 @@ const Dashboard = () => {
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [lowStockCount, setLowStockCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -134,64 +136,64 @@ const Dashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-2 text-gray-600">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
+      <div className="w-full max-w-7xl mx-auto">
+        <header className="mb-4 sm:mb-6 md:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
             Overview of your inventory and sales
           </p>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Sales</CardTitle>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
+          <Card className="col-span-1">
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Sales</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">${totalSales.toFixed(2)}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-2xl font-bold">${totalSales.toFixed(2)}</div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Total Products</CardTitle>
+          <Card className="col-span-1">
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Products</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalProducts}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-2xl font-bold">{totalProducts}</div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Recent Orders</CardTitle>
+          <Card className="col-span-1">
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Recent Orders</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{salesByDate.length}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-2xl font-bold">{salesByDate.length}</div>
             </CardContent>
           </Card>
           
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Low Stock Alert</CardTitle>
+          <Card className="col-span-1">
+            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Low Stock Alert</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-500">{lowStockCount}</div>
+            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+              <div className="text-lg sm:text-2xl font-bold text-red-500">{lowStockCount}</div>
             </CardContent>
-            <CardFooter className="pt-0">
-              <span className="text-xs text-muted-foreground">Products with less than 5 items</span>
+            <CardFooter className="pt-0 px-3 sm:px-4 pb-3 sm:pb-4">
+              <span className="text-[10px] sm:text-xs text-muted-foreground">Products with less than 5 items</span>
             </CardFooter>
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
           <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle>Sales Last 7 Days</CardTitle>
-              <CardDescription>Daily sales revenue</CardDescription>
+            <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2">
+              <CardTitle className="text-lg sm:text-xl">Sales Last 7 Days</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
             </CardHeader>
-            <CardContent className="pt-2">
-              <div className="h-80">
+            <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
+              <div className="h-60 sm:h-72 md:h-80">
                 {salesByDate.length > 0 ? (
                   <ChartContainer config={{
                     sales: { color: "#2563eb" },
@@ -201,10 +203,10 @@ const Dashboard = () => {
                       <ResponsiveContainer>
                         <BarChart data={salesByDate}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" />
-                          <YAxis />
+                          <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                          <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
                           <Tooltip content={<ChartTooltipContent />} />
-                          <Legend />
+                          <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
                           <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
                         </BarChart>
                       </ResponsiveContainer>
@@ -221,12 +223,12 @@ const Dashboard = () => {
           </Card>
 
           <Card className="col-span-1">
-            <CardHeader>
-              <CardTitle>Top Products</CardTitle>
-              <CardDescription>By revenue</CardDescription>
+            <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2">
+              <CardTitle className="text-lg sm:text-xl">Top Products</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">By revenue</CardDescription>
             </CardHeader>
-            <CardContent className="pt-2">
-              <div className="h-80">
+            <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
+              <div className="h-60 sm:h-72 md:h-80">
                 {topProducts.length > 0 ? (
                   <ChartContainer config={{
                     revenue: { color: "#10b981" },
@@ -236,10 +238,15 @@ const Dashboard = () => {
                       <ResponsiveContainer>
                         <BarChart data={topProducts} layout="vertical">
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" />
-                          <YAxis dataKey="product_name" type="category" width={150} />
+                          <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                          <YAxis 
+                            dataKey="product_name" 
+                            type="category" 
+                            width={isMobile ? 80 : 150} 
+                            tick={{ fontSize: isMobile ? 9 : 12 }}
+                          />
                           <Tooltip content={<ChartTooltipContent />} />
-                          <Legend />
+                          <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
                           <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
                         </BarChart>
                       </ResponsiveContainer>

@@ -196,17 +196,20 @@ const Dashboard = () => {
                   <ChartContainer config={{
                     sales: { color: "#2563eb" },
                   }}>
-                    <ResponsiveContainer>
-                      <BarChart data={salesByDate}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                        <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <ChartTooltip />
+                    {/* Wrap chart content in a React Fragment to satisfy TypeScript expectations */}
+                    <>
+                      <ResponsiveContainer>
+                        <BarChart data={salesByDate}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="date" />
+                          <YAxis />
+                          <Tooltip content={<ChartTooltipContent />} />
+                          <Legend />
+                          <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <ChartTooltip />
+                    </>
                   </ChartContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground">
@@ -228,17 +231,20 @@ const Dashboard = () => {
                   <ChartContainer config={{
                     revenue: { color: "#10b981" },
                   }}>
-                    <ResponsiveContainer>
-                      <BarChart data={topProducts} layout="vertical">
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis dataKey="product_name" type="category" width={150} />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
-                        <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                    <ChartTooltip />
+                    {/* Wrap chart content in a React Fragment to satisfy TypeScript expectations */}
+                    <>
+                      <ResponsiveContainer>
+                        <BarChart data={topProducts} layout="vertical">
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" />
+                          <YAxis dataKey="product_name" type="category" width={150} />
+                          <Tooltip content={<ChartTooltipContent />} />
+                          <Legend />
+                          <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                      <ChartTooltip />
+                    </>
                   </ChartContainer>
                 ) : (
                   <div className="h-full flex items-center justify-center text-muted-foreground">

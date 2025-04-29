@@ -77,16 +77,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     context.drawImage(video, 0, 0, canvas.width, canvas.height);
     
     try {
-      // Get image data from canvas
-      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
-      
-      // Convert ImageData to BinaryBitmap which ZXing can process
+      // Convert canvas to a format ZXing can process
       const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
       const binarizer = new HybridBinarizer(luminanceSource);
       const bitmap = new BinaryBitmap(binarizer);
       
-      // Process the bitmap with ZXing
-      const result = codeReaderRef.current.decode(bitmap);
+      // Use the correct decoding method for BinaryBitmap
+      const result = codeReaderRef.current.decodeBitmap(bitmap);
       
       if (result) {
         const barcodeValue = result.getText();

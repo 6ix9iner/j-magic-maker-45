@@ -166,25 +166,20 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           
           // Start continuous scanning with ZXing directly on video element
           try {
-            codeReaderRef.current?.decodeFromVideoElement(
-              videoRef.current,
-              (result, error) => {
-                if (result) {
-                  const barcodeValue = result.getText();
-                  console.log("Barcode detected from stream:", barcodeValue);
-                  
-                  if (barcodeValue && barcodeValue.trim() !== '') {
-                    onDetected(barcodeValue);
-                    stopScanning();
-                    toast.success("Barcode detected!");
-                  }
-                }
+            // Fix: Use the appropriate method signature for decodeFromVideoElement
+            // It accepts the video element and a callback function
+            codeReaderRef.current?.decodeFromVideoElement(videoRef.current, (result) => {
+              if (result) {
+                const barcodeValue = result.getText();
+                console.log("Barcode detected from stream:", barcodeValue);
                 
-                if (error && !(error.name === 'NotFoundException')) {
-                  console.error("Scanning error:", error);
+                if (barcodeValue && barcodeValue.trim() !== '') {
+                  onDetected(barcodeValue);
+                  stopScanning();
+                  toast.success("Barcode detected!");
                 }
               }
-            );
+            });
           } catch (err) {
             console.error("Failed to start ZXing scanner:", err);
             // Fallback to canvas method only

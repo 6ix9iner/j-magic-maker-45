@@ -1,6 +1,13 @@
 
 import React, { useEffect, useRef, useState } from 'react';
-import { BrowserMultiFormatReader, DecodeHintType, BarcodeFormat } from '@zxing/library';
+import { 
+  BrowserMultiFormatReader, 
+  DecodeHintType, 
+  BarcodeFormat,
+  HTMLCanvasElementLuminanceSource,
+  BinaryBitmap,
+  HybridBinarizer
+} from '@zxing/library';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -73,8 +80,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       // Get image data from canvas
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       
-      // Process the image data with ZXing
-      const result = codeReaderRef.current.decodeBitmap(imageData);
+      // Convert ImageData to BinaryBitmap which ZXing can process
+      const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
+      const binarizer = new HybridBinarizer(luminanceSource);
+      const bitmap = new BinaryBitmap(binarizer);
+      
+      // Process the bitmap with ZXing
+      const result = codeReaderRef.current.decode(bitmap);
       
       if (result) {
         const barcodeValue = result.getText();

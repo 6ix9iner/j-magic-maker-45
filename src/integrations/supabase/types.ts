@@ -143,6 +143,7 @@ export type Database = {
           total_amount: number
           transaction_id: string | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           cashier_id?: string | null
@@ -152,6 +153,7 @@ export type Database = {
           total_amount: number
           transaction_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           cashier_id?: string | null
@@ -161,6 +163,7 @@ export type Database = {
           total_amount?: number
           transaction_id?: string | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

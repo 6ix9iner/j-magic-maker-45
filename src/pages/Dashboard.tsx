@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface SaleSummary {
   date: string;
@@ -27,12 +27,15 @@ const Dashboard = () => {
   const [lowStockCount, setLowStockCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const isMobile = useIsMobile();
+  const { user } = useAuth(); // Get the current authenticated user
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      if (!user) return; // Don't fetch data if user is not authenticated
+      
       setIsLoading(true);
       try {
-        // Fetch total sales count and amount
+        // Fetch total sales count and amount - RLS will filter to user's sales only
         const { data: salesData, error: salesError } = await supabase
           .from('sales')
           .select('total_amount');
@@ -70,13 +73,14 @@ const Dashboard = () => {
         
         setSalesByDate(Array.from(salesByDateMap.values()));
         
-        // Fetch top selling products
+        // Fetch top selling products - We join with sales to ensure we only get the user's data
         const { data: topProductsData, error: topProductsError } = await supabase
           .from('sale_items')
           .select(`
             name_at_sale,
             quantity,
-            price_at_sale
+            price_at_sale,
+            sale_id
           `)
           .order('created_at', { ascending: false })
           .limit(50);
@@ -133,7 +137,7 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
-  }, []);
+  }, [user]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">

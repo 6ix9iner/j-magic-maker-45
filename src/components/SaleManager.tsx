@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -24,6 +25,7 @@ interface SaleItem {
 const SaleManager = forwardRef((props, ref) => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const { user } = useAuth(); // Get the current authenticated user
 
   const addItem = (product: Product, quantity: number) => {
     // Check if item already exists in sale
@@ -89,12 +91,14 @@ const SaleManager = forwardRef((props, ref) => {
     setIsProcessing(true);
     
     try {
-      // Create the sale record (RLS now disabled)
+      // Create the sale record with user_id
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert({
           total_amount: calculateTotal(),
           payment_method: 'cash', // Default payment method
+          user_id: user?.id, // Add the user_id from the authenticated user
+          cashier_id: user?.id // Set cashier_id as the current user
         })
         .select('id')
         .single();

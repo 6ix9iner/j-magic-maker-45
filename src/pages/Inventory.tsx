@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { toast } from 'sonner';
 import { Barcode } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -35,10 +36,13 @@ const Inventory = () => {
     stock_count: 0,
     category: '',
   });
+  const { user } = useAuth(); // Get the current authenticated user
 
   useEffect(() => {
-    fetchProducts();
-  }, []);
+    if (user) { // Only fetch if user is authenticated
+      fetchProducts();
+    }
+  }, [user]);
 
   const fetchProducts = async () => {
     setIsLoading(true);

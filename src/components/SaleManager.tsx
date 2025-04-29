@@ -89,7 +89,7 @@ const SaleManager = forwardRef((props, ref) => {
     setIsProcessing(true);
     
     try {
-      // Create the sale record with RLS bypass
+      // Create the sale record (RLS now disabled)
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert({

@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { ScanBarcode, Loader } from "lucide-react";
 
 interface BarcodeScannerProps {
   onDetected: (result: string) => void;
@@ -26,6 +27,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scanIntervalRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     // Initialize the barcode reader with hints for better performance
@@ -46,16 +48,18 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     hints.set(DecodeHintType.TRY_HARDER, true);
     hints.set(DecodeHintType.ASSUME_GS1, true);
     
-    const codeReader = new BrowserMultiFormatReader(hints, 500); // Increased timeout
+    const codeReader = new BrowserMultiFormatReader(hints, 1000); // Increased timeout for more reliable detection
     codeReaderRef.current = codeReader;
 
     return () => {
-      if (codeReaderRef.current) {
-        codeReaderRef.current.reset();
-      }
-      if (scanIntervalRef.current) {
-        clearInterval(scanIntervalRef.current);
-      }
+      stopScanning();
+    };
+  }, []);
+
+  // Clean up everything when component unmounts
+  useEffect(() => {
+    return () => {
+      stopScanning();
     };
   }, []);
 
@@ -69,14 +73,19 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     if (!context) return;
     
-    // Set canvas dimensions to match video
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    // Draw video frame to canvas
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
     try {
+      // Make sure video is actually playing and has dimensions
+      if (video.videoWidth === 0 || video.videoHeight === 0 || video.paused || video.ended) {
+        return;
+      }
+
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw video frame to canvas
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      
       // Convert canvas to a format ZXing can process
       const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
       const binarizer = new HybridBinarizer(luminanceSource);
@@ -109,31 +118,46 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setError(null);
     
     try {
+      // First check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Your browser doesn't support camera access");
+      }
+
       // Request camera permission with specific constraints for better results
       const constraints = {
         video: { 
-          facingMode: 'environment', // Use the back camera if available
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 15 },
-          focusMode: 'continuous'
+          facingMode: { ideal: 'environment' }, // Use the back camera if available
+          width: { ideal: 1280, min: 640 },
+          height: { ideal: 720, min: 480 },
+          frameRate: { ideal: 30, min: 10 }
         }
       };
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
       
       setHasPermission(true);
       
       if (videoRef.current) {
         // Connect the stream to our video element
         videoRef.current.srcObject = stream;
+        videoRef.current.play().catch(e => console.error("Video play error:", e));
         
         // Wait for video to be ready
         videoRef.current.onloadedmetadata = () => {
+          if (!videoRef.current) return;
+          
+          console.log("Video ready with dimensions:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
+          
+          // Reset any previous scanning attempts
+          if (codeReaderRef.current) {
+            codeReaderRef.current.reset();
+          }
+          
           // Start continuous scanning with ZXing
           codeReaderRef.current?.decodeFromVideoDevice(
             undefined, 
-            videoRef.current!,
+            videoRef.current,
             (result, error) => {
               if (result) {
                 const barcodeValue = result.getText();
@@ -153,9 +177,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           );
           
           // Backup method - process frames manually on an interval
+          // Using a shorter interval for more reliable detection
+          if (scanIntervalRef.current) {
+            clearInterval(scanIntervalRef.current);
+          }
+          
           scanIntervalRef.current = window.setInterval(() => {
             processVideoFrame();
-          }, 200);
+          }, 150); // Faster scanning interval
         };
       }
     } catch (err: any) {
@@ -167,6 +196,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   };
 
   const stopScanning = () => {
+    console.log("Stopping scanner...");
+    
     if (codeReaderRef.current) {
       codeReaderRef.current.reset();
     }
@@ -176,9 +207,18 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       scanIntervalRef.current = null;
     }
     
+    // Stop all tracks on the media stream
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => {
+        console.log("Stopping track:", track.kind);
+        track.stop();
+      });
+      streamRef.current = null;
+    }
+    
+    // Clear the video source
     if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
       videoRef.current.srcObject = null;
     }
     
@@ -192,6 +232,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         onClick={startScanning}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
       >
+        <ScanBarcode className="w-5 h-5 mr-2" />
         Scan Barcode
       </Button>
 
@@ -212,6 +253,11 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
               </div>
             ) : (
               <div className="relative w-full max-w-sm aspect-[3/4] bg-black rounded-lg overflow-hidden">
+                {isScanning && !videoRef.current?.srcObject && (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+                  </div>
+                )}
                 <video
                   ref={videoRef}
                   className="w-full h-full object-cover"
@@ -223,11 +269,24 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                   ref={canvasRef} 
                   className="hidden" 
                 />
-                <div className="absolute inset-0 border-2 border-blue-500 opacity-70 pointer-events-none">
-                  <div className="absolute top-1/2 left-0 right-0 border-t-2 border-blue-500"></div>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                  {/* Horizontal scanning line with animation */}
+                  <div className="w-full h-1 bg-blue-500 opacity-70 animate-bounce"></div>
+                  
+                  {/* Target area border */}
+                  <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-80">
+                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500"></div>
+                    <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500"></div>
+                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500"></div>
+                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500"></div>
+                  </div>
                 </div>
               </div>
             )}
+            
+            <p className="text-sm text-center text-gray-600">
+              Position the barcode within the highlighted area
+            </p>
             
             <Button variant="outline" onClick={stopScanning} className="mt-4">
               Cancel

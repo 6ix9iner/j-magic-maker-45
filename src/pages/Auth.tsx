@@ -1,0 +1,177 @@
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Label } from '@/components/ui/label';
+import { useForm } from 'react-hook-form';
+
+type LoginFormValues = {
+  email: string;
+  password: string;
+};
+
+type SignupFormValues = {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
+
+const Auth = () => {
+  const { signIn, signUp, user } = useAuth();
+  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Redirect if already logged in
+  React.useEffect(() => {
+    if (user) {
+      navigate('/');
+    }
+  }, [user, navigate]);
+
+  const loginForm = useForm<LoginFormValues>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  const signupForm = useForm<SignupFormValues>({
+    defaultValues: {
+      fullName: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  const handleLogin = async (data: LoginFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await signIn(data.email, data.password);
+      navigate('/');
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSignup = async (data: SignupFormValues) => {
+    if (data.password !== data.confirmPassword) {
+      signupForm.setError('confirmPassword', { 
+        type: 'manual', 
+        message: 'Passwords do not match' 
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await signUp(data.email, data.password, data.fullName);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="flex min-h-[80vh] items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="space-y-1 text-center">
+          <CardTitle className="text-2xl font-bold">Insight Inventory</CardTitle>
+          <CardDescription>Enter your credentials to access your account</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="login">
+            <TabsList className="grid w-full grid-cols-2 mb-6">
+              <TabsTrigger value="login">Login</TabsTrigger>
+              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="login">
+              <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    placeholder="your@email.com" 
+                    {...loginForm.register('email', { required: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="password">Password</Label>
+                  <Input 
+                    id="password" 
+                    type="password" 
+                    {...loginForm.register('password', { required: true })}
+                  />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing in...' : 'Sign In'}
+                </Button>
+              </form>
+            </TabsContent>
+
+            <TabsContent value="signup">
+              <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input 
+                    id="fullName" 
+                    placeholder="John Doe" 
+                    {...signupForm.register('fullName', { required: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signupEmail">Email</Label>
+                  <Input 
+                    id="signupEmail" 
+                    type="email" 
+                    placeholder="your@email.com" 
+                    {...signupForm.register('email', { required: true })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signupPassword">Password</Label>
+                  <Input 
+                    id="signupPassword" 
+                    type="password" 
+                    {...signupForm.register('password', { required: true, minLength: 6 })}
+                  />
+                  {signupForm.formState.errors.password?.type === 'minLength' && (
+                    <p className="text-sm text-red-500">Password must be at least 6 characters</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Input 
+                    id="confirmPassword" 
+                    type="password" 
+                    {...signupForm.register('confirmPassword', { required: true })}
+                  />
+                  {signupForm.formState.errors.confirmPassword?.message && (
+                    <p className="text-sm text-red-500">
+                      {signupForm.formState.errors.confirmPassword?.message}
+                    </p>
+                  )}
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting}>
+                  {isSubmitting ? 'Signing up...' : 'Create Account'}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default Auth;

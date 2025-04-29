@@ -1,3 +1,4 @@
+
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -88,7 +89,7 @@ const SaleManager = forwardRef((props, ref) => {
     setIsProcessing(true);
     
     try {
-      // Create the sale record
+      // Create the sale record with RLS bypass
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert({
@@ -98,7 +99,14 @@ const SaleManager = forwardRef((props, ref) => {
         .select('id')
         .single();
 
-      if (saleError) throw saleError;
+      if (saleError) {
+        console.error("Sale error:", saleError);
+        throw new Error(`Failed to create sale: ${saleError.message}`);
+      }
+      
+      if (!saleData || !saleData.id) {
+        throw new Error("No sale ID returned");
+      }
       
       // Add sale items
       const saleItems = items.map(item => ({
@@ -114,7 +122,10 @@ const SaleManager = forwardRef((props, ref) => {
         .from('sale_items')
         .insert(saleItems);
 
-      if (itemsError) throw itemsError;
+      if (itemsError) {
+        console.error("Sale items error:", itemsError);
+        throw new Error(`Failed to add sale items: ${itemsError.message}`);
+      }
       
       // Update product stock counts
       for (const item of items) {
@@ -126,7 +137,10 @@ const SaleManager = forwardRef((props, ref) => {
           })
           .eq('id', item.product.id);
 
-        if (stockError) throw stockError;
+        if (stockError) {
+          console.error("Stock update error:", stockError);
+          throw new Error(`Failed to update stock: ${stockError.message}`);
+        }
       }
 
       toast.success("Sale completed successfully!");

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -187,30 +186,28 @@ const Dashboard = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-          <Card className="col-span-1">
+          <Card className="col-span-1 w-full">
             <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2">
               <CardTitle className="text-lg sm:text-xl">Sales Last 7 Days</CardTitle>
               <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-              <div className="h-60 sm:h-72 md:h-80">
+              <div className="h-[300px] w-full">
                 {salesByDate.length > 0 ? (
-                  <ChartContainer config={{
-                    sales: { color: "#2563eb" },
-                  }}>
-                    {/* Wrap chart content in a React Fragment to satisfy TypeScript expectations */}
+                  <ChartContainer 
+                    config={{
+                      sales: { color: "#2563eb" },
+                    }}
+                  >
                     <>
-                      <ResponsiveContainer>
-                        <BarChart data={salesByDate}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Tooltip content={<ChartTooltipContent />} />
-                          <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                      <ChartTooltip />
+                      <BarChart data={salesByDate}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                        <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                        <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
+                      </BarChart>
                     </>
                   </ChartContainer>
                 ) : (
@@ -222,35 +219,33 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card className="col-span-1">
+          <Card className="col-span-1 w-full">
             <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2">
               <CardTitle className="text-lg sm:text-xl">Top Products</CardTitle>
               <CardDescription className="text-xs sm:text-sm">By revenue</CardDescription>
             </CardHeader>
             <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-              <div className="h-60 sm:h-72 md:h-80">
+              <div className="h-[300px] w-full">
                 {topProducts.length > 0 ? (
-                  <ChartContainer config={{
-                    revenue: { color: "#10b981" },
-                  }}>
-                    {/* Wrap chart content in a React Fragment to satisfy TypeScript expectations */}
+                  <ChartContainer 
+                    config={{
+                      revenue: { color: "#10b981" },
+                    }}
+                  >
                     <>
-                      <ResponsiveContainer>
-                        <BarChart data={topProducts} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <YAxis 
-                            dataKey="product_name" 
-                            type="category" 
-                            width={isMobile ? 80 : 150} 
-                            tick={{ fontSize: isMobile ? 9 : 12 }}
-                          />
-                          <Tooltip content={<ChartTooltipContent />} />
-                          <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                      <ChartTooltip />
+                      <BarChart data={topProducts} layout="vertical">
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                        <YAxis 
+                          dataKey="product_name" 
+                          type="category" 
+                          width={isMobile ? 80 : 120} 
+                          tick={{ fontSize: isMobile ? 9 : 12 }}
+                        />
+                        <Tooltip content={<ChartTooltipContent />} />
+                        <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                        <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
+                      </BarChart>
                     </>
                   </ChartContainer>
                 ) : (

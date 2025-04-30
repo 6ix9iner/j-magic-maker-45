@@ -58,7 +58,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
             price: data.price,
             stock_count: data.stock_count,
             category: data.category,
-            user_id: data.user_id
+            user_id: data.user_id // Make sure this matches the interface
           };
           
           setProduct(productData);

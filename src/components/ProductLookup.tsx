@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 
-// Define a simple product interface without any complex types
+// Define a minimal product interface to avoid deep type instantiation issues
 interface Product {
   id: string;
   barcode: string;
@@ -38,29 +38,49 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
       setError(null);
       
       try {
-        // Explicitly define the fields we need to retrieve
-        const { data, error } = await supabase
-          .from('products')
-          .select('id, barcode, name, price, stock_count, category')
-          .eq('barcode', barcodeValue)
-          .eq('user_id', user.id)
-          .maybeSingle();
+        // Use a raw query approach to avoid type inference issues
+        const { data: rawData, error } = await supabase
+          .rpc('get_product_by_barcode', { 
+            barcode_param: barcodeValue,
+            user_id_param: user.id
+          });
         
         if (error) throw error;
         
-        if (data) {
-          // Create a completely new object without any reference to the Supabase response
-          const newProduct: Product = {
-            id: data.id,
-            barcode: data.barcode,
-            name: data.name,
-            price: data.price,
-            stock_count: data.stock_count,
-            category: data.category
-          };
-          setProduct(newProduct);
+        if (rawData) {
+          // Create a new product object with only the fields we need
+          setProduct({
+            id: rawData.id,
+            barcode: rawData.barcode,
+            name: rawData.name,
+            price: rawData.price,
+            stock_count: rawData.stock_count,
+            category: rawData.category
+          });
         } else {
-          setError(`No product found with barcode: ${barcodeValue}`);
+          // If RPC doesn't exist or returns no results, fall back to a safer query
+          const { data, error: queryError } = await supabase
+            .from('products')
+            .select('id, barcode, name, price, stock_count, category')
+            .eq('barcode', barcodeValue)
+            .eq('user_id', user.id)
+            .limit(1);
+            
+          if (queryError) throw queryError;
+          
+          if (data && data.length > 0) {
+            const productData = data[0];
+            setProduct({
+              id: productData.id,
+              barcode: productData.barcode,
+              name: productData.name,
+              price: productData.price,
+              stock_count: productData.stock_count,
+              category: productData.category
+            });
+          } else {
+            setError(`No product found with barcode: ${barcodeValue}`);
+          }
         }
       } catch (err: any) {
         setError(err.message || 'Error looking up product');

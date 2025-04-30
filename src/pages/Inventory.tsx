@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -138,16 +137,16 @@ const Inventory = () => {
         if (error) throw error;
         toast.success('Product updated successfully');
       } else {
-        // Check if barcode already exists for this user's products
+        // Check if barcode already exists for THIS USER'S products only
         const { data: existingProduct } = await supabase
           .from('products')
           .select('id')
           .eq('barcode', currentProduct.barcode)
-          .eq('user_id', user.id)
+          .eq('user_id', user.id)  // Filter by user_id to ensure we only check current user's products
           .maybeSingle();
 
         if (existingProduct) {
-          toast.error('A product with this barcode already exists');
+          toast.error('A product with this barcode already exists in your inventory');
           return;
         }
 

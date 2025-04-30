@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 
 type LoginFormValues = {
   email: string;
@@ -30,6 +32,8 @@ const Auth = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [newPassword, setNewPassword] = useState('');
+  const [emailConfirmationError, setEmailConfirmationError] = useState(false);
+  const [emailForConfirmation, setEmailForConfirmation] = useState('');
   
   // Check if this is a password reset flow
   useEffect(() => {
@@ -66,8 +70,12 @@ const Auth = () => {
     try {
       await signIn(data.email, data.password);
       navigate('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      if (error.message?.includes('Email not confirmed')) {
+        setEmailConfirmationError(true);
+        setEmailForConfirmation(data.email);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -85,8 +93,33 @@ const Auth = () => {
     setIsSubmitting(true);
     try {
       await signUp(data.email, data.password, data.fullName);
+      setEmailForConfirmation(data.email);
     } catch (error) {
       console.error(error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    if (!emailForConfirmation) {
+      toast.error('Email address is required');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: emailForConfirmation,
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Confirmation email resent successfully');
+    } catch (error: any) {
+      console.error('Error resending confirmation:', error);
+      toast.error(error.message || 'Failed to resend confirmation email');
     } finally {
       setIsSubmitting(false);
     }
@@ -157,6 +190,28 @@ const Auth = () => {
           <CardDescription>Enter your credentials to access your account</CardDescription>
         </CardHeader>
         <CardContent>
+          {emailConfirmationError && (
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+              <div className="flex items-start">
+                <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
+                <div>
+                  <h3 className="text-sm font-medium text-amber-800">Email not confirmed</h3>
+                  <p className="text-sm text-amber-700 mt-1">
+                    Please check your email and click the confirmation link.
+                  </p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-2 text-amber-800 hover:text-amber-900 border-amber-300 hover:bg-amber-100"
+                    onClick={handleResendConfirmation}
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Sending...' : 'Resend confirmation email'}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          
           <Tabs defaultValue="login">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login">Login</TabsTrigger>

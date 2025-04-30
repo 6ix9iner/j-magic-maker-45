@@ -139,13 +139,15 @@ const Inventory = () => {
         toast.success('Product updated successfully');
       } else {
         // Check if barcode already exists for THIS USER'S products only
-        const { data: existingProduct } = await supabase
+        const { data: existingProduct, error: checkError } = await supabase
           .from('products')
           .select('id')
           .eq('barcode', currentProduct.barcode)
           .eq('user_id', user.id)  // Filter by user_id to ensure we only check current user's products
           .maybeSingle();
 
+        if (checkError) throw checkError;
+          
         if (existingProduct) {
           toast.error('A product with this barcode already exists in your inventory');
           return;

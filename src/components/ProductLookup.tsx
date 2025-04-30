@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +15,7 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
-  user_id?: string;
+  user_id: string; // Added user_id as a required field
 }
 
 interface ProductLookupProps {
@@ -50,7 +49,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         if (error) throw error;
         
         if (data) {
-          // Create a new object with only the properties we need
+          // Type-safe mapping of database result to our Product interface
           const productData: Product = {
             id: data.id,
             barcode: data.barcode,
@@ -58,7 +57,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
             price: data.price,
             stock_count: data.stock_count,
             category: data.category,
-            user_id: data.user_id // Make sure this matches the interface
+            user_id: data.user_id
           };
           
           setProduct(productData);

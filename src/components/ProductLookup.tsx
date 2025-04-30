@@ -44,13 +44,13 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
           .select('*')
           .eq('barcode', barcodeValue)
           .eq('user_id', user.id) // Filter by current user
-          .maybeSingle();
+          .single();
         
         if (error) throw error;
         
         if (data) {
           // Type assertion to ensure compatibility
-          setProduct(data as Product);
+          setProduct(data as unknown as Product);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
         }

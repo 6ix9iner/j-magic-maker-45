@@ -1,14 +1,14 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { Barcode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+
+import SearchBox from '@/components/inventory/SearchBox';
+import ProductList from '@/components/inventory/ProductList';
+import ProductForm from '@/components/inventory/ProductForm';
 
 // Updated interface to match database structure
 interface Product {
@@ -38,7 +38,7 @@ const Inventory = () => {
     stock_count: 0,
     category: '',
   });
-  const { user } = useAuth(); // Get the current authenticated user
+  const { user } = useAuth();
 
   useEffect(() => {
     if (user) { // Only fetch if user is authenticated
@@ -65,15 +65,6 @@ const Inventory = () => {
       setIsLoading(false);
     }
   };
-
-  const filteredProducts = products.filter(product => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      product.name.toLowerCase().includes(searchLower) ||
-      product.barcode.toLowerCase().includes(searchLower) ||
-      (product.category && product.category.toLowerCase().includes(searchLower))
-    );
-  });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -191,181 +182,35 @@ const Inventory = () => {
           <Button onClick={openNewProductDialog}>Add New Product</Button>
         </header>
 
-        <Card className="mb-8">
-          <CardContent className="pt-6">
-            <div className="flex items-center space-x-2">
-              <Input
-                placeholder="Search by name, barcode, or category..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
-              />
-              <Button 
-                variant="outline"
-                onClick={() => setSearchTerm('')}
-                disabled={!searchTerm}
-              >
-                Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <SearchBox 
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+        />
 
         <Card>
           <CardHeader>
             <CardTitle>Products</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-              <div className="text-center py-8 text-muted-foreground">Loading products...</div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                {searchTerm ? 'No products match your search' : 'No products found'}
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Barcode</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Cost</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredProducts.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>{product.name}</TableCell>
-                        <TableCell>{product.barcode}</TableCell>
-                        <TableCell>${parseFloat(product.price.toString()).toFixed(2)}</TableCell>
-                        <TableCell>${parseFloat(product.purchase_price.toString()).toFixed(2)}</TableCell>
-                        <TableCell className={product.stock_count < 5 ? "text-red-500 font-medium" : ""}>
-                          {product.stock_count}
-                        </TableCell>
-                        <TableCell>{product.category || '-'}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={() => openEditProductDialog(product)}
-                          >
-                            Edit
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <ProductList
+              products={products}
+              isLoading={isLoading}
+              searchTerm={searchTerm}
+              onEditProduct={openEditProductDialog}
+            />
           </CardContent>
         </Card>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{isEditing ? 'Edit Product' : 'Add New Product'}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="name" className="text-right font-medium">
-                Name
-              </label>
-              <Input
-                id="name"
-                name="name"
-                value={currentProduct.name}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="barcode" className="text-right font-medium">
-                Barcode
-              </label>
-              <div className="col-span-3 flex gap-2">
-                <Input
-                  id="barcode"
-                  name="barcode"
-                  value={currentProduct.barcode}
-                  onChange={handleInputChange}
-                  className="flex-1"
-                />
-                <Button variant="outline" size="icon">
-                  <Barcode className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="price" className="text-right font-medium">
-                Price
-              </label>
-              <Input
-                id="price"
-                name="price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={currentProduct.price}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="purchase_price" className="text-right font-medium">
-                Cost
-              </label>
-              <Input
-                id="purchase_price"
-                name="purchase_price"
-                type="number"
-                step="0.01"
-                min="0"
-                value={currentProduct.purchase_price}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="stock_count" className="text-right font-medium">
-                Stock
-              </label>
-              <Input
-                id="stock_count"
-                name="stock_count"
-                type="number"
-                min="0"
-                value={currentProduct.stock_count}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="category" className="text-right font-medium">
-                Category
-              </label>
-              <Input
-                id="category"
-                name="category"
-                value={currentProduct.category || ''}
-                onChange={handleInputChange}
-                className="col-span-3"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={saveProduct}>
-              {isEditing ? 'Update' : 'Create'}
-            </Button>
-          </DialogFooter>
+          <ProductForm
+            product={currentProduct}
+            isEditing={isEditing}
+            onInputChange={handleInputChange}
+            onSave={saveProduct}
+            onCancel={() => setIsDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
     </div>

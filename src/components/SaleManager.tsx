@@ -1,11 +1,11 @@
 
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
+import SaleTable from './sale/SaleTable';
+import SaleSummary from './sale/SaleSummary';
 
 interface Product {
   id: string;
@@ -14,7 +14,7 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
-  user_id?: string; // Make user_id optional to accommodate data from Supabase
+  user_id?: string;
 }
 
 interface SaleItem {
@@ -26,7 +26,7 @@ interface SaleItem {
 const SaleManager = forwardRef((props, ref) => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { user } = useAuth(); // Get the current authenticated user
+  const { user } = useAuth();
 
   const addItem = (product: Product, quantity: number) => {
     // Check if item already exists in sale
@@ -181,91 +181,18 @@ const SaleManager = forwardRef((props, ref) => {
         <CardTitle>Current Sale</CardTitle>
       </CardHeader>
       <CardContent>
-        {items.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">
-            No items in current sale. Scan products to add them.
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Item</TableHead>
-                <TableHead>Price</TableHead>
-                <TableHead>Qty</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item, index) => (
-                <TableRow key={item.product.id}>
-                  <TableCell>
-                    <div>
-                      <div>{item.product.name}</div>
-                      <div className="text-xs text-muted-foreground">{item.product.barcode}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>${item.product.price.toFixed(2)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className="h-6 w-6" 
-                        onClick={() => updateQuantity(index, item.quantity - 1)}
-                      >
-                        -
-                      </Button>
-                      <span>{item.quantity}</span>
-                      <Button 
-                        variant="outline" 
-                        size="icon"
-                        className="h-6 w-6" 
-                        onClick={() => updateQuantity(index, item.quantity + 1)}
-                      >
-                        +
-                      </Button>
-                    </div>
-                  </TableCell>
-                  <TableCell>${(item.product.price * item.quantity).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => removeItem(index)}
-                      className="text-destructive"
-                    >
-                      Remove
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <SaleTable 
+          items={items}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeItem}
+        />
       </CardContent>
-      <CardFooter className="flex flex-col space-y-4">
-        <div className="w-full flex justify-between text-lg font-bold">
-          <span>Total:</span>
-          <span>${calculateTotal().toFixed(2)}</span>
-        </div>
-        <div className="w-full flex space-x-2">
-          <Button 
-            variant="outline" 
-            className="flex-1"
-            onClick={cancelSale}
-          >
-            Cancel
-          </Button>
-          <Button 
-            className="flex-1"
-            onClick={completeSale}
-            disabled={items.length === 0 || isProcessing}
-          >
-            {isProcessing ? "Processing..." : "Complete Sale"}
-          </Button>
-        </div>
-      </CardFooter>
+      <SaleSummary
+        total={calculateTotal()}
+        isProcessing={isProcessing}
+        onCompleteSale={completeSale}
+        onCancelSale={cancelSale}
+      />
     </Card>
   );
 });

@@ -1,3 +1,4 @@
+
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +14,7 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
+  user_id?: string; // Make user_id optional to accommodate data from Supabase
 }
 
 interface SaleItem {

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +8,7 @@ import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 
+// Updated interface to match database structure
 interface Product {
   id: string;
   barcode: string;
@@ -14,7 +16,7 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
-  user_id: string;
+  user_id?: string; // Make user_id optional to accommodate data from Supabase
 }
 
 interface ProductLookupProps {
@@ -47,6 +49,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         if (error) throw error;
         
         if (data) {
+          // Type assertion to ensure compatibility
           setProduct(data as Product);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);

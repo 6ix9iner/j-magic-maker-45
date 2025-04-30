@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { toast } from 'sonner';
 import { Barcode } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
+// Updated interface to match database structure
 interface Product {
   id: string;
   name: string;
@@ -19,7 +21,7 @@ interface Product {
   category: string | null;
   created_at: string;
   updated_at: string;
-  user_id: string;
+  user_id?: string; // Make user_id optional to accommodate data from Supabase
 }
 
 const Inventory = () => {
@@ -50,10 +52,12 @@ const Inventory = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('user_id', user?.id)  // Filter by current user
         .order('name');
 
       if (error) throw error;
-      setProducts(data || []);
+      // Type assertion to ensure compatibility
+      setProducts(data as Product[] || []);
     } catch (error: any) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
@@ -130,7 +134,8 @@ const Inventory = () => {
             updated_at: new Date().toISOString(),
             // No need to update user_id as it should remain the same
           })
-          .eq('id', currentProduct.id);
+          .eq('id', currentProduct.id)
+          .eq('user_id', user?.id); // Ensure we only update the user's own products
 
         if (error) throw error;
         toast.success('Product updated successfully');

@@ -61,6 +61,7 @@ export type Database = {
           purchase_price: number
           stock_count: number
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           barcode: string
@@ -72,6 +73,7 @@ export type Database = {
           purchase_price: number
           stock_count?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           barcode?: string
@@ -83,6 +85,7 @@ export type Database = {
           purchase_price?: number
           stock_count?: number
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }

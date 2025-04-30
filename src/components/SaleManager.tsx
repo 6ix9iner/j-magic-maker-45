@@ -103,8 +103,8 @@ const SaleManager = forwardRef((props, ref) => {
         .insert({
           total_amount: calculateTotal(),
           payment_method: 'cash', // Default payment method
-          user_id: user.id, // Add the user_id from the authenticated user
-          cashier_id: user.id // Set cashier_id as the current user
+          user_id: user.id, // Set user_id to current authenticated user
+          cashier_id: user.id
         })
         .select('id')
         .single();
@@ -137,7 +137,7 @@ const SaleManager = forwardRef((props, ref) => {
         throw new Error(`Failed to add sale items: ${itemsError.message}`);
       }
       
-      // Update product stock counts using the product's user_id
+      // Update product stock counts
       for (const item of items) {
         const { error: stockError } = await supabase
           .from('products')
@@ -145,7 +145,8 @@ const SaleManager = forwardRef((props, ref) => {
             stock_count: item.product.stock_count - item.quantity,
             updated_at: new Date().toISOString()
           })
-          .eq('id', item.product.id);
+          .eq('id', item.product.id)
+          .eq('user_id', user.id); // Ensure we're only updating the user's own products
 
         if (stockError) {
           console.error("Stock update error:", stockError);

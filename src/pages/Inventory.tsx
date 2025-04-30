@@ -48,11 +48,14 @@ const Inventory = () => {
   }, [user]);
 
   const fetchProducts = async () => {
+    if (!user) return; // Exit if no user
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
+        .eq('user_id', user.id) // Only get products for current user
         .order('name');
 
       if (error) throw error;
@@ -105,6 +108,11 @@ const Inventory = () => {
   };
 
   const saveProduct = async () => {
+    if (!user) {
+      toast.error('You must be logged in');
+      return;
+    }
+    
     try {
       if (!currentProduct.name || !currentProduct.barcode) {
         toast.error('Name and barcode are required');
@@ -124,16 +132,18 @@ const Inventory = () => {
             category: currentProduct.category,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', currentProduct.id);
+          .eq('id', currentProduct.id)
+          .eq('user_id', user.id); // Ensure we're only updating the user's own products
 
         if (error) throw error;
         toast.success('Product updated successfully');
       } else {
-        // Check if barcode already exists
+        // Check if barcode already exists for this user's products
         const { data: existingProduct } = await supabase
           .from('products')
           .select('id')
           .eq('barcode', currentProduct.barcode)
+          .eq('user_id', user.id)
           .maybeSingle();
 
         if (existingProduct) {
@@ -141,7 +151,7 @@ const Inventory = () => {
           return;
         }
 
-        // Create new product (user_id will be set by RLS policy)
+        // Create new product with user_id explicitly set
         const { error } = await supabase
           .from('products')
           .insert({
@@ -151,6 +161,7 @@ const Inventory = () => {
             purchase_price: currentProduct.purchase_price,
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
+            user_id: user.id // Explicitly set user_id
           });
 
         if (error) throw error;

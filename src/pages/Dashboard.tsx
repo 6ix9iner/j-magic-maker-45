@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -35,10 +36,11 @@ const Dashboard = () => {
       
       setIsLoading(true);
       try {
-        // Fetch total sales count and amount - RLS will filter to user's sales only
+        // Fetch total sales count and amount with user_id filter
         const { data: salesData, error: salesError } = await supabase
           .from('sales')
-          .select('total_amount');
+          .select('total_amount')
+          .eq('user_id', user.id);
         
         if (salesError) throw salesError;
         
@@ -46,13 +48,14 @@ const Dashboard = () => {
         const totalSalesAmount = salesData.reduce((sum, sale) => sum + parseFloat(sale.total_amount.toString()), 0);
         setTotalSales(totalSalesAmount);
         
-        // Fetch sales by date for the chart (last 7 days)
+        // Fetch sales by date for the chart (last 7 days) with user_id filter
         const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
         
         const { data: salesByDateData, error: salesByDateError } = await supabase
           .from('sales')
           .select('created_at, total_amount')
+          .eq('user_id', user.id)
           .gte('created_at', sevenDaysAgo.toISOString());
         
         if (salesByDateError) throw salesByDateError;
@@ -73,15 +76,17 @@ const Dashboard = () => {
         
         setSalesByDate(Array.from(salesByDateMap.values()));
         
-        // Fetch top selling products
+        // Fetch top selling products with user_id filter (through sales)
         const { data: topProductsData, error: topProductsError } = await supabase
           .from('sale_items')
           .select(`
             name_at_sale,
             quantity,
             price_at_sale,
-            sale_id
+            sale_id,
+            sales!inner(user_id)
           `)
+          .eq('sales.user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50);
         
@@ -111,18 +116,20 @@ const Dashboard = () => {
           
         setTopProducts(topProductsList);
         
-        // Fetch products count - RLS will filter to user's products only
+        // Fetch products count with user_id filter
         const { count: productsCount, error: productsCountError } = await supabase
           .from('products')
-          .select('*', { count: 'exact', head: true });
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id);
         
         if (productsCountError) throw productsCountError;
         setTotalProducts(productsCount || 0);
         
-        // Fetch low stock products (less than 5) - RLS will filter to user's products only
+        // Fetch low stock products with user_id filter
         const { count: lowStockProductsCount, error: lowStockError } = await supabase
           .from('products')
           .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
           .lt('stock_count', 5);
         
         if (lowStockError) throw lowStockError;

@@ -16,6 +16,7 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
+  user_id?: string;
 }
 
 interface ProductLookupProps {
@@ -38,11 +39,12 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
       setError(null);
       
       try {
-        // Remove the user_id filter since this column doesn't exist in the products table
+        // Fetch product with user_id filter to ensure data isolation
         const { data, error } = await supabase
           .from('products')
           .select('*')
           .eq('barcode', barcodeValue)
+          .eq('user_id', user.id)
           .maybeSingle();
             
         if (error) throw error;
@@ -55,7 +57,8 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
             name: data.name, 
             price: data.price,
             stock_count: data.stock_count,
-            category: data.category
+            category: data.category,
+            user_id: data.user_id
           };
           
           setProduct(productData);

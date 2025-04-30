@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Welcome from "./pages/Welcome";
 import Auth from "./pages/Auth";
+import PasswordReset from "./pages/PasswordReset";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
@@ -35,6 +36,7 @@ const AppRoutes = () => (
     <Route path="/" element={<Layout />}>
       <Route index element={<Welcome />} />
       <Route path="/auth" element={<Auth />} />
+      <Route path="/reset-password" element={<PasswordReset />} />
       <Route path="/scanner" element={
         <ProtectedRoute>
           <Index />

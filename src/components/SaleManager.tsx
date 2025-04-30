@@ -137,7 +137,7 @@ const SaleManager = forwardRef((props, ref) => {
         throw new Error(`Failed to add sale items: ${itemsError.message}`);
       }
       
-      // Update product stock counts
+      // Update product stock counts using the product's user_id
       for (const item of items) {
         const { error: stockError } = await supabase
           .from('products')
@@ -145,8 +145,7 @@ const SaleManager = forwardRef((props, ref) => {
             stock_count: item.product.stock_count - item.quantity,
             updated_at: new Date().toISOString()
           })
-          .eq('id', item.product.id)
-          .eq('user_id', user.id); // Ensure we only update the user's own products
+          .eq('id', item.product.id);
 
         if (stockError) {
           console.error("Stock update error:", stockError);

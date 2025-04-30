@@ -15,7 +15,7 @@ interface Product {
   category?: string | null;
   created_at?: string;
   updated_at?: string;
-  // Remove user_id since it doesn't exist in the database schema
+  user_id?: string;
 }
 
 interface ProductFormProps {

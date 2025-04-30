@@ -11,7 +11,7 @@ import SearchBox from '@/components/inventory/SearchBox';
 import ProductList from '@/components/inventory/ProductList';
 import ProductForm from '@/components/inventory/ProductForm';
 
-// Updated interface to match database structure
+// Updated interface to include user_id
 interface Product {
   id: string;
   name: string;
@@ -22,7 +22,7 @@ interface Product {
   category: string | null;
   created_at: string;
   updated_at: string;
-  // Remove user_id as it doesn't exist in the database
+  user_id: string;
 }
 
 const Inventory = () => {
@@ -53,7 +53,6 @@ const Inventory = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        // Remove filter by user_id as it doesn't exist
         .order('name');
 
       if (error) throw error;
@@ -124,10 +123,8 @@ const Inventory = () => {
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
             updated_at: new Date().toISOString(),
-            // Remove user_id as it doesn't exist
           })
           .eq('id', currentProduct.id);
-          // Remove user_id filter as it doesn't exist
 
         if (error) throw error;
         toast.success('Product updated successfully');
@@ -137,7 +134,6 @@ const Inventory = () => {
           .from('products')
           .select('id')
           .eq('barcode', currentProduct.barcode)
-          // Remove user_id filter as it doesn't exist
           .maybeSingle();
 
         if (existingProduct) {
@@ -145,7 +141,7 @@ const Inventory = () => {
           return;
         }
 
-        // Create new product
+        // Create new product (user_id will be set by RLS policy)
         const { error } = await supabase
           .from('products')
           .insert({
@@ -155,7 +151,6 @@ const Inventory = () => {
             purchase_price: currentProduct.purchase_price,
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
-            // Remove user_id as it doesn't exist
           });
 
         if (error) throw error;

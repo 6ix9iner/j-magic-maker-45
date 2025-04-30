@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Barcode } from "lucide-react";
+import BarcodeDialog from "./BarcodeDialog";
 
 interface Product {
   id?: string;
@@ -33,6 +34,20 @@ const ProductForm = ({
   onSave,
   onCancel,
 }: ProductFormProps) => {
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleBarcodeDetected = (result: string) => {
+    // Create a synthetic change event to update the barcode field
+    const syntheticEvent = {
+      target: {
+        name: "barcode",
+        value: result
+      }
+    } as React.ChangeEvent<HTMLInputElement>;
+    
+    onInputChange(syntheticEvent);
+  };
+
   return (
     <>
       <DialogHeader>
@@ -63,7 +78,12 @@ const ProductForm = ({
               onChange={onInputChange}
               className="flex-1"
             />
-            <Button variant="outline" size="icon">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              type="button"
+              onClick={() => setIsScannerOpen(true)}
+            >
               <Barcode className="h-4 w-4" />
             </Button>
           </div>
@@ -133,6 +153,13 @@ const ProductForm = ({
           {isEditing ? 'Update' : 'Create'}
         </Button>
       </DialogFooter>
+
+      {/* Barcode Scanner Dialog */}
+      <BarcodeDialog 
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
+        onDetected={handleBarcodeDetected}
+      />
     </>
   );
 };

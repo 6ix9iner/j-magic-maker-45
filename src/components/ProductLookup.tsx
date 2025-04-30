@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,8 +49,8 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         if (error) throw error;
         
         if (data) {
-          // Explicitly cast data with the correct type annotation
-          setProduct(data as unknown as Product);
+          // Fix: Use type assertion with simple syntax to avoid deep type instantiation
+          setProduct(data as Product);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
         }
@@ -63,24 +64,6 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
 
     fetchProduct();
   }, [barcodeValue, user]);
-
-  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    if (!isNaN(value) && value > 0) {
-      setQuantity(value);
-    }
-  };
-
-  const handleAddToSale = () => {
-    if (product && onAddToSale) {
-      if (quantity > product.stock_count) {
-        toast.error(`Only ${product.stock_count} items in stock`);
-        return;
-      }
-      onAddToSale(product, quantity);
-      toast.success(`Added ${quantity} x ${product.name} to sale`);
-    }
-  };
 
   if (loading) {
     return (

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,7 +48,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         if (error) throw error;
         
         if (data) {
-          // Type assertion to ensure compatibility
+          // Explicitly cast data with the correct type annotation
           setProduct(data as unknown as Product);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
@@ -146,12 +145,26 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
                     min={1}
                     max={product.stock_count}
                     value={quantity}
-                    onChange={handleQuantityChange}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (!isNaN(value) && value > 0) {
+                        setQuantity(value);
+                      }
+                    }}
                     className="w-24"
                   />
                 </div>
                 <Button 
-                  onClick={handleAddToSale}
+                  onClick={() => {
+                    if (product && onAddToSale) {
+                      if (quantity > product.stock_count) {
+                        toast.error(`Only ${product.stock_count} items in stock`);
+                        return;
+                      }
+                      onAddToSale(product, quantity);
+                      toast.success(`Added ${quantity} x ${product.name} to sale`);
+                    }
+                  }}
                   className="flex-1"
                   disabled={product.stock_count < 1}
                 >

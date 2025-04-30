@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -49,8 +48,8 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         if (error) throw error;
         
         if (data) {
-          // Fix: Use type assertion with simple syntax to avoid deep type instantiation
-          setProduct(data as Product);
+          // Fix: Use a simpler type assertion approach
+          setProduct(data as unknown as Product);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
         }

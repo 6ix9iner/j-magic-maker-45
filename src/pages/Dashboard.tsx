@@ -73,7 +73,7 @@ const Dashboard = () => {
         
         setSalesByDate(Array.from(salesByDateMap.values()));
         
-        // Fetch top selling products - We join with sales to ensure we only get the user's data
+        // Fetch top selling products
         const { data: topProductsData, error: topProductsError } = await supabase
           .from('sale_items')
           .select(`
@@ -111,7 +111,7 @@ const Dashboard = () => {
           
         setTopProducts(topProductsList);
         
-        // Fetch products count
+        // Fetch products count - RLS will filter to user's products only
         const { count: productsCount, error: productsCountError } = await supabase
           .from('products')
           .select('*', { count: 'exact', head: true });
@@ -119,7 +119,7 @@ const Dashboard = () => {
         if (productsCountError) throw productsCountError;
         setTotalProducts(productsCount || 0);
         
-        // Fetch low stock products (less than 5)
+        // Fetch low stock products (less than 5) - RLS will filter to user's products only
         const { count: lowStockProductsCount, error: lowStockError } = await supabase
           .from('products')
           .select('*', { count: 'exact', head: true })

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -20,6 +19,7 @@ interface Product {
   category: string | null;
   created_at: string;
   updated_at: string;
+  user_id: string;
 }
 
 const Inventory = () => {
@@ -128,17 +128,19 @@ const Inventory = () => {
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
             updated_at: new Date().toISOString(),
+            // No need to update user_id as it should remain the same
           })
           .eq('id', currentProduct.id);
 
         if (error) throw error;
         toast.success('Product updated successfully');
       } else {
-        // Check if barcode already exists
+        // Check if barcode already exists for this user
         const { data: existingProduct } = await supabase
           .from('products')
           .select('id')
           .eq('barcode', currentProduct.barcode)
+          .eq('user_id', user?.id)
           .maybeSingle();
 
         if (existingProduct) {
@@ -156,6 +158,7 @@ const Inventory = () => {
             purchase_price: currentProduct.purchase_price,
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
+            user_id: user?.id, // Set the user_id to the current user
           });
 
         if (error) throw error;

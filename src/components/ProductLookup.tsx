@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Product {
   id: string;
@@ -14,6 +14,7 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
+  user_id: string;
 }
 
 interface ProductLookupProps {
@@ -26,10 +27,11 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchProduct = async () => {
-      if (!barcodeValue) return;
+      if (!barcodeValue || !user) return;
       
       setLoading(true);
       setError(null);
@@ -39,6 +41,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
           .from('products')
           .select('*')
           .eq('barcode', barcodeValue)
+          .eq('user_id', user.id) // Filter by current user
           .maybeSingle();
         
         if (error) throw error;
@@ -57,7 +60,7 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
     };
 
     fetchProduct();
-  }, [barcodeValue]);
+  }, [barcodeValue, user]);
 
   const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value);

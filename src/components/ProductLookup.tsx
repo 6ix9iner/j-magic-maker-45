@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 
-// Updated interface to match database structure
+// Define a simpler product interface to avoid deep type issues
 interface Product {
   id: string;
   barcode: string;
@@ -16,7 +16,6 @@ interface Product {
   price: number;
   stock_count: number;
   category: string | null;
-  user_id?: string; // Make user_id optional to accommodate data from Supabase
 }
 
 interface ProductLookupProps {
@@ -41,24 +40,22 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
       try {
         const { data, error } = await supabase
           .from('products')
-          .select('*')
+          .select('id, barcode, name, price, stock_count, category')
           .eq('barcode', barcodeValue)
-          .eq('user_id', user.id) // Filter by current user
+          .eq('user_id', user.id)
           .single();
         
         if (error) throw error;
         
         if (data) {
-          // Create a new object with only the fields we need to avoid deep type issues
-          const productData: Product = {
+          setProduct({
             id: data.id,
             barcode: data.barcode,
             name: data.name,
             price: data.price,
             stock_count: data.stock_count,
             category: data.category
-          };
-          setProduct(productData);
+          });
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
         }

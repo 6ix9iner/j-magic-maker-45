@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
@@ -48,8 +49,16 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         if (error) throw error;
         
         if (data) {
-          // Fix: Use a simpler type assertion approach
-          setProduct(data as unknown as Product);
+          // Create a new object with only the fields we need to avoid deep type issues
+          const productData: Product = {
+            id: data.id,
+            barcode: data.barcode,
+            name: data.name,
+            price: data.price,
+            stock_count: data.stock_count,
+            category: data.category
+          };
+          setProduct(productData);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
         }

@@ -38,12 +38,11 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
       setError(null);
       
       try {
-        // Use explicit types and avoid complex queries
+        // Remove the user_id filter since this column doesn't exist in the products table
         const { data, error } = await supabase
           .from('products')
           .select('*')
           .eq('barcode', barcodeValue)
-          .eq('user_id', user.id)
           .maybeSingle();
             
         if (error) throw error;

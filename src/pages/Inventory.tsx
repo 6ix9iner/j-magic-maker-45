@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -21,7 +22,7 @@ interface Product {
   category: string | null;
   created_at: string;
   updated_at: string;
-  user_id?: string; // Make user_id optional to accommodate data from Supabase
+  // Remove user_id as it doesn't exist in the database
 }
 
 const Inventory = () => {
@@ -52,7 +53,7 @@ const Inventory = () => {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('user_id', user?.id)  // Filter by current user
+        // Remove filter by user_id as it doesn't exist
         .order('name');
 
       if (error) throw error;
@@ -123,20 +124,20 @@ const Inventory = () => {
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
             updated_at: new Date().toISOString(),
-            // No need to update user_id as it should remain the same
+            // Remove user_id as it doesn't exist
           })
-          .eq('id', currentProduct.id)
-          .eq('user_id', user?.id); // Ensure we only update the user's own products
+          .eq('id', currentProduct.id);
+          // Remove user_id filter as it doesn't exist
 
         if (error) throw error;
         toast.success('Product updated successfully');
       } else {
-        // Check if barcode already exists for this user
+        // Check if barcode already exists
         const { data: existingProduct } = await supabase
           .from('products')
           .select('id')
           .eq('barcode', currentProduct.barcode)
-          .eq('user_id', user?.id)
+          // Remove user_id filter as it doesn't exist
           .maybeSingle();
 
         if (existingProduct) {
@@ -154,7 +155,7 @@ const Inventory = () => {
             purchase_price: currentProduct.purchase_price,
             stock_count: currentProduct.stock_count,
             category: currentProduct.category,
-            user_id: user?.id, // Set the user_id to the current user
+            // Remove user_id as it doesn't exist
           });
 
         if (error) throw error;

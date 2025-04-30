@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 
-// Define a minimal product interface to avoid deep type instantiation issues
+// Define a minimal product interface with only the fields we need
 interface Product {
   id: string;
   barcode: string;
@@ -38,26 +38,30 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
       setError(null);
       
       try {
-        // Use a simple query with type assertion to avoid TypeScript issues
+        // Use explicit types and avoid complex queries
         const { data, error } = await supabase
           .from('products')
-          .select('id, barcode, name, price, stock_count, category')
+          .select('*')
           .eq('barcode', barcodeValue)
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
             
         if (error) throw error;
         
         if (data) {
-          // Create a new object to avoid type reference issues
-          setProduct({
+          // Create a new object with only the properties we need
+          const productData: Product = {
             id: data.id,
             barcode: data.barcode,
-            name: data.name,
+            name: data.name, 
             price: data.price,
             stock_count: data.stock_count,
             category: data.category
-          });
+          };
+          
+          setProduct(productData);
+        } else {
+          setError(`No product found with barcode: ${barcodeValue}`);
         }
       } catch (err: any) {
         setError(err.message || 'Error looking up product');

@@ -61,6 +61,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <BrowserRouter>
       <AuthProvider>
+        {/* Move TooltipProvider inside the React rendering tree */}
         <TooltipProvider>
           <Toaster />
           <Sonner />

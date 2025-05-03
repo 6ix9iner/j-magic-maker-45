@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import { 
   BrowserMultiFormatReader, 
@@ -12,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ScanBarcode, Loader, Settings2 } from "lucide-react";
+import { ScanBarcode, Loader } from "lucide-react";
 
 interface BarcodeScannerProps {
   onDetected: (result: string) => void;
@@ -28,7 +27,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scanIntervalRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const [cameraQuality, setCameraQuality] = useState<'low' | 'medium' | 'high'>('medium');
 
   useEffect(() => {
     // Initialize the barcode reader with hints for better performance
@@ -111,36 +109,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   };
 
-  // Get camera constraints based on quality setting
+  // Get camera constraints for highest available resolution
   const getCameraConstraints = () => {
-    const baseConstraints = {
+    return {
       facingMode: { ideal: 'environment' }, // Use the back camera if available
+      width: { ideal: 3840 }, // Request highest resolution possible (4K)
+      height: { ideal: 2160 }, // The device will automatically adjust down if not supported
+      frameRate: { ideal: 60 } // Request highest framerate for smooth scanning
     };
-    
-    switch(cameraQuality) {
-      case 'low':
-        return {
-          ...baseConstraints,
-          width: { ideal: 640, min: 320 },
-          height: { ideal: 480, min: 240 },
-          frameRate: { ideal: 15, min: 10 }
-        };
-      case 'high':
-        return {
-          ...baseConstraints,
-          width: { ideal: 1920, min: 1280 },
-          height: { ideal: 1080, min: 720 },
-          frameRate: { ideal: 60, min: 30 }
-        };
-      case 'medium':
-      default:
-        return {
-          ...baseConstraints,
-          width: { ideal: 1280, min: 640 },
-          height: { ideal: 720, min: 480 },
-          frameRate: { ideal: 30, min: 15 }
-        };
-    }
   };
 
   const startScanning = async () => {
@@ -156,13 +132,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         throw new Error("Your browser doesn't support camera access");
       }
 
-      // Request camera permission with quality-specific constraints
+      // Request camera permission with highest possible resolution
       const constraints = {
         video: getCameraConstraints(),
         audio: false
       };
       
-      console.log("Using camera constraints:", constraints.video);
+      console.log("Using camera constraints for highest available resolution:", constraints.video);
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
@@ -198,7 +174,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           
           // Start continuous scanning with ZXing directly on video element
           try {
-            // Fixed: The decodeFromVideoElement method only accepts one argument in the current version
             codeReaderRef.current?.decodeFromVideoElement(videoRef.current)
               .then(result => {
                 if (result) {
@@ -325,18 +300,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(false);
   };
 
-  // Function to change camera quality
-  const changeCameraQuality = (quality: 'low' | 'medium' | 'high') => {
-    setCameraQuality(quality);
-    // If already scanning, restart with new quality
-    if (isScanning) {
-      stopScanning();
-      setTimeout(() => {
-        startScanning();
-      }, 300);
-    }
-  };
-
   return (
     <>
       <Button 
@@ -394,40 +357,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                 </div>
               </div>
             )}
-            
-            {/* Camera quality settings */}
-            <div className="w-full flex flex-col items-center space-y-2">
-              <div className="flex items-center space-x-2">
-                <Settings2 className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium">Camera Quality</span>
-              </div>
-              <div className="flex justify-center space-x-2">
-                <Button 
-                  size="sm"
-                  variant={cameraQuality === 'low' ? 'default' : 'outline'}
-                  onClick={() => changeCameraQuality('low')}
-                  className="text-xs"
-                >
-                  Low
-                </Button>
-                <Button 
-                  size="sm"
-                  variant={cameraQuality === 'medium' ? 'default' : 'outline'}
-                  onClick={() => changeCameraQuality('medium')}
-                  className="text-xs"
-                >
-                  Medium
-                </Button>
-                <Button 
-                  size="sm"
-                  variant={cameraQuality === 'high' ? 'default' : 'outline'}
-                  onClick={() => changeCameraQuality('high')}
-                  className="text-xs"
-                >
-                  High
-                </Button>
-              </div>
-            </div>
             
             <p className="text-sm text-center text-gray-600">
               Position the barcode within the highlighted area

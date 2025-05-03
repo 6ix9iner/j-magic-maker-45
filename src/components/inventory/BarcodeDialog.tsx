@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface BarcodeDialogProps {
@@ -22,6 +22,9 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Scan Barcode</DialogTitle>
+          <DialogDescription>
+            Position the barcode in view of your camera
+          </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           <BarcodeScanner onDetected={handleBarcodeDetected} />

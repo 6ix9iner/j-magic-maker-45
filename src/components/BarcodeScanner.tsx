@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { 
   BrowserMultiFormatReader, 
@@ -304,24 +303,18 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
   // Get camera constraints optimized for Samsung S10
   const getCameraConstraints = () => {
-    // Samsung S10 has a high-resolution camera, so request optimal settings
+    // Fixed: Corrected the structure for MediaTrackConstraints
     return {
       facingMode: { exact: 'environment' }, // Force back camera only for better results
       width: { ideal: 3840 }, // Request 4K resolution
       height: { ideal: 2160 },
       frameRate: { ideal: 30, min: 15 }, // Balanced framerate for processing
-      // Samsung-specific enhancements for S10
-      advanced: [
-        {
-          // Request specific camera capabilities if available
-          zoom: zoom,
-          focusMode: focusMode,
-          // These properties help with Samsung's camera capabilities
-          autoFocus: focusMode === 'continuous' ? true : 'off',
-          whiteBalance: 'continuous',
-          exposureMode: 'continuous'
-        }
-      ]
+      // Set individual properties directly - not using advanced array
+      zoom: zoom,
+      focusMode: focusMode === 'continuous' ? 'continuous' : 'manual',
+      autoFocus: focusMode === 'continuous' ? true : false,
+      whiteBalance: 'continuous',
+      exposureMode: 'continuous'
     };
   };
 
@@ -336,15 +329,18 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       const capabilities = track.getCapabilities();
       console.log("Camera capabilities:", capabilities);
       
+      // Fixed: Using proper constraints structure for specific capabilities
       if ('focusMode' in capabilities) {
-        const constraints = { advanced: [{ focusMode: focusMode }] };
-        await track.applyConstraints(constraints);
+        // Apply focus mode directly as constraint
+        await track.applyConstraints({ 
+          focusMode: focusMode === 'continuous' ? 'continuous' : 'manual'
+        });
         console.log(`Focus set to ${focusMode} mode`);
       }
       
       if ('zoom' in capabilities) {
-        const constraints = { advanced: [{ zoom: zoom }] };
-        await track.applyConstraints(constraints);
+        // Apply zoom directly as constraint
+        await track.applyConstraints({ zoom });
         console.log(`Zoom set to ${zoom}x`);
       }
     } catch (err) {
@@ -390,8 +386,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         throw new Error("Your browser doesn't support camera access");
       }
 
-      // Request camera permission with Samsung S10 optimized settings
-      const constraints = {
+      // Fixed: Properly structure the MediaStreamConstraints
+      const constraints: MediaStreamConstraints = {
         video: getCameraConstraints(),
         audio: false
       };

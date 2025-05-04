@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { 
   BrowserMultiFormatReader, 
@@ -63,8 +62,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     hints.set(DecodeHintType.PURE_BARCODE, true);
     // Character set
     hints.set(DecodeHintType.CHARACTER_SET, "UTF-8");
-    // Allow multiple barcodes in view
-    hints.set(DecodeHintType.ALSO_INVERTED, true);
     
     const codeReader = new BrowserMultiFormatReader(hints, 2000); // Increased timeout for more reliable detection
     codeReaderRef.current = codeReader;

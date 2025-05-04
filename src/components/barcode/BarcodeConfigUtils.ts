@@ -37,15 +37,20 @@ export const createBarcodeReaderHints = (): Map<DecodeHintType, any> => {
 };
 
 /**
- * Get camera constraints optimized for Samsung S10
+ * Get camera constraints optimized for device compatibility
+ * 
+ * More flexible camera constraints that work across different devices
  */
 export const getCameraConstraints = (zoom: number, focusMode: string): MediaTrackConstraints => {
+  // Use more flexible constraints that work on most devices
   return {
-    facingMode: { exact: 'environment' }, // Force back camera only for better results
-    width: { ideal: 3840 }, // Request 4K resolution
-    height: { ideal: 2160 },
-    frameRate: { ideal: 30, min: 15 } // Balanced framerate for processing
-    // Note: focusMode and zoom are applied separately via applyConstraints
+    // Request back camera if available, but don't require it
+    facingMode: { ideal: 'environment' },
+    // Request HD resolution but don't require it
+    width: { ideal: 1280 },
+    height: { ideal: 720 },
+    // Reasonable framerate
+    frameRate: { ideal: 30, min: 15 }
   };
 };
 
@@ -61,7 +66,7 @@ export const applyCameraSettings = async (
     const capabilities = track.getCapabilities();
     console.log("Camera capabilities:", capabilities);
     
-    // Apply focus mode if supported - Fixed TypeScript errors with proper type checking
+    // Apply focus mode if supported
     if ('focusMode' in capabilities && capabilities.focusMode) {
       try {
         // Different browsers/devices support different focus mode strings
@@ -80,7 +85,7 @@ export const applyCameraSettings = async (
       }
     }
     
-    // Apply zoom if supported - Fixed TypeScript errors with proper type checking
+    // Apply zoom if supported
     if ('zoom' in capabilities && capabilities.zoom) {
       try {
         // Get zoom capabilities
@@ -108,3 +113,4 @@ export const applyCameraSettings = async (
 
 // Beep sound for successful scan (base64 encoded)
 export const BEEP_SOUND_URL = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAKAAAJTAAXFxcXJCQkJCQwMDAwPT09PT1JSUlJVlZWVlZiYmJib29vb295eXl5hoaGhoaTk5OToKCgoKCsrKystbW1tbXBwcHBzs7Ozs7a2tra5ubm5ub09PT0/v7+/v8AAAAAUE1QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMuJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7kMQAAAiNHWG1iYAI447zTqTQARbSfG5WJgAnBF+nDRJgBOx3J8KxGFTru0KhQKhwMBgMDx8fH8fBwH/4OA+D/8H/wfB//8Hwf//B8H//B8H//wH/4EA//xAP/8QD//EA//xAP/8QD//EA//wF2xBUHZH6kR9SEkj6R/iNH3d3d0REd3d3d0REX//////////////////+qqq7u7uqqqqqqu7u7qqqqqqu7u7qqqqqqqIiIiO7u7oiIiIju7u6IiIiI7u7uiIiIiHREX/////////////////////////////////////////////////////////////////////////8AAgIJiBBQGJYF4X+AQcZEfH5YFwX//B8H//B///////8QD//iAf/4CAf/4CJAOHj4/jwOAgGAwKhQKHcnBZx9CzuQoFAoHB6qqrUIddVVVVbh2191VVVVdw7fh2qqqqrhLexwl1VVVXVVlC3ucJdVVVVVVTtcOsO7h1VVVVVVWpVV3d3VEREREVVVVXV1dERERFVVVVdXV0REREVVVVXd3dERERE=";
+

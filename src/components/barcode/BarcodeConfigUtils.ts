@@ -65,16 +65,13 @@ export const applyCameraSettings = async (
     if ('focusMode' in capabilities && capabilities.focusMode) {
       try {
         // Different browsers/devices support different focus mode strings
-        const constraints: MediaTrackConstraints = {};
-        
-        // Check if the requested focus mode is supported in capabilities
         const focusModeArray = capabilities.focusMode as string[];
         const desiredFocusMode = focusMode === 'continuous' ? 'continuous' : 'manual';
         
         if (focusModeArray.includes(desiredFocusMode)) {
-          // Apply the constraint using proper type assertion
+          // Apply the constraint using advanced property with proper type assertion
           await track.applyConstraints({
-            focusMode: desiredFocusMode
+            advanced: [{ focusMode: desiredFocusMode } as MediaTrackConstraintSet]
           });
           console.log(`Focus set to ${desiredFocusMode} mode`);
         }

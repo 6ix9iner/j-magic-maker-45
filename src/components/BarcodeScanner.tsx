@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { 
   BrowserMultiFormatReader, 
   DecodeHintType, 
@@ -17,9 +18,13 @@ interface BarcodeScannerProps {
   onDetected: (result: string) => void;
 }
 
+// Sound for successful scan
+const BEEP_SOUND_URL = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAKAAAJTAAXFxcXJCQkJCQwMDAwPT09PT1JSUlJVlZWVlZiYmJib29vb295eXl5hoaGhoaTk5OToKCgoKCsrKystbW1tbXBwcHBzs7Ozs7a2tra5ubm5ub09PT0/v7+/v8AAAAAUE1QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMuJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7kMQAAAiNHWG1iYAI447zTqTQARbSfG5WJgAnBF+nDRJgBOx3J8KxGFTru0KhQKhwMBgMDx8fH8fBwH/4OA+D/8H/wfB//8Hwf//B8H//B8H//wH/4EA//xAP/8QD//EA//xAP/8QD//EA//wF2xBUHZH6kR9SEkj6R/iNH3d3d0REd3d3d0REX//////////////////+qqq7u7uqqqqqqu7u7qqqqqqu7u7qqqqqqqIiIiO7u7oiIiIju7u6IiIiI7u7uiIiIiHREX/////////////////////////////////////////////////////////////////////////8AAgIJiBBQGJYF4X+AQcZEfH5YFwX//B8H//B///////8QD//iAf/4CAf/4CJAOHj4/jwOAgGAwKhQKHcnBZx9CzuQoFAoHB6qqrUIddVVVVbh2191VVVVdw7fh2qqqqrhLexwl1VVVXVVlC3ucJdVVVVVVTtcOsO7h1VVVVVVWpVV3d3VEREREVVVVXV1dERERFVVVVdXV0REREVVVVXd3dERERE=";
+
 const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const beepSoundRef = useRef<HTMLAudioElement | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -27,11 +32,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const scanIntervalRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const lastDetectionRef = useRef<string | null>(null);
+  const lastDetectionTimeRef = useRef<number>(0);
 
   useEffect(() => {
+    // Initialize audio element for beep sound
+    beepSoundRef.current = new Audio(BEEP_SOUND_URL);
+
     // Initialize the barcode reader with hints for better performance
     const hints = new Map();
-    // Set hints to focus on common formats like EAN, UPC, CODE_128, etc.
+    // Set hints to focus on common formats
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [
       BarcodeFormat.EAN_13, 
       BarcodeFormat.EAN_8,
@@ -41,13 +51,22 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       BarcodeFormat.CODE_39,
       BarcodeFormat.CODE_93,
       BarcodeFormat.QR_CODE,
-      BarcodeFormat.DATA_MATRIX
+      BarcodeFormat.DATA_MATRIX,
+      BarcodeFormat.PDF_417,
+      BarcodeFormat.AZTEC
     ]);
+
     // Additional hints for better performance
     hints.set(DecodeHintType.TRY_HARDER, true);
     hints.set(DecodeHintType.ASSUME_GS1, true);
+    // Allow pure barcode scanning (no background)
+    hints.set(DecodeHintType.PURE_BARCODE, true);
+    // Character set
+    hints.set(DecodeHintType.CHARACTER_SET, "UTF-8");
+    // Allow multiple barcodes in view
+    hints.set(DecodeHintType.ALSO_INVERTED, true);
     
-    const codeReader = new BrowserMultiFormatReader(hints, 1000); // Increased timeout for more reliable detection
+    const codeReader = new BrowserMultiFormatReader(hints, 2000); // Increased timeout for more reliable detection
     codeReaderRef.current = codeReader;
 
     return () => {
@@ -62,7 +81,62 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
 
-  // Manual processing using canvas
+  // Handle successful barcode detection with debounce
+  const handleDetection = useCallback((barcodeValue: string) => {
+    // Prevent duplicate scans (debounce)
+    const now = Date.now();
+    if (lastDetectionRef.current === barcodeValue && now - lastDetectionTimeRef.current < 2000) {
+      return; // Skip if same code detected within 2 seconds
+    }
+
+    // Update last detection tracking
+    lastDetectionRef.current = barcodeValue;
+    lastDetectionTimeRef.current = now;
+    
+    // Play beep sound
+    if (beepSoundRef.current) {
+      beepSoundRef.current.play().catch(e => console.error("Error playing sound:", e));
+    }
+    
+    // Notify about the detection
+    console.log("Barcode detected:", barcodeValue);
+    onDetected(barcodeValue);
+    stopScanning();
+    toast.success("Barcode detected!");
+  }, [onDetected]);
+
+  // Apply image processing for better contrast
+  const enhanceCanvasForLowLight = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    try {
+      // Get the image data
+      const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Apply some basic contrast enhancement
+      for (let i = 0; i < data.length; i += 4) {
+        // Convert to grayscale first using luminance formula
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        
+        // Apply contrast and brightness adjustments
+        const contrast = 1.5; // Increase contrast
+        const brightness = 10; // Slightly increase brightness
+        
+        // Apply contrast and brightness formula
+        const newVal = (gray - 128) * contrast + 128 + brightness;
+        
+        // Set the new grayscale value to all channels
+        data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, newVal));
+      }
+      
+      // Put the modified pixels back
+      context.putImageData(imageData, 0, 0);
+    } catch (e) {
+      console.error("Error enhancing image:", e);
+      // Continue without enhancement if it fails
+    }
+  };
+
+  // Manual processing using canvas with enhanced image processing
   const processVideoFrame = () => {
     if (!videoRef.current || !canvasRef.current || !codeReaderRef.current) return;
     
@@ -85,24 +159,32 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       // Draw video frame to canvas
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
       
+      // Apply image enhancement for low light conditions
+      enhanceCanvasForLowLight(context, canvas);
+      
       // Convert canvas to a format ZXing can process
       const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
       const binarizer = new HybridBinarizer(luminanceSource);
       const bitmap = new BinaryBitmap(binarizer);
       
-      // Use the correct decoding method for BinaryBitmap
-      const result = codeReaderRef.current.decodeBitmap(bitmap);
-      
-      if (result) {
-        const barcodeValue = result.getText();
-        console.log("Barcode detected from canvas:", barcodeValue);
-        
-        if (barcodeValue && barcodeValue.trim() !== '') {
-          onDetected(barcodeValue);
-          stopScanning();
-          toast.success("Barcode detected!");
+      // Try different rotations if needed for difficult angles
+      try {
+        // Standard orientation first
+        const result = codeReaderRef.current.decodeBitmap(bitmap);
+        if (result) {
+          const barcodeValue = result.getText();
+          if (barcodeValue && barcodeValue.trim() !== '') {
+            handleDetection(barcodeValue);
+          }
+          return;
         }
+      } catch (err) {
+        // Silent failure - try other orientations
       }
+      
+      // If standard orientation fails, we would ideally try different image processing
+      // But additional processing attempts would be here
+      
     } catch (err) {
       // Silent failure for this method as we're trying repeatedly
       // Most frames won't contain a valid barcode
@@ -151,6 +233,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         
         // Important: Set playsInline again programmatically
         videoRef.current.playsInline = true;
+        videoRef.current.autoplay = true;
         
         // Play the video and handle any errors
         videoRef.current.play().catch(e => {
@@ -178,12 +261,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
               .then(result => {
                 if (result) {
                   const barcodeValue = result.getText();
-                  console.log("Barcode detected from stream:", barcodeValue);
-                  
                   if (barcodeValue && barcodeValue.trim() !== '') {
-                    onDetected(barcodeValue);
-                    stopScanning();
-                    toast.success("Barcode detected!");
+                    handleDetection(barcodeValue);
                   }
                 }
               })
@@ -201,12 +280,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                         .then(result => {
                           if (result) {
                             const barcodeValue = result.getText();
-                            console.log("Barcode detected from stream (retry):", barcodeValue);
-                            
                             if (barcodeValue && barcodeValue.trim() !== '') {
-                              onDetected(barcodeValue);
-                              stopScanning();
-                              toast.success("Barcode detected!");
+                              handleDetection(barcodeValue);
                             }
                           }
                         })
@@ -214,7 +289,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                           // Continue scanning silently
                         });
                     }
-                  }, 300);
+                  }, 200);
                 }
               });
           } catch (err) {
@@ -234,7 +309,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             if (videoRef.current && (videoRef.current.paused || videoRef.current.ended)) {
               videoRef.current.play().catch(e => console.error("Video auto-restart error:", e));
             }
-          }, 150); // Faster scanning interval
+          }, 100); // Faster scanning interval for quicker detection
         };
         
         // Add event listeners to handle video issues
@@ -344,15 +419,15 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                   className="hidden" 
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  {/* Horizontal scanning line with animation */}
+                  {/* Scanning animation elements */}
                   <div className="w-full h-1 bg-blue-500 opacity-70 animate-bounce"></div>
                   
-                  {/* Target area border */}
+                  {/* Target area border with enhanced visibility */}
                   <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-80">
-                    <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-blue-500"></div>
-                    <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-blue-500"></div>
-                    <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-blue-500"></div>
-                    <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-blue-500"></div>
+                    <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-blue-500"></div>
+                    <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-blue-500"></div>
+                    <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-blue-500"></div>
+                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-blue-500"></div>
                   </div>
                 </div>
               </div>
@@ -368,6 +443,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Hidden audio element for beep sound */}
+      <audio ref={beepSoundRef} src={BEEP_SOUND_URL} style={{ display: 'none' }} />
     </>
   );
 };

@@ -61,25 +61,33 @@ export const applyCameraSettings = async (
     const capabilities = track.getCapabilities();
     console.log("Camera capabilities:", capabilities);
     
-    // Apply focus mode if supported
+    // Apply focus mode if supported - Fixed TypeScript error by using proper type casting
     if ('focusMode' in capabilities) {
       try {
         // Different browsers/devices support different focus mode strings
-        await track.applyConstraints({ 
-          advanced: [{ focusMode: focusMode === 'continuous' ? 'continuous' : 'manual' }]
-        } as MediaTrackConstraints);
+        const constraints: MediaTrackConstraints = {};
+        
+        if (capabilities.focusMode?.includes(focusMode === 'continuous' ? 'continuous' : 'manual')) {
+          constraints.focusMode = focusMode === 'continuous' ? 'continuous' : 'manual';
+        }
+        
+        await track.applyConstraints(constraints);
         console.log(`Focus set to ${focusMode} mode`);
       } catch (e) {
         console.error("Focus mode not supported:", e);
       }
     }
     
-    // Apply zoom if supported
+    // Apply zoom if supported - Fixed TypeScript error by using proper type casting
     if ('zoom' in capabilities) {
       try {
-        await track.applyConstraints({ 
-          advanced: [{ zoom }] 
-        } as MediaTrackConstraints);
+        const constraints: MediaTrackConstraints = {};
+        
+        if (capabilities.zoom) {
+          constraints.zoom = zoom;
+        }
+        
+        await track.applyConstraints(constraints);
         console.log(`Zoom set to ${zoom}x`);
       } catch (e) {
         console.error("Zoom not supported:", e);
@@ -92,3 +100,4 @@ export const applyCameraSettings = async (
 
 // Beep sound for successful scan (base64 encoded)
 export const BEEP_SOUND_URL = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAKAAAJTAAXFxcXJCQkJCQwMDAwPT09PT1JSUlJVlZWVlZiYmJib29vb295eXl5hoaGhoaTk5OToKCgoKCsrKystbW1tbXBwcHBzs7Ozs7a2tra5ubm5ub09PT0/v7+/v8AAAAAUE1QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMuJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7kMQAAAiNHWG1iYAI447zTqTQARbSfG5WJgAnBF+nDRJgBOx3J8KxGFTru0KhQKhwMBgMDx8fH8fBwH/4OA+D/8H/wfB//8Hwf//B8H//B8H//wH/4EA//xAP/8QD//EA//xAP/8QD//EA//wF2xBUHZH6kR9SEkj6R/iNH3d3d0REd3d3d0REX//////////////////+qqq7u7uqqqqqqu7u7qqqqqqu7u7qqqqqqqIiIiO7u7oiIiIju7u6IiIiI7u7uiIiIiHREX/////////////////////////////////////////////////////////////////////////8AAgIJiBBQGJYF4X+AQcZEfH5YFwX//B8H//B///////8QD//iAf/4CAf/4CJAOHj4/jwOAgGAwKhQKHcnBZx9CzuQoFAoHB6qqrUIddVVVVbh2191VVVVdw7fh2qqqqrhLexwl1VVVXVVlC3ucJdVVVVVVTtcOsO7h1VVVVVVWpVV3d3VEREREVVVVXV1dERERFVVVVdXV0REREVVVVXd3dERERE=";
+

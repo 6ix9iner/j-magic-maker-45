@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { 
   BrowserMultiFormatReader, 
@@ -5,13 +6,20 @@ import {
   BarcodeFormat,
   HTMLCanvasElementLuminanceSource,
   BinaryBitmap,
-  HybridBinarizer
+  HybridBinarizer,
+  GlobalHistogramBinarizer
 } from '@zxing/library';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { ScanBarcode, Loader } from "lucide-react";
+import { ScanBarcode, Loader, ZoomIn, ZoomOut, Focus } from "lucide-react";
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface BarcodeScannerProps {
   onDetected: (result: string) => void;
@@ -33,12 +41,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const streamRef = useRef<MediaStream | null>(null);
   const lastDetectionRef = useRef<string | null>(null);
   const lastDetectionTimeRef = useRef<number>(0);
+  const [zoom, setZoom] = useState(1);
+  const [focusMode, setFocusMode] = useState<string>("continuous");
+  const focusModes = ["continuous", "manual"];
 
   useEffect(() => {
-    // Initialize audio element for beep sound
+    // Initialize audio element for beep sound - louder volume for Samsung devices
     beepSoundRef.current = new Audio(BEEP_SOUND_URL);
-
-    // Initialize the barcode reader with hints for better performance
+    beepSoundRef.current.volume = 1.0; // Maximum volume for the beep
+    
+    // Initialize the barcode reader with hints optimized for blurry images
     const hints = new Map();
     // Set hints to focus on common formats
     hints.set(DecodeHintType.POSSIBLE_FORMATS, [
@@ -52,7 +64,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       BarcodeFormat.QR_CODE,
       BarcodeFormat.DATA_MATRIX,
       BarcodeFormat.PDF_417,
-      BarcodeFormat.AZTEC
+      BarcodeFormat.AZTEC,
+      BarcodeFormat.ITF,  // Added for industrial barcodes
+      BarcodeFormat.CODABAR, // Added for legacy systems
+      BarcodeFormat.MAXICODE // Added for shipping labels
     ]);
 
     // Additional hints for better performance
@@ -63,7 +78,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     // Character set
     hints.set(DecodeHintType.CHARACTER_SET, "UTF-8");
     
-    const codeReader = new BrowserMultiFormatReader(hints, 2000); // Increased timeout for more reliable detection
+    // Increase timeout for more reliable detection, especially on Samsung devices
+    const codeReader = new BrowserMultiFormatReader(hints, 3000); 
     codeReaderRef.current = codeReader;
 
     return () => {
@@ -92,7 +108,23 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     // Play beep sound
     if (beepSoundRef.current) {
-      beepSoundRef.current.play().catch(e => console.error("Error playing sound:", e));
+      // Attempt multiple times to play the sound (common issue on Samsung)
+      const playBeep = () => {
+        beepSoundRef.current?.play()
+          .catch(e => {
+            console.error("Error playing sound:", e);
+            // Try again for Samsung devices which may have initial audio issues
+            setTimeout(() => {
+              beepSoundRef.current?.play().catch(() => console.log("Retry failed"));
+            }, 100);
+          });
+      };
+      
+      playBeep();
+      // Vibrate the device - better feedback for Samsung phones
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
+      }
     }
     
     // Notify about the detection
@@ -102,38 +134,99 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     toast.success("Barcode detected!");
   }, [onDetected]);
 
-  // Apply image processing for better contrast
-  const enhanceCanvasForLowLight = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  // Apply advanced image processing for blurry barcodes
+  const enhanceCanvasForBlurryBarcodes = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
     try {
       // Get the image data
       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
       const data = imageData.data;
       
-      // Apply some basic contrast enhancement
+      // Samsung S10 optimizations - more aggressive contrast enhancement
+      const contrast = 1.8; // Higher contrast for Samsung screens
+      const brightness = 15; // Higher brightness for better visibility
+      const threshold = 128; // Mid-point for thresholding
+      
+      // Apply multi-stage image processing
       for (let i = 0; i < data.length; i += 4) {
-        // Convert to grayscale first using luminance formula
-        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        // Step 1: Convert to grayscale with optimal weights for Samsung displays
+        const gray = 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
         
-        // Apply contrast and brightness adjustments
-        const contrast = 1.5; // Increase contrast
-        const brightness = 10; // Slightly increase brightness
+        // Step 2: Apply contrast and brightness adjustments
+        let newVal = (gray - threshold) * contrast + threshold + brightness;
         
-        // Apply contrast and brightness formula
-        const newVal = (gray - 128) * contrast + 128 + brightness;
+        // Step 3: Apply adaptive thresholding based on local area
+        if (i % (canvas.width * 16) === 0) { // Sample every few rows for performance
+          // Check for areas that might contain barcodes (high contrast regions)
+          let localContrast = 0;
+          for (let j = -8; j <= 8; j += 2) {
+            if (i + j * 4 >= 0 && i + j * 4 < data.length) {
+              localContrast += Math.abs(data[i + j * 4] - data[i]);
+            }
+          }
+          
+          // In high contrast areas (likely barcode regions), increase sharpness
+          if (localContrast > 200) {
+            newVal = newVal > threshold ? 255 : 0; // Binary threshold for barcode-like areas
+          }
+        }
         
-        // Set the new grayscale value to all channels
+        // Apply the enhanced values
         data[i] = data[i + 1] = data[i + 2] = Math.max(0, Math.min(255, newVal));
       }
       
       // Put the modified pixels back
       context.putImageData(imageData, 0, 0);
+      
+      // For debugging - capture processed frames occasionally
+      if (Math.random() < 0.01) { // 1% of frames
+        console.log("Enhanced frame for blur reduction applied");
+      }
     } catch (e) {
       console.error("Error enhancing image:", e);
       // Continue without enhancement if it fails
     }
   };
+  
+  // Try different binarizer methods for better barcode detection
+  const tryMultipleBinarizers = (luminanceSource: HTMLCanvasElementLuminanceSource) => {
+    try {
+      // Try HybridBinarizer first (good for most cases)
+      const hybridBinarizer = new HybridBinarizer(luminanceSource);
+      const hybridBitmap = new BinaryBitmap(hybridBinarizer);
+      
+      try {
+        if (codeReaderRef.current) {
+          const result = codeReaderRef.current.decodeBitmap(hybridBitmap);
+          if (result) {
+            return result.getText();
+          }
+        }
+      } catch (err) {
+        // Silent failure - try other method
+      }
+      
+      // Fall back to GlobalHistogramBinarizer (sometimes better for blurry codes)
+      const histogramBinarizer = new GlobalHistogramBinarizer(luminanceSource);
+      const histogramBitmap = new BinaryBitmap(histogramBinarizer);
+      
+      if (codeReaderRef.current) {
+        try {
+          const result = codeReaderRef.current.decodeBitmap(histogramBitmap);
+          if (result) {
+            return result.getText();
+          }
+        } catch (err) {
+          // Silent failure
+        }
+      }
+      
+      return null; // No barcode found with either method
+    } catch (err) {
+      return null;
+    }
+  };
 
-  // Manual processing using canvas with enhanced image processing
+  // Process multiple video frames with different enhancement techniques
   const processVideoFrame = () => {
     if (!videoRef.current || !canvasRef.current || !codeReaderRef.current) return;
     
@@ -153,34 +246,55 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       
-      // Draw video frame to canvas
+      // Try multiple processing techniques for better results
+      
+      // First attempt: Standard processing
       context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      
-      // Apply image enhancement for low light conditions
-      enhanceCanvasForLowLight(context, canvas);
-      
-      // Convert canvas to a format ZXing can process
       const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
-      const binarizer = new HybridBinarizer(luminanceSource);
-      const bitmap = new BinaryBitmap(binarizer);
+      let barcodeValue = tryMultipleBinarizers(luminanceSource);
       
-      // Try different rotations if needed for difficult angles
-      try {
-        // Standard orientation first
-        const result = codeReaderRef.current.decodeBitmap(bitmap);
-        if (result) {
-          const barcodeValue = result.getText();
-          if (barcodeValue && barcodeValue.trim() !== '') {
-            handleDetection(barcodeValue);
-          }
-          return;
-        }
-      } catch (err) {
-        // Silent failure - try other orientations
+      if (barcodeValue && barcodeValue.trim() !== '') {
+        handleDetection(barcodeValue);
+        return;
       }
       
-      // If standard orientation fails, we would ideally try different image processing
-      // But additional processing attempts would be here
+      // Second attempt: Enhanced processing for blurry codes
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      enhanceCanvasForBlurryBarcodes(context, canvas);
+      const enhancedLuminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
+      barcodeValue = tryMultipleBinarizers(enhancedLuminanceSource);
+      
+      if (barcodeValue && barcodeValue.trim() !== '') {
+        handleDetection(barcodeValue);
+        return;
+      }
+      
+      // Third attempt: Try with different sections of the image
+      // This helps with partially visible or angled barcodes
+      const sections = [
+        { x: 0, y: 0, w: canvas.width, h: canvas.height/2 },
+        { x: 0, y: canvas.height/2, w: canvas.width, h: canvas.height/2 },
+        { x: 0, y: 0, w: canvas.width/2, h: canvas.height },
+        { x: canvas.width/2, y: 0, w: canvas.width/2, h: canvas.height },
+        { x: canvas.width/4, y: canvas.height/4, w: canvas.width/2, h: canvas.height/2 }
+      ];
+      
+      for (const section of sections) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        context.drawImage(
+          video, 
+          section.x, section.y, section.w, section.h,
+          0, 0, canvas.width, canvas.height
+        );
+        enhanceCanvasForBlurryBarcodes(context, canvas);
+        const sectionLuminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
+        barcodeValue = tryMultipleBinarizers(sectionLuminanceSource);
+        
+        if (barcodeValue && barcodeValue.trim() !== '') {
+          handleDetection(barcodeValue);
+          return;
+        }
+      }
       
     } catch (err) {
       // Silent failure for this method as we're trying repeatedly
@@ -188,14 +302,79 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   };
 
-  // Get camera constraints for highest available resolution
+  // Get camera constraints optimized for Samsung S10
   const getCameraConstraints = () => {
+    // Samsung S10 has a high-resolution camera, so request optimal settings
     return {
-      facingMode: { ideal: 'environment' }, // Use the back camera if available
-      width: { ideal: 3840 }, // Request highest resolution possible (4K)
-      height: { ideal: 2160 }, // The device will automatically adjust down if not supported
-      frameRate: { ideal: 60 } // Request highest framerate for smooth scanning
+      facingMode: { exact: 'environment' }, // Force back camera only for better results
+      width: { ideal: 3840 }, // Request 4K resolution
+      height: { ideal: 2160 },
+      frameRate: { ideal: 30, min: 15 }, // Balanced framerate for processing
+      // Samsung-specific enhancements for S10
+      advanced: [
+        {
+          // Request specific camera capabilities if available
+          zoom: zoom,
+          focusMode: focusMode,
+          // These properties help with Samsung's camera capabilities
+          autoFocus: focusMode === 'continuous' ? true : 'off',
+          whiteBalance: 'continuous',
+          exposureMode: 'continuous'
+        }
+      ]
     };
+  };
+
+  // Set camera focus - especially useful for Samsung devices
+  const setFocusOnCamera = async () => {
+    if (!streamRef.current) return;
+    
+    try {
+      const track = streamRef.current.getVideoTracks()[0];
+      if (!track) return;
+      
+      const capabilities = track.getCapabilities();
+      console.log("Camera capabilities:", capabilities);
+      
+      if ('focusMode' in capabilities) {
+        const constraints = { advanced: [{ focusMode: focusMode }] };
+        await track.applyConstraints(constraints);
+        console.log(`Focus set to ${focusMode} mode`);
+      }
+      
+      if ('zoom' in capabilities) {
+        const constraints = { advanced: [{ zoom: zoom }] };
+        await track.applyConstraints(constraints);
+        console.log(`Zoom set to ${zoom}x`);
+      }
+    } catch (err) {
+      console.error("Error setting camera parameters:", err);
+    }
+  };
+
+  // Toggle between focus modes
+  const toggleFocusMode = async () => {
+    const nextMode = focusMode === 'continuous' ? 'manual' : 'continuous';
+    setFocusMode(nextMode);
+    
+    // Apply new focus mode immediately if scanning
+    if (isScanning) {
+      await setFocusOnCamera();
+    }
+  };
+
+  // Adjust zoom level
+  const adjustZoom = async (increment: boolean) => {
+    const newZoom = increment 
+      ? Math.min(zoom + 0.5, 5) // Max zoom 5x
+      : Math.max(zoom - 0.5, 1); // Min zoom 1x
+      
+    setZoom(newZoom);
+    
+    // Apply new zoom immediately if scanning
+    if (isScanning) {
+      await setFocusOnCamera();
+    }
   };
 
   const startScanning = async () => {
@@ -211,13 +390,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         throw new Error("Your browser doesn't support camera access");
       }
 
-      // Request camera permission with highest possible resolution
+      // Request camera permission with Samsung S10 optimized settings
       const constraints = {
         video: getCameraConstraints(),
         audio: false
       };
       
-      console.log("Using camera constraints for highest available resolution:", constraints.video);
+      console.log("Using camera constraints for Samsung S10:", constraints.video);
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       streamRef.current = stream;
@@ -238,14 +417,20 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           setError("Failed to start video stream: " + e.message);
         });
         
+        // Apply focus settings immediately
+        await setFocusOnCamera();
+        
         // Wait for video to be ready
-        videoRef.current.onloadedmetadata = () => {
+        videoRef.current.onloadedmetadata = async () => {
           if (!videoRef.current) return;
           
           console.log("Video ready with dimensions:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
           
           // Keep the video playing
           videoRef.current.play().catch(e => console.error("Video play retry error:", e));
+          
+          // Apply focus settings again after video is loaded
+          await setFocusOnCamera();
           
           // Reset any previous scanning attempts
           if (codeReaderRef.current) {
@@ -299,6 +484,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             clearInterval(scanIntervalRef.current);
           }
           
+          // Use faster scanning interval (60ms ≈ 16fps) for Samsung phones
           scanIntervalRef.current = window.setInterval(() => {
             processVideoFrame();
             
@@ -306,7 +492,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             if (videoRef.current && (videoRef.current.paused || videoRef.current.ended)) {
               videoRef.current.play().catch(e => console.error("Video auto-restart error:", e));
             }
-          }, 100); // Faster scanning interval for quicker detection
+          }, 60);
         };
         
         // Add event listeners to handle video issues
@@ -416,22 +602,84 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                   className="hidden" 
                 />
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  {/* Scanning animation elements */}
-                  <div className="w-full h-1 bg-blue-500 opacity-70 animate-bounce"></div>
+                  {/* Scanning animation with prominent Samsung-friendly colors */}
+                  <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
                   
-                  {/* Target area border with enhanced visibility */}
-                  <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-80">
-                    <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-blue-500"></div>
-                    <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-blue-500"></div>
-                    <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-blue-500"></div>
-                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-blue-500"></div>
+                  {/* Target area border with enhanced visibility for Samsung screens */}
+                  <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
                   </div>
+                  
+                  {/* Status indicator */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
+                    {focusMode === 'continuous' ? 'Auto Focus' : 'Manual Focus'} | Zoom: {zoom}x
+                  </div>
+                </div>
+                
+                {/* Camera controls - optimized for Samsung */}
+                <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-4 z-10">
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="secondary" 
+                          size="icon"
+                          onClick={() => adjustZoom(false)}
+                          className="bg-black bg-opacity-60 border border-white/20 rounded-full"
+                        >
+                          <ZoomOut className="w-5 h-5 text-white" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Zoom Out</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="secondary" 
+                          size="icon"
+                          onClick={toggleFocusMode}
+                          className="bg-black bg-opacity-60 border border-white/20 rounded-full"
+                        >
+                          <Focus className="w-5 h-5 text-white" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Toggle Focus Mode</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="secondary" 
+                          size="icon"
+                          onClick={() => adjustZoom(true)}
+                          className="bg-black bg-opacity-60 border border-white/20 rounded-full"
+                        >
+                          <ZoomIn className="w-5 h-5 text-white" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Zoom In</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
             )}
             
             <p className="text-sm text-center text-gray-600">
-              Position the barcode within the highlighted area
+              Position barcode within the frame. Adjust zoom for blurry codes.
             </p>
             
             <Button variant="outline" onClick={stopScanning} className="mt-4">

@@ -55,6 +55,15 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
     }
   };
 
+  // CSS styles for video elements
+  const videoStyles = {
+    objectFit: 'contain !important',
+    width: '100% !important',
+    height: '100% !important',
+    maxWidth: '100% !important',
+    maxHeight: '100% !important',
+  } as React.CSSProperties;
+
   return (
     <div className="w-full flex flex-col items-center justify-center space-y-4">
       {isError || cameraPermissions === false ? (
@@ -113,16 +122,18 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                     }}
                   />
                   
-                  {/* Force any injected video elements to stay contained */}
-                  <style jsx>{`
-                    .dce-video-container video {
-                      object-fit: contain !important;
-                      width: 100% !important;
-                      height: 100% !important;
-                      max-width: 100% !important;
-                      max-height: 100% !important;
-                    }
-                  `}</style>
+                  {/* Add global styles for the video elements using style tag */}
+                  <style dangerouslySetInnerHTML={{
+                    __html: `
+                      .dce-video-container video {
+                        object-fit: contain !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        max-width: 100% !important;
+                        max-height: 100% !important;
+                      }
+                    `
+                  }} />
                   
                   {/* The scan area overlay */}
                   {isScanning && (

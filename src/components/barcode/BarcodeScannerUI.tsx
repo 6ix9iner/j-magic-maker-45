@@ -97,25 +97,17 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                   </div>
                 )}
                 
-                {/* This is the container for the Dynamsoft scanner */}
+                {/* Container for the Dynamsoft scanner - this is where the video appears */}
                 <div 
                   ref={viewRef} 
                   className="absolute inset-0 flex items-center justify-center overflow-hidden"
                 >
                   {/* Video container where Dynamsoft will inject the video element */}
                   <div 
-                    className="dce-video-container absolute inset-0" 
-                    style={{ 
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      overflow: 'hidden',
-                      width: '100%',
-                      height: '100%'
-                    }}
+                    className="dce-video-container absolute inset-0"
                   />
                   
-                  {/* Global styles for video elements */}
+                  {/* Global styles for video elements - CRITICAL for proper display */}
                   <style dangerouslySetInnerHTML={{
                     __html: `
                       .dce-video-container {
@@ -124,6 +116,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                         top: 0 !important;
                         width: 100% !important;
                         height: 100% !important;
+                        overflow: hidden !important;
                       }
                       .dce-video-container video {
                         object-fit: cover !important;
@@ -132,6 +125,8 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                         position: absolute !important;
                         left: 0 !important;
                         top: 0 !important;
+                        display: block !important;
+                        transform: none !important;
                       }
                       .dce-scanarea {
                         position: absolute !important;

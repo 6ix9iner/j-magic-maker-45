@@ -62,11 +62,15 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
             </div>
           )}
           
-          {/* Scanner View Container */}
+          {/* Scanner View Container with special classes for the Dynamsoft scanner */}
           <div 
             ref={viewRef} 
-            className="w-full h-full"
-          ></div>
+            className="w-full h-full dce-video-container"
+            style={{ position: 'relative', width: '100%', height: '100%' }}
+          >
+            {/* This placeholder div helps Dynamsoft identify the container */}
+            <div className="dce-video-container" style={{ position: 'relative', width: '100%', height: '100%' }}></div>
+          </div>
           
           {/* Scanning animation with prominent colors */}
           {isScanning && (

@@ -61,7 +61,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
-
+  
+  // When opening the dialog, we need to ensure we have a small delay before starting the scanner
   const handleStartScanning = () => {
     setIsOpen(true);
     // Slight delay to ensure dialog is open before starting camera

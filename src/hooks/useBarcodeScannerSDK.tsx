@@ -24,9 +24,21 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const barcodeScannerRef = useRef<BarcodeScanner | null>(null);
   const { toast } = useToast();
 
+  // Check for camera permissions immediately
   useEffect(() => {
     const checkPermissions = async () => {
       try {
+        // First check if permissions are already granted
+        const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+        
+        if (result.state === 'granted') {
+          console.log('Camera permission is already granted');
+          setCameraPermissions(true);
+          return;
+        }
+        
+        // If not already granted, try to request access
+        console.log('Requesting camera access...');
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { 
             facingMode: { ideal: 'environment' },
@@ -34,8 +46,10 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             height: { ideal: 720 }
           } 
         });
+        
         // Release the stream immediately after permission check
         stream.getTracks().forEach(track => track.stop());
+        console.log('Camera permission granted');
         setCameraPermissions(true);
       } catch (err) {
         console.error('Camera permission check failed:', err);
@@ -46,6 +60,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     checkPermissions();
   }, []);
 
+  // Initialize the barcode SDK
   useEffect(() => {
     const initSDK = async () => {
       try {
@@ -144,42 +159,57 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         }
       } else {
         console.log('Starting scanner...');
+        
+        // Crucial step: Make sure the UI element has a proper DOM structure for the scanner
         await barcodeScannerRef.current.setUIElement(viewRef.current);
-
+        
+        // Set up the onUnduplicatedRead callback to handle successful scans
         barcodeScannerRef.current.onUnduplicatedRead = (txt, result) => {
           console.log('Barcode detected:', txt, result.barcodeFormatString);
           onScan(txt, result.barcodeFormatString);
         };
 
         try {
-          await barcodeScannerRef.current.show();
-          console.log('Scanner showed successfully');
+          // Add a small delay to ensure the UI element is properly rendered
+          setTimeout(async () => {
+            try {
+              await barcodeScannerRef.current?.show();
+              console.log('Scanner showed successfully');
+              setIsScanning(true);
+            } catch (e) {
+              console.error('Error showing scanner after delay:', e);
+              handleScanError(e);
+            }
+          }, 300);
           
           // Fix 2: Remove getCameraInfo which doesn't exist on BarcodeScanner
-          // Just log that scanner is active
           console.log('Camera is now active');
-          
-          // We can check torch capability in a safer way later when needed
         } catch (e) {
           console.error('Error showing scanner:', e);
-          toast({
-            title: 'Camera Error',
-            description: 'Failed to access camera. Please check permissions.',
-            variant: 'destructive'
-          });
-          setIsError(true);
+          handleScanError(e);
           return;
         }
       }
-      setIsScanning(prev => !prev);
+      
+      // Only toggle state when stopping to avoid race conditions
+      if (isScanning) {
+        setIsScanning(false);
+      }
     } catch (error) {
       console.error('Error toggling scan state:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to toggle scanning mode.',
-        variant: 'destructive'
-      });
+      handleScanError(error);
     }
+  };
+  
+  // Helper function to handle scan errors
+  const handleScanError = (error: any) => {
+    toast({
+      title: 'Camera Error',
+      description: 'Failed to access camera. Please check permissions.',
+      variant: 'destructive'
+    });
+    setIsError(true);
+    setCameraPermissions(false);
   };
 
   const toggleTorch = async () => {

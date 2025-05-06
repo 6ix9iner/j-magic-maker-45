@@ -236,19 +236,6 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         }
       }
       
-      // Finally, try to clear UI element references
-      try {
-        if (!scanner.isOpen) {
-          // Only try to clear UI element if scanner is not open
-          await scanner.setUIElement(null);
-          console.log('UI element cleared during cleanup');
-        } else {
-          console.log('Scanner is still open, skipping UI element clear');
-        }
-      } catch (e) {
-        console.log('Error clearing UI element during cleanup:', e);
-      }
-      
       // Update state safely if component is still mounted
       if (isMountedRef.current) {
         setIsScanning(false);
@@ -323,21 +310,22 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             onScan(txt, result.barcodeFormatString);
           };
           
-          // Special settings to ensure video fits inside container
+          // Important: Cast container as HTMLElement to match the expected type
+          // Only set UI element if scanner is not already open
+          if (!scanner.isOpen) {
+            await scanner.setUIElement(container as HTMLElement);
+            console.log('UI element set successfully');
+          }
+          
+          // Configure video to FIT WITHIN the container
           try {
+            // Apply specific styles to ensure video fits in container
             if (scanner.setVideoFit) {
               await scanner.setVideoFit('contain');
               console.log('Video fit mode set to contain');
             }
           } catch (e) {
             console.log('Error setting video fit mode:', e);
-          }
-          
-          // Important: Cast container as HTMLElement to match the expected type
-          // Only set UI element if scanner is not already open
-          if (!scanner.isOpen) {
-            await scanner.setUIElement(container as HTMLElement);
-            console.log('UI element set successfully');
           }
           
           // Add a small delay to ensure the UI element is properly rendered

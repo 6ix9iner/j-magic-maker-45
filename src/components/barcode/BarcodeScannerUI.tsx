@@ -55,7 +55,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
   };
 
   return (
-    <div className="flex flex-col items-center justify-center space-y-4">
+    <div className="w-full flex flex-col items-center justify-center space-y-4">
       {isError || cameraPermissions === false ? (
         <div className="text-destructive text-center">
           <div className="flex flex-col items-center justify-center p-4">
@@ -84,95 +84,87 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
           </div>
         </div>
       ) : (
-        <div className="relative w-full max-w-sm aspect-[3/4] bg-black rounded-lg overflow-hidden">
-          {!isInitialized && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900">
-              <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
-              <p className="text-white text-sm">Initializing camera...</p>
-            </div>
-          )}
-          
-          {/* Scanner View Container - Modified for proper video containment */}
-          <div 
-            ref={viewRef} 
-            className="w-full h-full overflow-hidden"
-            style={{ position: 'relative' }}
-          >
-            {/* This div is important for the Dynamsoft scanner to identify the container */}
+        <div className="w-full flex flex-col items-center">
+          {/* Scanner View Container with fixed dimensions to properly contain the video */}
+          <div className="relative w-full max-w-sm h-[350px] bg-black rounded-lg overflow-hidden">
+            {!isInitialized && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-10">
+                <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+                <p className="text-white text-sm">Initializing camera...</p>
+              </div>
+            )}
+            
+            {/* This is the container for the Dynamsoft scanner */}
             <div 
-              className="dce-video-container" 
-              style={{ 
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '100%',
-                overflow: 'hidden',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
+              ref={viewRef} 
+              className="absolute inset-0 flex items-center justify-center"
             >
-              {/* The actual video will be injected here by the Dynamsoft library */}
+              {/* Video container where Dynamsoft will inject the video element */}
+              <div 
+                className="dce-video-container absolute inset-0" 
+                style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              />
+              
+              {/* The scan area overlay */}
+              {isScanning && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
+                  <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
+                  
+                  {/* Target area border with enhanced visibility */}
+                  <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
+                  </div>
+                  
+                  {/* Status indicator */}
+                  <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
+                    Scanning for barcodes...
+                  </div>
+                </div>
+              )}
             </div>
             
-            {/* The scan area overlay with properly contained dimensions */}
-            {isScanning && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
-                
-                {/* Target area border with enhanced visibility */}
-                <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
-                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
-                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
-                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
-                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
-                </div>
-                
-                {/* Status indicator */}
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
-                  Scanning for barcodes...
-                </div>
+            {/* Torch control */}
+            {isInitialized && isScanning && (
+              <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-4 z-20">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="secondary" 
+                        size="icon"
+                        onClick={onToggleTorch}
+                        className="bg-black bg-opacity-60 border border-white/20 rounded-full"
+                      >
+                        {isTorchOn ? (
+                          <FlashlightOff className="w-5 h-5 text-white" />
+                        ) : (
+                          <Flashlight className="w-5 h-5 text-white" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isTorchOn ? 'Turn Off Torch' : 'Turn On Torch'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             )}
           </div>
           
-          {/* Torch control */}
-          {isInitialized && isScanning && (
-            <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-4 z-10">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="secondary" 
-                      size="icon"
-                      onClick={onToggleTorch}
-                      className="bg-black bg-opacity-60 border border-white/20 rounded-full"
-                    >
-                      {isTorchOn ? (
-                        <FlashlightOff className="w-5 h-5 text-white" />
-                      ) : (
-                        <Flashlight className="w-5 h-5 text-white" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isTorchOn ? 'Turn Off Torch' : 'Turn On Torch'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
-          )}
+          <p className="text-sm text-center text-gray-600 mt-3">
+            Position barcode within the frame for automatic scanning.
+          </p>
         </div>
       )}
       
-      {!isError && cameraPermissions !== false && (
-        <p className="text-sm text-center text-gray-600">
-          Position barcode within the frame for automatic scanning.
-        </p>
-      )}
-      
-      <Button variant="outline" onClick={onCancel} className="mt-4">
+      <Button variant="outline" onClick={onCancel} className="mt-2">
         Cancel
       </Button>
     </div>

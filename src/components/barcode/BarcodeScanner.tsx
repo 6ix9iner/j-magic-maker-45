@@ -159,30 +159,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   };
 
-  // Scanner UI content - shared between Dialog and Sheet
-  const ScannerUIContent = () => (
-    <>
-      <div className="p-4">
-        <h2 className="text-xl font-semibold mb-2">Scan Barcode</h2>
-        <p className="text-sm text-gray-500 mb-4">
-          Position the barcode within the camera view for automatic scanning
-        </p>
-      </div>
-      
-      <BarcodeScannerUI 
-        isScanning={isScanning}
-        isTorchOn={isTorchOn}
-        isInitialized={isInitialized}
-        isError={isError}
-        cameraPermissions={cameraPermissions}
-        viewRef={viewRef}
-        onToggleTorch={toggleTorch}
-        onCancel={handleStopScanning}
-        onRequestPermission={requestCameraPermission}
-      />
-    </>
-  );
-
   return (
     <>
       <Button 
@@ -195,14 +171,50 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
       {useSheet ? (
         <Sheet open={isOpen} onOpenChange={handleDialogChange}>
-          <SheetContent side="bottom" className="h-[85vh] sm:max-w-md flex flex-col items-center justify-center p-0">
-            <ScannerUIContent />
+          <SheetContent side="bottom" className="h-[85vh] sm:max-w-md flex flex-col p-0">
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-semibold">Scan Barcode</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Position the barcode within the camera view for automatic scanning
+              </p>
+            </div>
+            <div className="flex-1 flex items-center justify-center p-4">
+              <BarcodeScannerUI 
+                isScanning={isScanning}
+                isTorchOn={isTorchOn}
+                isInitialized={isInitialized}
+                isError={isError}
+                cameraPermissions={cameraPermissions}
+                viewRef={viewRef}
+                onToggleTorch={toggleTorch}
+                onCancel={handleStopScanning}
+                onRequestPermission={requestCameraPermission}
+              />
+            </div>
           </SheetContent>
         </Sheet>
       ) : (
         <Dialog open={isOpen} onOpenChange={handleDialogChange}>
           <DialogContent className="sm:max-w-md p-0">
-            <ScannerUIContent />
+            <DialogHeader className="p-4 border-b">
+              <DialogTitle>Scan Barcode</DialogTitle>
+              <DialogDescription>
+                Position the barcode within the camera view for automatic scanning
+              </DialogDescription>
+            </DialogHeader>
+            <div className="p-4 flex flex-col items-center justify-center">
+              <BarcodeScannerUI 
+                isScanning={isScanning}
+                isTorchOn={isTorchOn}
+                isInitialized={isInitialized}
+                isError={isError}
+                cameraPermissions={cameraPermissions}
+                viewRef={viewRef}
+                onToggleTorch={toggleTorch}
+                onCancel={handleStopScanning}
+                onRequestPermission={requestCameraPermission}
+              />
+            </div>
           </DialogContent>
         </Dialog>
       )}

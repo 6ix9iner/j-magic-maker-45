@@ -19,6 +19,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [scanReady, setScanReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const retryCountRef = useRef<number>(0);
+  const torchStateRef = useRef<boolean>(false);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -93,7 +94,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     toggleTorch,
     requestCameraPermission,
     cleanupScanner,
-    resetScanner
+    resetScanner,
+    setTorchState
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
@@ -103,6 +105,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(true);
     setScanReady(true);
     retryCountRef.current = 0;
+    torchStateRef.current = false;
     
     // Reset the scanner first to ensure a clean start
     await resetScanner();
@@ -115,8 +118,36 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
   // Stop scanning when dialog closes
   const handleStopScanning = async () => {
+    // First turn off the torch if it's on
+    if (torchStateRef.current) {
+      try {
+        await setTorchState(false);
+        torchStateRef.current = false;
+      } catch (e) {
+        console.log("Error turning off torch during cleanup:", e);
+      }
+    }
+    
     await cleanupScanner();
     setIsOpen(false);
+  };
+
+  // Handle the torch toggle with better state tracking
+  const handleTorchToggle = async () => {
+    try {
+      const newTorchState = !torchStateRef.current;
+      const success = await setTorchState(newTorchState);
+      
+      if (success) {
+        torchStateRef.current = newTorchState;
+        toast.success(newTorchState ? "Torch turned on" : "Torch turned off", {
+          duration: 1000
+        });
+      }
+    } catch (error) {
+      console.error("Torch toggle error:", error);
+      toast.error("Could not toggle torch");
+    }
   };
 
   // Try to reset the scanner when it fails, with retry limit
@@ -140,6 +171,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       const hasPermission = await requestCameraPermission();
       
       if (hasPermission) {
+        // Reset torch state
+        torchStateRef.current = false;
+        
         // Start scanning again
         setTimeout(() => {
           toggleScanning();
@@ -191,12 +225,12 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
               {scanReady && (
                 <BarcodeScannerUI 
                   isScanning={isScanning}
-                  isTorchOn={isTorchOn}
+                  isTorchOn={torchStateRef.current}
                   isInitialized={isInitialized}
                   isError={isError}
                   cameraPermissions={cameraPermissions}
                   viewRef={viewRef}
-                  onToggleTorch={toggleTorch}
+                  onToggleTorch={handleTorchToggle}
                   onCancel={handleStopScanning}
                   onRequestPermission={requestCameraPermission}
                   onRetry={handleRetry}
@@ -218,12 +252,12 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
               {scanReady && (
                 <BarcodeScannerUI 
                   isScanning={isScanning}
-                  isTorchOn={isTorchOn}
+                  isTorchOn={torchStateRef.current}
                   isInitialized={isInitialized}
                   isError={isError}
                   cameraPermissions={cameraPermissions}
                   viewRef={viewRef}
-                  onToggleTorch={toggleTorch}
+                  onToggleTorch={handleTorchToggle}
                   onCancel={handleStopScanning}
                   onRequestPermission={requestCameraPermission}
                   onRetry={handleRetry}

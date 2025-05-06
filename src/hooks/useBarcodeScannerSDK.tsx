@@ -552,27 +552,38 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     }
   }, [isInitialized, isScanning, cleanupScanner, onScan, resetScanner, cameraPermissions, requestCameraPermission]);
 
-  // Toggle torch
-  const toggleTorch = useCallback(async () => {
+  // Set torch state directly with improved error handling
+  const setTorchState = useCallback(async (state: boolean): Promise<boolean> => {
     if (!isInitialized || !scannerRef.current || !isScanning) {
-      return;
+      console.log('Cannot set torch state when scanner is not active');
+      return false;
     }
     
     try {
-      if (isTorchOn) {
-        await scannerRef.current.turnOffTorch();
-      } else {
+      console.log(`Setting torch state to ${state ? 'ON' : 'OFF'}`);
+      
+      if (state) {
         await scannerRef.current.turnOnTorch();
+      } else {
+        await scannerRef.current.turnOffTorch();
       }
       
       if (isMountedRef.current) {
-        setIsTorchOn(!isTorchOn);
+        setIsTorchOn(state);
       }
+      
+      console.log(`Torch state set to ${state ? 'ON' : 'OFF'} successfully`);
+      return true;
     } catch (error) {
-      console.error('Error toggling torch:', error);
-      toast.error('Failed to toggle flashlight');
+      console.error(`Error setting torch state to ${state ? 'ON' : 'OFF'}:`, error);
+      return false;
     }
-  }, [isInitialized, isScanning, isTorchOn]);
+  }, [isInitialized, isScanning]);
+
+  // Legacy toggle torch function (now uses setTorchState)
+  const toggleTorch = useCallback(async () => {
+    return await setTorchState(!isTorchOn);
+  }, [isTorchOn, setTorchState]);
 
   return {
     viewRef,
@@ -583,6 +594,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     cameraPermissions,
     toggleScanning,
     toggleTorch,
+    setTorchState,
     requestCameraPermission,
     cleanupScanner,
     resetScanner

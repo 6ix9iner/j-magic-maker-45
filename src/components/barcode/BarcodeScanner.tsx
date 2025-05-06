@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { useBarcodeScanner } from './useBarcodeScanner';
+import { useBarcodeScannerSDK } from '@/hooks/useBarcodeScannerSDK';
 import BarcodeScannerUI from './BarcodeScannerUI';
+import { BEEP_SOUND_URL } from '@/utils/dynamsoftConfig';
 
 interface BarcodeScannerProps {
   onDetected: (result: string) => void;
@@ -13,34 +14,62 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   
-  const {
-    videoRef,
-    canvasRef,
-    beepSoundRef,
-    isScanning,
-    error,
-    zoom,
-    focusMode,
-    startScanning,
-    stopScanning,
-    adjustZoom,
-    toggleFocusMode,
-    hasVideoFeed
-  } = useBarcodeScanner({
-    onDetected: (barcodeValue: string) => {
-      onDetected(barcodeValue);
-      toast.success("Barcode detected!");
+  useEffect(() => {
+    // Initialize audio element for beep sound
+    audioRef.current = new Audio(BEEP_SOUND_URL);
+    audioRef.current.volume = 1.0;
+    
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+  
+  const handleScan = (code: string, symbology: string) => {
+    // Play beep sound
+    if (audioRef.current) {
+      audioRef.current.play()
+        .catch(e => console.error("Error playing sound:", e));
     }
+    
+    // Vibrate the device if supported
+    if (navigator.vibrate) {
+      navigator.vibrate(200);
+    }
+    
+    // Call the onDetected callback
+    onDetected(code);
+    toast.success("Barcode detected!");
+    
+    // Close the dialog
+    setIsOpen(false);
+  };
+
+  const {
+    viewRef,
+    isScanning,
+    isTorchOn,
+    isInitialized,
+    isError,
+    toggleScanning,
+    toggleTorch
+  } = useBarcodeScannerSDK({
+    onScan: handleScan
   });
 
   const handleStartScanning = () => {
     setIsOpen(true);
-    startScanning();
+    toggleScanning();
   };
 
   const handleStopScanning = () => {
-    stopScanning();
+    if (isScanning) {
+      toggleScanning();
+    }
     setIsOpen(false);
   };
 
@@ -65,22 +94,15 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           
           <BarcodeScannerUI 
             isScanning={isScanning}
-            hasVideoFeed={hasVideoFeed}
-            zoom={zoom}
-            focusMode={focusMode}
-            error={error}
-            onZoomIn={() => adjustZoom(true)}
-            onZoomOut={() => adjustZoom(false)}
-            onToggleFocus={toggleFocusMode}
+            isTorchOn={isTorchOn}
+            isInitialized={isInitialized}
+            isError={isError}
+            viewRef={viewRef}
+            onToggleTorch={toggleTorch}
             onCancel={handleStopScanning}
-            videoRef={videoRef}
-            canvasRef={canvasRef}
           />
         </DialogContent>
       </Dialog>
-      
-      {/* Hidden audio element for beep sound */}
-      <audio ref={beepSoundRef} style={{ display: 'none' }} />
     </>
   );
 };

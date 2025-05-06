@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { useToast } from '@/hooks/use-toast';
@@ -144,6 +143,9 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   
           scanner.singleFrameMode = false;
           
+          // Ensure scanner uses contain mode for video
+          scanner.ifShowScanRegionMask = false;
+          
           // Configure to fit video inside the container instead of stretching/overflowing
           try {
             await scanner.updateVideoSettings({
@@ -155,6 +157,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
               }
             });
             console.log('Camera video settings updated with objectFit: contain');
+            
+            // Apply additional CSS styles to ensure video stays contained
+            if (scanner.setVideoFit) {
+              await scanner.setVideoFit('contain');
+              console.log('Video fit mode set to contain');
+            }
           } catch (e) {
             console.error('Failed to update video settings:', e);
           }
@@ -335,6 +343,26 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             // Attempt to open the camera and start scanning
             await scanner.open();
             console.log('Scanner opened successfully');
+            
+            // Apply a direct style to video element after opening
+            try {
+              setTimeout(() => {
+                // Find any video elements in the container and force them to be contained
+                const videoElements = viewRef.current?.querySelectorAll('video');
+                if (videoElements && videoElements.length > 0) {
+                  videoElements.forEach(video => {
+                    video.style.objectFit = 'contain';
+                    video.style.width = '100%';
+                    video.style.height = '100%';
+                    video.style.maxWidth = '100%';
+                    video.style.maxHeight = '100%';
+                  });
+                  console.log('Applied contain style to video elements');
+                }
+              }, 100);
+            } catch (e) {
+              console.log('Error applying direct styles to video:', e);
+            }
             
             // Start scanning
             await scanner.show();

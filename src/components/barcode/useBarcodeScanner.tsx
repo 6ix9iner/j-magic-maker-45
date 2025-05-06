@@ -38,8 +38,12 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
     // Initialize Dynamsoft BarcodeScanner
     const initScanner = async () => {
       try {
-        // Make sure BarcodeScanner is supported
-        if (!(await DynamsoftScanner.isSupported())) {
+        // Check browser compatibility
+        // Dynamsoft doesn't have an isSupported static method, so we'll try to create an instance
+        try {
+          await DynamsoftScanner.createInstance();
+          // If we get here, it's supported
+        } catch (err) {
           throw new Error("Your browser doesn't support the scanner.");
         }
         
@@ -154,12 +158,20 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
         await scannerRef.current.open();
         
         // Get the stream for camera controls
-        const videoTrack = scannerRef.current.getVideoTrack();
-        if (videoTrack) {
-          streamRef.current = new MediaStream([videoTrack]);
-          
-          // Apply any zoom settings
-          await applyCameraSettings(videoTrack, zoom);
+        // Fix: Access video track from MediaStream instead of using getVideoTrack()
+        // First get the video element that the scanner is using
+        const videoElement = videoRef.current;
+        if (videoElement && videoElement.srcObject) {
+          // Get the MediaStream from the video element
+          const mediaStream = videoElement.srcObject as MediaStream;
+          // Get the video track from the MediaStream
+          const videoTrack = mediaStream.getVideoTracks()[0];
+          if (videoTrack) {
+            streamRef.current = new MediaStream([videoTrack]);
+            
+            // Apply any zoom settings
+            await applyCameraSettings(videoTrack, zoom);
+          }
         }
         
         setHasPermission(true);

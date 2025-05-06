@@ -42,10 +42,13 @@ export const BARCODE_READER_CONFIG = {
  */
 export const initializeDynamsoft = async () => {
   try {
-    // Set CDN path
+    // Set up the engine and resource paths
     BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
-    // Wait for engine to load
-    return await BarcodeReader.loadWasm();
+    
+    // Configure paths to ensure worker scripts are loaded correctly
+    await BarcodeReader.loadWasm();
+    
+    return true;
   } catch (error) {
     console.error("Failed to initialize Dynamsoft SDK:", error);
     throw error;

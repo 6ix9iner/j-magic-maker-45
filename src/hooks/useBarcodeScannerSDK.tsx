@@ -28,8 +28,11 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       try {
         // Set license
         BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-
-        // Load WASM
+        
+        // Set resource path to ensure worker scripts load correctly
+        BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+        
+        // Wait for engine to initialize
         await BarcodeReader.loadWasm();
 
         // Create scanner

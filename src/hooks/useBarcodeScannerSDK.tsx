@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { toast } from 'sonner';
@@ -366,7 +365,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           console.log('Opening camera...');
           await scannerRef.current.open();
           
-          // Style video elements
+          // Style video elements - THIS IS THE SECTION WE NEED TO FIX
           setTimeout(() => {
             const videoElements = document.querySelectorAll('.dce-video-container video');
             videoElements.forEach((video) => {

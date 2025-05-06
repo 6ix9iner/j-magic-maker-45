@@ -13,6 +13,11 @@ interface UseBarcodeScannerSDKProps {
   onScan: (code: string, symbology: string) => void;
 }
 
+// Extend MediaTrackCapabilities to include torch property
+interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
+  torch?: boolean;
+}
+
 export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const viewRef = useRef<HTMLDivElement | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -620,7 +625,9 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       // Check if torch is supported on the device first - useful for iOS
       try {
         const capabilities = await scannerRef.current.getCapabilities();
-        if (!capabilities?.torch) {
+        // Cast to our extended interface that includes the torch property
+        const extendedCapabilities = capabilities as ExtendedMediaTrackCapabilities;
+        if (!extendedCapabilities?.torch) {
           console.log('Torch not supported on this device/browser');
           if (state) {
             toast.error("Torch not available on this device");

@@ -61,8 +61,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     onDetected(code);
     toast.success(`Barcode detected: ${symbology}`);
     
-    // Close the dialog and cleanup scanner properly
-    setIsOpen(false);
+    // Close the dialog and cleanup scanner properly with delay to ensure it's processed
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 300);
   };
 
   const {
@@ -84,61 +86,40 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const handleStartScanning = () => {
     setIsOpen(true);
     setHasOpenedBefore(true);
-    // Use a longer delay to ensure dialog is fully rendered
+    
+    // Use a longer delay to ensure dialog is fully rendered and everything is ready
     setTimeout(() => {
       if (!isScanning) {
         toggleScanning();
       }
-    }, 1000); // Increased from 700 to 1000ms for better reliability
+    }, 1200);
   };
 
   // Properly clean up resources when stopping
   const handleStopScanning = async () => {
     try {
-      // More thorough cleanup
+      // Stop scanner first
       await cleanupScanner();
-      // Small delay before changing dialog state to ensure cleanup completes
+      
+      // Close dialog after cleanup with a small delay
       setTimeout(() => {
         setIsOpen(false);
-      }, 100);
+      }, 300);
     } catch (error) {
       console.error("Error during scanner cleanup:", error);
       setIsOpen(false); // Still close even if there's an error
     }
   };
 
-  // Reset the scanner if there's an error when reopening
-  useEffect(() => {
-    // Only try to reinitialize if the dialog is open
-    if (isOpen && hasOpenedBefore && isError) {
-      const reinitialize = async () => {
-        // Ensure previous scanner instance is fully cleaned up
-        await cleanupScanner();
-        // Short delay before requesting camera permission again
-        setTimeout(async () => {
-          await requestCameraPermission();
-          // If still open after permission, try to start scanning again
-          if (isOpen && !isScanning) {
-            setTimeout(() => {
-              toggleScanning();
-            }, 800);
-          }
-        }, 500);
-      };
-      
-      reinitialize();
-    }
-  }, [isOpen, hasOpenedBefore, isError, cleanupScanner, requestCameraPermission, isScanning, toggleScanning]);
-
   // Clean up scanner resources when dialog closes or component unmounts
   useEffect(() => {
     if (!isOpen && hasOpenedBefore) {
-      // Clean up resources when dialog closes with small delay to ensure dialog transitions complete
+      // Clean up resources when dialog closes with delay to ensure dialog transitions complete
       const cleanup = async () => {
-        // Short delay before cleanup to avoid race conditions with dialog animations
+        // Wait a moment before cleanup to avoid race conditions
         setTimeout(async () => {
           await cleanupScanner();
-        }, 300);
+        }, 500);
       };
       cleanup();
     }
@@ -154,8 +135,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   // Prevent multiple open/close cycles that can cause scanner instability
   const handleDialogChange = (open: boolean) => {
     if (!open && isOpen) {
+      // When closing dialog, ensure we do proper cleanup
       handleStopScanning();
     } else if (open && !isOpen) {
+      // When opening dialog, ensure we start scanning
       handleStartScanning();
     }
   };

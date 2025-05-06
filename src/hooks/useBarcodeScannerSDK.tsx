@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { useToast } from '@/hooks/use-toast';
@@ -120,6 +121,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
         // Create scanner if we don't already have one
         if (!barcodeScannerRef.current) {
+          console.log('Starting scanner cleanup...');
           const scanner = await BarcodeScanner.createInstance();
           barcodeScannerRef.current = scanner;
           console.log('Scanner instance created successfully');
@@ -152,7 +154,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
               video: {
                 facingMode: { ideal: 'environment' },
                 width: { ideal: 1280 },
-                height: { ideal: 720 }
+                height: { ideal: 720 },
+                fill: true
               }
             });
             console.log('Camera video settings updated');

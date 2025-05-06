@@ -1,4 +1,3 @@
-
 /**
  * Dynamsoft Barcode Reader configuration
  */
@@ -66,14 +65,26 @@ export const initializeDynamsoft = async () => {
       // Set up the engine and resource paths with more reliable CDN
       BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
       
-      // Force clean resources using proper API
-      // Instead of using cleanCache (which doesn't exist), we properly
-      // release any existing resources
+      // Force clean resources by destroying any existing instances
+      // Instead of using releaseAllInstances (which doesn't exist), we'll get
+      // existing instances and destroy them individually
       try {
-        await BarcodeReader.releaseAllInstances();
-        console.log("Released existing BarcodeReader instances");
+        const instances = await BarcodeReader.getInstancesCount();
+        if (instances > 0) {
+          console.log(`Found ${instances} existing reader instances, cleaning up...`);
+          const allReaders = await BarcodeReader.getInstanceIds();
+          for (const id of allReaders) {
+            try {
+              const reader = await BarcodeReader.getInstance(id);
+              await reader.destroy();
+              console.log(`Destroyed reader instance ${id}`);
+            } catch (err) {
+              console.warn(`Failed to destroy reader ${id}:`, err);
+            }
+          }
+        }
       } catch (releaseError) {
-        console.warn("No existing instances to release:", releaseError);
+        console.warn("Error accessing reader instances:", releaseError);
       }
       
       // Configure resource path to ensure worker scripts are loaded correctly

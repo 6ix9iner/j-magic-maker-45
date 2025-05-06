@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { useToast } from '@/hooks/use-toast';
@@ -219,12 +218,24 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       barcodeScannerRef.current = null;
     }
     
-    // Release all instances instead of using cleanCache
+    // Clean up any existing barcode reader instances individually
     try {
-      await BarcodeReader.releaseAllInstances();
-      console.log('Barcode reader instances released');
+      const instances = await BarcodeReader.getInstancesCount();
+      if (instances > 0) {
+        console.log(`Found ${instances} existing reader instances, cleaning up...`);
+        const allReaders = await BarcodeReader.getInstanceIds();
+        for (const id of allReaders) {
+          try {
+            const reader = await BarcodeReader.getInstance(id);
+            await reader.destroy();
+            console.log(`Destroyed reader instance ${id}`);
+          } catch (err) {
+            console.warn(`Failed to destroy reader ${id}:`, err);
+          }
+        }
+      }
     } catch (e) {
-      console.error('Error releasing barcode reader instances:', e);
+      console.error('Error cleaning up barcode reader instances:', e);
     }
     
     // Reset scanner state flags

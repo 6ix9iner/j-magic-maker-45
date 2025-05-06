@@ -143,26 +143,19 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   
           scanner.singleFrameMode = false;
           
-          // Ensure scanner uses contain mode for video
+          // Enhanced configuration for video display
           scanner.ifShowScanRegionMask = false;
           
-          // Configure to fit video inside the container instead of stretching/overflowing
+          // Configure camera to fill the container
           try {
             await scanner.updateVideoSettings({
               video: {
                 facingMode: { ideal: 'environment' },
                 width: { ideal: 1280 },
-                height: { ideal: 720 },
-                objectFit: 'contain'
+                height: { ideal: 720 }
               }
             });
-            console.log('Camera video settings updated with objectFit: contain');
-            
-            // Apply additional CSS styles to ensure video stays contained
-            if (scanner.setVideoFit) {
-              await scanner.setVideoFit('contain');
-              console.log('Video fit mode set to contain');
-            }
+            console.log('Camera video settings updated');
           } catch (e) {
             console.error('Failed to update video settings:', e);
           }
@@ -325,15 +318,25 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             console.log('UI element set successfully');
           }
           
-          // Configure video to FIT WITHIN the container
           try {
-            // Apply specific styles to ensure video fits in container
+            // Enforce video positioning and fill behavior
+            await scanner.updateVideoSettings({ 
+              video: {
+                facingMode: 'environment',
+                fill: true,
+                width: { ideal: 1280 },
+                height: { ideal: 720 }
+              } 
+            });
+            console.log('Video settings updated to fill mode');
+            
+            // Additional custom settings for the scanner if available
             if (scanner.setVideoFit) {
-              await scanner.setVideoFit('contain');
-              console.log('Video fit mode set to contain');
+              await scanner.setVideoFit('cover');
+              console.log('Video fit set to cover');
             }
           } catch (e) {
-            console.log('Error setting video fit mode:', e);
+            console.log('Error setting video display mode:', e);
           }
           
           // Add a small delay to ensure the UI element is properly rendered
@@ -344,25 +347,23 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             await scanner.open();
             console.log('Scanner opened successfully');
             
-            // Apply a direct style to video element after opening
-            try {
-              setTimeout(() => {
-                // Find any video elements in the container and force them to be contained
-                const videoElements = viewRef.current?.querySelectorAll('video');
-                if (videoElements && videoElements.length > 0) {
-                  videoElements.forEach(video => {
-                    video.style.objectFit = 'contain';
-                    video.style.width = '100%';
-                    video.style.height = '100%';
-                    video.style.maxWidth = '100%';
-                    video.style.maxHeight = '100%';
-                  });
-                  console.log('Applied contain style to video elements');
-                }
-              }, 100);
-            } catch (e) {
-              console.log('Error applying direct styles to video:', e);
-            }
+            // Apply direct styles to video elements after opening
+            setTimeout(() => {
+              // Find any video elements in the container and style them
+              const videoElements = document.querySelectorAll('.dce-video-container video');
+              if (videoElements.length > 0) {
+                videoElements.forEach((video) => {
+                  const videoElement = video as HTMLVideoElement;
+                  videoElement.style.objectFit = 'cover';
+                  videoElement.style.width = '100%';
+                  videoElement.style.height = '100%';
+                  videoElement.style.position = 'absolute';
+                  videoElement.style.left = '0';
+                  videoElement.style.top = '0';
+                });
+                console.log('Applied cover style to video elements');
+              }
+            }, 100);
             
             // Start scanning
             await scanner.show();
@@ -495,7 +496,6 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     }
   };
 
-  // Function to manually request camera permission
   const requestCameraPermission = async (): Promise<boolean> => {
     try {
       console.log('Manually requesting camera permission...');

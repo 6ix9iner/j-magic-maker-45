@@ -55,15 +55,6 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
     }
   };
 
-  // CSS styles for video elements - defined as valid CSS Properties without !important
-  const videoStyles = {
-    objectFit: 'contain',
-    width: '100%',
-    height: '100%',
-    maxWidth: '100%',
-    maxHeight: '100%',
-  } as React.CSSProperties;
-
   return (
     <div className="w-full flex flex-col items-center justify-center space-y-4">
       {isError || cameraPermissions === false ? (
@@ -109,7 +100,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                 {/* This is the container for the Dynamsoft scanner */}
                 <div 
                   ref={viewRef} 
-                  className="absolute inset-0 flex items-center justify-center"
+                  className="absolute inset-0 flex items-center justify-center overflow-hidden"
                 >
                   {/* Video container where Dynamsoft will inject the video element */}
                   <div 
@@ -118,19 +109,36 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      overflow: 'hidden'
+                      overflow: 'hidden',
+                      width: '100%',
+                      height: '100%'
                     }}
                   />
                   
-                  {/* Add global styles for the video elements using style tag */}
+                  {/* Global styles for video elements */}
                   <style dangerouslySetInnerHTML={{
                     __html: `
-                      .dce-video-container video {
-                        object-fit: contain !important;
+                      .dce-video-container {
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
                         width: 100% !important;
                         height: 100% !important;
-                        max-width: 100% !important;
-                        max-height: 100% !important;
+                      }
+                      .dce-video-container video {
+                        object-fit: cover !important;
+                        width: 100% !important;
+                        height: 100% !important;
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                      }
+                      .dce-scanarea {
+                        position: absolute !important;
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
                       }
                     `
                   }} />

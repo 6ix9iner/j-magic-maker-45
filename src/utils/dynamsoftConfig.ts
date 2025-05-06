@@ -32,15 +32,15 @@ export const BARCODE_READER_CONFIG = {
     maxNumberOfResults: 1
   },
   // Performance settings - optimized for speed
-  timeout: 6000, // Reduced timeout for faster startup (was 12000ms)
-  deblurLevel: 2, // Lower deblur level for faster processing (was 3)
+  timeout: 6000, // Reduced timeout for faster startup
+  deblurLevel: 2, // Lower deblur level for faster processing
   maxAlgorithmThreadCount: 1, // Single thread for faster startup
   // Video settings - improved for performance
   videoSettings: {
     video: {
       facingMode: 'environment',
-      width: { ideal: 640 }, // Lower resolution for faster loading (was 1280)
-      height: { ideal: 480 }, // Lower resolution for faster loading (was 720)
+      width: { ideal: 640 }, // Lower resolution for faster loading
+      height: { ideal: 480 }, // Lower resolution for faster loading
       fill: true,
       objectFit: 'cover' 
     }
@@ -75,41 +75,11 @@ export const initializeDynamsoft = async () => {
       console.warn("Could not set some browser compatibility options:", e);
     }
     
-    // Check if there's already a global instance we can reuse
-    if (globalReaderInstance) {
-      console.log("Reusing existing reader instance");
-      return true;
-    }
-    
     // Faster SDK loader - load WASM resources early
     try {
       await BarcodeReader.loadWasm();
     } catch (e) {
       console.warn("Early WASM loading failed, will retry:", e);
-    }
-    
-    // Create a new reader instance with fast settings
-    try {
-      console.log("Creating new BarcodeReader instance");
-      globalReaderInstance = await BarcodeReader.createInstance();
-      console.log("Successfully created reader instance");
-    } catch (error) {
-      console.error("Error creating reader instance:", error);
-      // If we failed, try to reset everything and try again with minimal settings
-      try {
-        console.log("Attempting to reset SDK state with minimal settings");
-        // Try with minimum settings
-        const tempReader = await BarcodeReader.createInstance();
-        if (tempReader) {
-          await tempReader.destroyContext();
-          console.log("Reset SDK state successfully");
-        }
-        // Try again after reset with minimal configuration
-        globalReaderInstance = await BarcodeReader.createInstance();
-      } catch (resetError) {
-        console.error("Failed to reset SDK state:", resetError);
-        throw resetError;
-      }
     }
     
     console.log("Dynamsoft SDK initialized successfully");
@@ -125,11 +95,12 @@ export const initializeDynamsoft = async () => {
  */
 export const getReaderInstance = async (): Promise<BarcodeReader> => {
   if (!globalReaderInstance) {
-    await initializeDynamsoft();
-  }
-  
-  if (!globalReaderInstance) {
-    throw new Error("Failed to get reader instance");
+    try {
+      globalReaderInstance = await BarcodeReader.createInstance();
+    } catch (error) {
+      console.error("Failed to create reader instance:", error);
+      throw error;
+    }
   }
   
   return globalReaderInstance;

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Loader, CameraOff, Flashlight, FlashlightOff, RefreshCw } from "lucide-react";
 import { 
   Tooltip,
@@ -13,11 +13,11 @@ import { AspectRatio } from "@/components/ui/aspect-ratio";
 
 interface BarcodeScannerUIProps {
   isScanning: boolean;
-  isTorchOn: boolean;
   isInitialized: boolean;
   isError: boolean;
-  cameraPermissions?: boolean | null;
+  isTorchOn?: boolean;
   viewRef: React.RefObject<HTMLDivElement>;
+  cameraPermissions?: boolean | null;
   onToggleTorch: () => void;
   onCancel: () => void;
   onRequestPermission?: () => Promise<boolean>;
@@ -26,17 +26,17 @@ interface BarcodeScannerUIProps {
 
 const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
   isScanning,
-  isTorchOn,
   isInitialized,
   isError,
-  cameraPermissions,
+  isTorchOn = false,
   viewRef,
+  cameraPermissions,
   onToggleTorch,
   onCancel,
   onRequestPermission,
   onRetry
 }) => {
-  const [isRequestingPermission, setIsRequestingPermission] = React.useState(false);
+  const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   
   // Function to handle requesting camera permissions
   const requestCameraPermission = async () => {

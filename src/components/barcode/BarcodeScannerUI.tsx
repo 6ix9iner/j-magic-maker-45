@@ -55,13 +55,13 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
     }
   };
 
-  // CSS styles for video elements
+  // CSS styles for video elements - defined as valid CSS Properties without !important
   const videoStyles = {
-    objectFit: 'contain !important',
-    width: '100% !important',
-    height: '100% !important',
-    maxWidth: '100% !important',
-    maxHeight: '100% !important',
+    objectFit: 'contain',
+    width: '100%',
+    height: '100%',
+    maxWidth: '100%',
+    maxHeight: '100%',
   } as React.CSSProperties;
 
   return (

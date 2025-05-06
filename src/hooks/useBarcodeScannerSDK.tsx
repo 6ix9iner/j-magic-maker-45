@@ -218,7 +218,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             };
             
             // Important: Set the UI element before showing
-            await scanner.setUIElement(container);
+            // FIX: Cast container as HTMLElement to match the expected type
+            await scanner.setUIElement(container as HTMLElement);
             console.log('UI element set successfully');
             
             // Add a small delay to ensure the UI element is properly rendered
@@ -250,17 +251,27 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     if (error && error.message && error.message.includes("It is not allowed to change the UIElement when the camera is open")) {
       // Handle the specific error by stopping the scanner first
       if (barcodeScannerRef.current) {
-        barcodeScannerRef.current.stop().then(() => {
-          setTimeout(() => {
-            setIsScanning(false);
-            // Allow user to try again
-            toast({
-              title: 'Scanner Reset',
-              description: 'Please try scanning again.',
-              variant: 'default'
-            });
-          }, 500);
-        });
+        // FIX: Don't try to call .then() on a void return type
+        // Instead use an async function with await
+        const resetScanner = async () => {
+          try {
+            await barcodeScannerRef.current?.stop();
+            setTimeout(() => {
+              setIsScanning(false);
+              // Allow user to try again
+              toast({
+                title: 'Scanner Reset',
+                description: 'Please try scanning again.',
+                variant: 'default'
+              });
+            }, 500);
+          } catch (err) {
+            console.error('Error stopping scanner during reset:', err);
+          }
+        };
+        
+        // Call the async function
+        resetScanner();
       }
     } else {
       toast({
@@ -332,3 +343,4 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     requestCameraPermission
   };
 };
+

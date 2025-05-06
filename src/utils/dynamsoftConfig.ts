@@ -66,8 +66,15 @@ export const initializeDynamsoft = async () => {
       // Set up the engine and resource paths with more reliable CDN
       BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
       
-      // Force clean any previous instances to avoid conflicts
-      await BarcodeReader.cleanCache();
+      // Force clean resources using proper API
+      // Instead of using cleanCache (which doesn't exist), we properly
+      // release any existing resources
+      try {
+        await BarcodeReader.releaseAllInstances();
+        console.log("Released existing BarcodeReader instances");
+      } catch (releaseError) {
+        console.warn("No existing instances to release:", releaseError);
+      }
       
       // Configure resource path to ensure worker scripts are loaded correctly
       await BarcodeReader.loadWasm();

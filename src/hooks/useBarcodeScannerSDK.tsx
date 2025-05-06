@@ -219,12 +219,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       barcodeScannerRef.current = null;
     }
     
-    // Clear cached resources
+    // Release all instances instead of using cleanCache
     try {
-      await BarcodeReader.cleanCache();
-      console.log('Barcode reader cache cleaned');
+      await BarcodeReader.releaseAllInstances();
+      console.log('Barcode reader instances released');
     } catch (e) {
-      console.error('Error cleaning barcode reader cache:', e);
+      console.error('Error releasing barcode reader instances:', e);
     }
     
     // Reset scanner state flags

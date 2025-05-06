@@ -15,10 +15,8 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
-  const [scanAttempts, setScanAttempts] = useState(0); // Track number of scan attempts
-  const [needsReset, setNeedsReset] = useState(false); // Flag to indicate camera needs resetting
+  const [scanReady, setScanReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
@@ -35,14 +33,11 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
   
-  // Make sure to preload the audio for faster playback
+  // Preload the audio for faster playback
   useEffect(() => {
-    // Initialize audio element for beep sound with higher volume and preload
     audioRef.current = new Audio(BEEP_SOUND_URL);
     audioRef.current.volume = 1.0;
     audioRef.current.preload = 'auto';
-    
-    // Preload the sound
     audioRef.current.load();
     
     return () => {
@@ -52,42 +47,40 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       }
     };
   }, []);
-  
+
   // Handle successful scan with sound and vibration
   const handleScan = (code: string, symbology: string) => {
-    // Play beep sound with more reliable method
+    // Play sound
     if (audioRef.current) {
-      // Reset to beginning in case it was already played
       audioRef.current.currentTime = 0;
-      
       const playPromise = audioRef.current.play();
-      
-      // Handle the promise to avoid uncaught promise errors
       if (playPromise !== undefined) {
         playPromise.catch(e => {
-          console.error("Error playing sound:", e);
+          console.log("Sound play error:", e);
         });
       }
     }
     
-    // Vibrate the device if supported
+    // Vibrate device if supported
     if (navigator.vibrate) {
       navigator.vibrate(200);
     }
     
-    // Reset scan attempts
-    setScanAttempts(0);
-    
-    // Call the onDetected callback
+    // Call callback with result
     onDetected(code);
-    toast.success(`Barcode detected: ${symbology}`);
     
-    // Close the dialog and cleanup scanner properly with delay to ensure it's processed
+    // Show toast
+    toast.success(`Barcode scanned: ${symbology}`, {
+      duration: 2000
+    });
+    
+    // Close the dialog with slight delay
     setTimeout(() => {
       setIsOpen(false);
     }, 300);
   };
 
+  // Initialize the barcode scanner SDK
   const {
     viewRef,
     isScanning,
@@ -103,114 +96,64 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
-  
-  // When opening the dialog, start scanning after a delay to ensure dialog is fully rendered
-  const handleStartScanning = () => {
+
+  // Start scanning when dialog opens
+  const handleOpenScanner = () => {
     setIsOpen(true);
-    setHasOpenedBefore(true);
-    setScanAttempts(prev => prev + 1); // Increment scan attempts
+    setScanReady(true);
     
-    // Reset flag
-    setNeedsReset(false);
-    
-    // Show troubleshooting tip if user has tried multiple times
-    if (scanAttempts >= 2) {
-      toast.info("Camera not showing? Try closing and reopening the scanner.", {
-        duration: 5000
-      });
-    }
-    
-    // Use a longer delay to ensure dialog is fully rendered and everything is ready
+    // Start scanning with slight delay to let UI render
     setTimeout(() => {
-      if (!isScanning) {
-        toggleScanning();
-      }
-    }, 1200);
+      toggleScanning();
+    }, 800);
   };
 
-  // Properly clean up resources when stopping
+  // Stop scanning when dialog closes
   const handleStopScanning = async () => {
-    try {
-      // Stop scanner first
-      await cleanupScanner();
-      
-      // Close dialog after cleanup with a small delay
-      setTimeout(() => {
-        setIsOpen(false);
-      }, 300);
-    } catch (error) {
-      console.error("Error during scanner cleanup:", error);
-      setIsOpen(false); // Still close even if there's an error
-    }
+    await cleanupScanner();
+    setIsOpen(false);
   };
-  
-  // Handle retry operation
+
+  // Try to reset the scanner when it fails
   const handleRetry = async () => {
-    try {
-      toast.info("Retrying scanner...");
-      
-      // First clean up the scanner
-      await cleanupScanner();
-      
-      // Reset the scanner with a complete refresh
-      await resetScanner();
-      
-      // Set flag for retry
-      setNeedsReset(false);
-      
-      // Try to start scanning again after a short delay
+    toast.info("Restarting scanner...");
+    
+    // First clean up
+    await cleanupScanner();
+    
+    // Then reset and try again
+    const success = await resetScanner();
+    
+    if (success) {
+      // Start scanning again
       setTimeout(() => {
         toggleScanning();
-      }, 1000);
-    } catch (error) {
-      console.error("Error during scanner retry:", error);
+      }, 800);
+    } else {
       toast.error("Failed to restart scanner. Please try again.");
     }
   };
 
-  // Clean up scanner resources when dialog closes or component unmounts
-  useEffect(() => {
-    if (!isOpen && hasOpenedBefore) {
-      // Clean up resources when dialog closes with delay to ensure dialog transitions complete
-      const cleanup = async () => {
-        // Wait a moment before cleanup to avoid race conditions
-        setTimeout(async () => {
-          await cleanupScanner();
-        }, 500);
-      };
-      cleanup();
-    }
-    
-    // Clean up on unmount
-    return () => {
-      if (cleanupScanner) {
-        cleanupScanner();
-      }
-    };
-  }, [isOpen, hasOpenedBefore, cleanupScanner]);
-
-  // Watch for errors and set the needs reset flag
-  useEffect(() => {
-    if (isError && isOpen) {
-      setNeedsReset(true);
-    }
-  }, [isError, isOpen]);
-
-  // Prevent multiple open/close cycles that can cause scanner instability
-  const handleDialogChange = (open: boolean) => {
-    if (!open && isOpen) {
-      // When closing dialog, ensure we do proper cleanup
+  // Handle dialog/sheet state changes
+  const handleOpenChange = (open: boolean) => {
+    if (open) {
+      handleOpenScanner();
+    } else {
       handleStopScanning();
-    } else if (open && !isOpen) {
-      // When opening dialog, ensure we start scanning
-      handleStartScanning();
     }
   };
+
+  // Clean up when component unmounts
+  useEffect(() => {
+    return () => {
+      cleanupScanner();
+    };
+  }, [cleanupScanner]);
 
   return (
     <>
       <Button 
-        onClick={handleStartScanning}
+        onClick={handleOpenScanner}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
       >
         <ScanBarcode className="w-5 h-5 mr-2" />
@@ -218,52 +161,56 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       </Button>
 
       {useSheet ? (
-        <Sheet open={isOpen} onOpenChange={handleDialogChange}>
+        <Sheet open={isOpen} onOpenChange={handleOpenChange}>
           <SheetContent side="bottom" className="h-[85vh] sm:max-w-md flex flex-col p-0">
             <div className="p-4 border-b">
               <h2 className="text-xl font-semibold">Scan Barcode</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Position the barcode within the camera view for automatic scanning
+                Position barcode within view for automatic scanning
               </p>
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
-              <BarcodeScannerUI 
-                isScanning={isScanning}
-                isTorchOn={isTorchOn}
-                isInitialized={isInitialized}
-                isError={isError || needsReset}
-                cameraPermissions={cameraPermissions}
-                viewRef={viewRef}
-                onToggleTorch={toggleTorch}
-                onCancel={handleStopScanning}
-                onRequestPermission={requestCameraPermission}
-                onRetry={handleRetry}
-              />
+              {scanReady && (
+                <BarcodeScannerUI 
+                  isScanning={isScanning}
+                  isTorchOn={isTorchOn}
+                  isInitialized={isInitialized}
+                  isError={isError}
+                  cameraPermissions={cameraPermissions}
+                  viewRef={viewRef}
+                  onToggleTorch={toggleTorch}
+                  onCancel={handleStopScanning}
+                  onRequestPermission={requestCameraPermission}
+                  onRetry={handleRetry}
+                />
+              )}
             </div>
           </SheetContent>
         </Sheet>
       ) : (
-        <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
           <DialogContent className="sm:max-w-md p-0">
             <DialogHeader className="p-4 border-b">
               <DialogTitle>Scan Barcode</DialogTitle>
               <DialogDescription>
-                Position the barcode within the camera view for automatic scanning
+                Position barcode within view for automatic scanning
               </DialogDescription>
             </DialogHeader>
             <div className="p-4 flex flex-col items-center justify-center">
-              <BarcodeScannerUI 
-                isScanning={isScanning}
-                isTorchOn={isTorchOn}
-                isInitialized={isInitialized}
-                isError={isError || needsReset}
-                cameraPermissions={cameraPermissions}
-                viewRef={viewRef}
-                onToggleTorch={toggleTorch}
-                onCancel={handleStopScanning}
-                onRequestPermission={requestCameraPermission}
-                onRetry={handleRetry}
-              />
+              {scanReady && (
+                <BarcodeScannerUI 
+                  isScanning={isScanning}
+                  isTorchOn={isTorchOn}
+                  isInitialized={isInitialized}
+                  isError={isError}
+                  cameraPermissions={cameraPermissions}
+                  viewRef={viewRef}
+                  onToggleTorch={toggleTorch}
+                  onCancel={handleStopScanning}
+                  onRequestPermission={requestCameraPermission}
+                  onRetry={handleRetry}
+                />
+              )}
             </div>
           </DialogContent>
         </Dialog>

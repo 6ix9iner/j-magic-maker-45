@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Loader, Camera, CameraOff, Flashlight, FlashlightOff } from "lucide-react";
+import { Loader, CameraOff, Flashlight, FlashlightOff, RefreshCw } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
@@ -44,33 +44,27 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
     
     try {
       setIsRequestingPermission(true);
-      const granted = await onRequestPermission();
-      
-      if (!granted) {
-        // If permission denied after request
-        console.error('Camera permission request was denied');
-      }
-    } catch (err) {
-      console.error('Failed to request camera permission:', err);
+      await onRequestPermission();
     } finally {
       setIsRequestingPermission(false);
     }
   };
 
-  return (
-    <div className="w-full flex flex-col items-center justify-center space-y-4">
-      {isError || cameraPermissions === false ? (
-        <div className="text-destructive text-center">
-          <div className="flex flex-col items-center justify-center p-4">
+  // Show permission error or camera issues
+  if (isError || cameraPermissions === false) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center space-y-4">
+        <div className="text-center p-4">
+          <div className="flex flex-col items-center justify-center">
             <CameraOff className="w-12 h-12 text-destructive mb-4" />
-            <p className="font-medium">Camera access is required</p>
-            <p className="text-sm mt-2 mb-4">Please allow camera access to use the barcode scanner.</p>
-            <Alert variant="destructive" className="mb-4">
+            <p className="font-medium text-lg">Camera access required</p>
+            <Alert variant="destructive" className="my-4 max-w-xs">
               <AlertDescription>
-                If the camera permission dialog didn't appear, please check your browser settings and ensure camera access is allowed for this site.
+                Please allow camera access to scan barcodes. Check your browser settings if no permission prompt appears.
               </AlertDescription>
             </Alert>
-            <div className="flex flex-col sm:flex-row gap-3">
+            
+            <div className="flex flex-col sm:flex-row gap-3 mt-2">
               <Button 
                 onClick={requestCameraPermission} 
                 disabled={isRequestingPermission}
@@ -79,10 +73,10 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                 {isRequestingPermission ? (
                   <>
                     <Loader className="w-4 h-4 mr-2 animate-spin" />
-                    Requesting Access...
+                    Requesting...
                   </>
                 ) : (
-                  'Grant Camera Permission'
+                  'Allow Camera Access'
                 )}
               </Button>
               
@@ -91,103 +85,113 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                   onClick={onRetry}
                   variant="outline"
                 >
+                  <RefreshCw className="w-4 h-4 mr-2" />
                   Retry Scanner
                 </Button>
               )}
             </div>
           </div>
         </div>
-      ) : (
-        <div className="w-full flex flex-col items-center">
-          {/* Using fixed dimensions for more consistent behavior */}
-          <div className="w-full max-w-sm">
-            <AspectRatio ratio={4/3} className="overflow-hidden rounded-lg">
-              {/* Scanner container */}
-              <div className="scanner-container" style={{ backgroundColor: 'black' }}>
-                {!isInitialized && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-10">
-                    <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
-                    <p className="text-white text-sm">Initializing camera...</p>
-                  </div>
-                )}
+        
+        <Button variant="outline" onClick={onCancel} className="mt-2">
+          Close
+        </Button>
+      </div>
+    );
+  }
+
+  // Show scanner UI
+  return (
+    <div className="w-full flex flex-col items-center space-y-4">
+      {/* Scanner view container */}
+      <div className="w-full max-w-sm">
+        <AspectRatio ratio={4/3} className="overflow-hidden rounded-lg">
+          {/* Loading state */}
+          {!isInitialized && (
+            <div className="absolute inset-0 flex items-center justify-center bg-gray-900 z-10">
+              <div className="flex flex-col items-center">
+                <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+                <p className="text-white">Initializing camera...</p>
+              </div>
+            </div>
+          )}
+          
+          {/* Scanner container */}
+          <div className="scanner-container relative bg-black w-full h-full">
+            {/* Video container for Dynamsoft */}
+            <div 
+              ref={viewRef} 
+              className="absolute inset-0 flex items-center justify-center overflow-hidden"
+              style={{ backgroundColor: 'black' }}
+            />
+            
+            {/* Scanner overlay */}
+            {isScanning && isInitialized && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+                {/* Scan line animation */}
+                <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
                 
-                {/* Scanner container with proper z-index */}
-                <div 
-                  ref={viewRef} 
-                  className="absolute inset-0 flex items-center justify-center overflow-hidden z-0"
-                  style={{ backgroundColor: 'black' }}
-                >
-                  {/* This is the container where Dynamsoft will inject the video */}
-                  <div className="dce-video-container" />
+                {/* Target area */}
+                <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
+                  <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
+                  <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
+                  <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
+                  <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
                 </div>
                 
-                {/* Scan area overlay */}
-                {isScanning && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
-                    <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
-                    
-                    {/* Target area border with enhanced visibility */}
-                    <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
-                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
-                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
-                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
-                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
-                    </div>
-                    
-                    {/* Status indicator */}
-                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
-                      Scanning for barcodes...
-                    </div>
-                  </div>
-                )}
-                
-                {/* Torch control */}
-                {isInitialized && isScanning && (
-                  <div className="absolute bottom-16 left-0 right-0 flex justify-center gap-4 z-20">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button 
-                            variant="secondary" 
-                            size="icon"
-                            onClick={onToggleTorch}
-                            className="bg-black bg-opacity-60 border border-white/20 rounded-full"
-                          >
-                            {isTorchOn ? (
-                              <FlashlightOff className="w-5 h-5 text-white" />
-                            ) : (
-                              <Flashlight className="w-5 h-5 text-white" />
-                            )}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>{isTorchOn ? 'Turn Off Torch' : 'Turn On Torch'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </div>
-                )}
+                {/* Status indicator */}
+                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full">
+                  <p className="text-white text-xs">Scanning...</p>
+                </div>
               </div>
-            </AspectRatio>
+            )}
+            
+            {/* Torch control */}
+            {isScanning && isInitialized && (
+              <div className="absolute bottom-16 left-0 right-0 flex justify-center z-20">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="secondary" 
+                        size="icon"
+                        onClick={onToggleTorch}
+                        className="bg-black bg-opacity-60 border border-white/20 rounded-full"
+                      >
+                        {isTorchOn ? (
+                          <FlashlightOff className="w-5 h-5 text-white" />
+                        ) : (
+                          <Flashlight className="w-5 h-5 text-white" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isTorchOn ? 'Turn Off Flash' : 'Turn On Flash'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+            )}
           </div>
-          
-          <p className="text-sm text-center text-gray-600 mt-3">
-            Position barcode within the frame for automatic scanning.
-          </p>
-        </div>
-      )}
+        </AspectRatio>
+      </div>
       
-      <div className="flex gap-3">
-        <Button variant="outline" onClick={onCancel} className="mt-2">
+      <p className="text-sm text-center text-gray-600">
+        Position barcode within the frame for automatic scanning
+      </p>
+      
+      <div className="flex gap-3 w-full justify-center">
+        <Button variant="outline" onClick={onCancel}>
           Cancel
         </Button>
         
-        {isInitialized && isError && onRetry && (
+        {isInitialized && onRetry && (
           <Button 
             onClick={onRetry}
-            className="mt-2 bg-blue-600 hover:bg-blue-700"
+            variant="outline"
           >
-            Retry Scanner
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Retry
           </Button>
         )}
       </div>

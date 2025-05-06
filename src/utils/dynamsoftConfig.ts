@@ -1,4 +1,3 @@
-
 /**
  * Dynamsoft Barcode Reader configuration
  */
@@ -28,13 +27,13 @@ export const BARCODE_READER_CONFIG = {
   ],
   // Scanning settings
   scanSettings: {
-    intervalTime: 50, // Reduced from 100ms for faster scanning
+    intervalTime: 40, // Even faster scanning (was 50ms)
     maxNumberOfResults: 1
   },
   // Enhanced performance settings
-  timeout: 15000, // Increased from 10000ms for better reliability
+  timeout: 12000, // Balanced timeout
   deblurLevel: 3,
-  maxAlgorithmThreadCount: 2,
+  maxAlgorithmThreadCount: 3, // Increased from 2 for better performance
   // Video settings
   videoSettings: {
     video: {
@@ -42,68 +41,96 @@ export const BARCODE_READER_CONFIG = {
       width: { ideal: 1280 },
       height: { ideal: 720 },
       fill: true,
-      objectFit: 'cover' // Explicitly set for consistent behavior
+      objectFit: 'cover' 
     }
   }
 };
 
+// Global instance reference to improve reuse
+let globalReaderInstance: BarcodeReader | null = null;
+
 /**
  * Initialize the Dynamsoft BarcodeReader SDK
- * This function now includes better error handling and retry logic
+ * This function now includes better initialization with global instance management
  */
 export const initializeDynamsoft = async () => {
-  // Track initialization attempts
-  let attempts = 0;
-  const maxAttempts = 2;
-  
-  const tryInitialize = async () => {
+  try {
+    console.log("Initializing Dynamsoft SDK...");
+    
+    // Set license key
+    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+    
+    // Set resource path
+    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+    
+    // Check if there's already a global instance we can reuse
+    if (globalReaderInstance) {
+      console.log("Reusing existing reader instance");
+      return true;
+    }
+    
+    // Instead of trying to use methods that don't exist in the SDK
+    // Create a new reader instance that we'll keep globally
     try {
-      console.log(`Initializing Dynamsoft SDK (attempt ${attempts + 1}/${maxAttempts})...`);
-      
-      // Set license key
-      BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-      
-      // Set up the engine and resource paths with more reliable CDN
-      BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
-      
-      // Instead of attempting to use getInstancesCount, getInstanceIds and getInstance
-      // which don't exist, we'll use a try-catch approach to simply create a new instance
-      // and properly dispose of it to clean resources
+      console.log("Creating new BarcodeReader instance");
+      globalReaderInstance = await BarcodeReader.createInstance();
+      console.log("Successfully created reader instance");
+    } catch (error) {
+      console.error("Error creating reader instance:", error);
+      // If we failed, try to reset everything and try again
       try {
-        console.log("Attempting to clean up any existing resources");
-        // Create a temporary reader instance to ensure we can reset state
+        console.log("Attempting to reset SDK state");
+        // Create a temporary reader to reset the SDK state
         const tempReader = await BarcodeReader.createInstance();
         if (tempReader) {
-          // Use destroyContext instead of destroy for BarcodeReader instances
           await tempReader.destroyContext();
-          console.log("Successfully created and destroyed a temporary reader instance");
+          console.log("Reset SDK state successfully");
         }
-      } catch (releaseError) {
-        // If it fails, it's likely because there are no instances or another reason
-        console.warn("Note: Resource cleanup check completed:", releaseError);
+        // Try again after reset
+        globalReaderInstance = await BarcodeReader.createInstance();
+      } catch (resetError) {
+        console.error("Failed to reset SDK state:", resetError);
+        throw resetError;
       }
-      
-      // Configure resource path to ensure worker scripts are loaded correctly
-      await BarcodeReader.loadWasm();
-      
-      console.log("Dynamsoft SDK initialized successfully");
-      return true;
-    } catch (error) {
-      console.error(`Failed to initialize Dynamsoft SDK (attempt ${attempts + 1}/${maxAttempts}):`, error);
-      
-      // Increment attempts counter
-      attempts++;
-      
-      // If we haven't reached max attempts, try again after a delay
-      if (attempts < maxAttempts) {
-        console.log("Retrying initialization after delay...");
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        return tryInitialize();
-      }
-      
-      throw error;
     }
-  };
+    
+    // Load WASM resources
+    await BarcodeReader.loadWasm();
+    console.log("Dynamsoft SDK initialized successfully");
+    
+    return true;
+  } catch (error) {
+    console.error("Failed to initialize Dynamsoft SDK:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get the global reader instance or create one if it doesn't exist
+ */
+export const getReaderInstance = async (): Promise<BarcodeReader> => {
+  if (!globalReaderInstance) {
+    await initializeDynamsoft();
+  }
   
-  return tryInitialize();
+  if (!globalReaderInstance) {
+    throw new Error("Failed to get reader instance");
+  }
+  
+  return globalReaderInstance;
+};
+
+/**
+ * Clean up Dynamsoft resources
+ */
+export const cleanupDynamsoft = async () => {
+  if (globalReaderInstance) {
+    try {
+      await globalReaderInstance.destroyContext();
+      globalReaderInstance = null;
+      console.log("Cleaned up Dynamsoft resources");
+    } catch (error) {
+      console.error("Error cleaning up Dynamsoft resources:", error);
+    }
+  }
 };

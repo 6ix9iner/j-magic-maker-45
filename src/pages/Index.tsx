@@ -1,10 +1,9 @@
 
-import React, { useState } from 'react';
-import BarcodeScanner from '@/components/BarcodeScanner';
+import React, { useState, useCallback } from 'react';
+import BarcodeScanner from '@/components/barcode/BarcodeScanner';
 import BarcodeResult from '@/components/BarcodeResult';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -17,14 +16,22 @@ const Index = () => {
     setSaleManagerRef(React.createRef());
   }, []);
 
-  const handleBarcodeDetected = (result: string) => {
+  // Use useCallback for stable reference to avoid recreation on re-renders
+  const handleBarcodeDetected = useCallback((result: string) => {
+    // Ensure we have a valid barcode result
+    if (!result || result.trim() === '') {
+      toast.error("Invalid barcode detected");
+      return;
+    }
+    
+    // Set the barcode value and show success toast
     setBarcodeValue(result);
     toast.success("Barcode detected: " + result);
-  };
+  }, []);
 
-  const clearResult = () => {
+  const clearResult = useCallback(() => {
     setBarcodeValue(null);
-  };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">

@@ -1,4 +1,3 @@
-
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { toast } from 'sonner';
@@ -370,6 +369,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           setTimeout(() => {
             const videoElements = document.querySelectorAll('.dce-video-container video');
             videoElements.forEach((video) => {
+              // Cast to HTMLVideoElement to access style property
               const videoElement = video as HTMLVideoElement;
               videoElement.style.objectFit = 'cover';
               videoElement.style.width = '100%';

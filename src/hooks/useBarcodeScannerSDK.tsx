@@ -40,13 +40,13 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   
   // Initialize Dynamsoft when component mounts
   useEffect(() => {
+    console.log('SDK: Attempting pre-initialization...');
     const initSDK = async () => {
       try {
-        console.log('Pre-initializing SDK...');
         await initializeDynamsoft();
-        console.log('SDK pre-initialization complete');
+        console.log('SDK: Pre-initialization successful');
       } catch (error) {
-        console.warn('SDK pre-initialization failed, will retry later:', error);
+        console.warn('SDK: Pre-initialization failed, will retry later:', error);
       }
     };
     
@@ -54,7 +54,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     
     return () => {
       isMountedRef.current = false;
-      cleanupScanner();
+      cleanupScanner().catch(err => console.error("Cleanup error:", err));
     };
   }, []);
 
@@ -68,33 +68,48 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     requestInProgressRef.current = true;
     
     try {
-      console.log('Requesting camera permission...');
+      console.log('SDK: Requesting camera permission explicitly...');
       
-      // Use simplified constraints for faster camera access
+      // Force permission prompt with simpler constraints
       const constraints = {
         video: { 
-          facingMode: 'environment',
           width: { ideal: 640 },
           height: { ideal: 480 }
         },
         audio: false
       };
       
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      // Release the stream
-      stream.getTracks().forEach(track => track.stop());
-      
-      console.log('Camera permission granted');
-      setCameraPermissions(true);
-      setIsError(false);
-      
-      return true;
-    } catch (err) {
-      console.error('Failed to get camera permission:', err);
-      setCameraPermissions(false);
-      toast.error('Camera permission denied');
-      return false;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        
+        if (stream) {
+          // Release the stream immediately
+          stream.getTracks().forEach(track => track.stop());
+          console.log('SDK: Camera permission granted');
+          setCameraPermissions(true);
+          setIsError(false);
+          return true;
+        } else {
+          console.error('SDK: Stream is null after permission grant');
+          setCameraPermissions(false);
+          return false;
+        }
+      } catch (err: any) {
+        console.error('SDK: Failed to get camera permission:', err.name, err.message);
+        // Log more specific error information
+        if (err.name === 'NotAllowedError') {
+          toast.error('Camera permission denied by user or system');
+        } else if (err.name === 'NotFoundError') {
+          toast.error('No camera found on this device');
+        } else if (err.name === 'NotReadableError') {
+          toast.error('Camera is already in use by another application');
+        } else {
+          toast.error(`Camera error: ${err.name}`);
+        }
+        
+        setCameraPermissions(false);
+        return false;
+      }
     } finally {
       requestInProgressRef.current = false;
     }
@@ -103,48 +118,42 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   // Start the scanner
   const startScanner = useCallback(async (): Promise<boolean> => {
     if (!viewRef.current) {
-      console.log('View reference not available');
+      console.log('SDK: View reference not available');
       return false;
     }
     
     if (requestInProgressRef.current) {
-      console.log('Scanner request already in progress');
+      console.log('SDK: Scanner request already in progress');
       return false;
     }
     
     requestInProgressRef.current = true;
     
     try {
-      console.log('Initializing scanner...');
+      console.log('SDK: Initializing scanner...');
       
-      // Ensure we have permission first
-      if (cameraPermissions !== true) {
-        const hasPermission = await requestCameraPermission();
-        if (!hasPermission) {
-          return false;
-        }
-      }
-      
-      // Initialize Dynamsoft if needed
+      // Always initialize the SDK first
       try {
+        console.log('SDK: Ensuring Dynamsoft is initialized...');
         await initializeDynamsoft();
-        initAttempts.current = 0; // Reset attempt counter on success
+        initAttempts.current = 0;
+        console.log('SDK: Dynamsoft initialized successfully');
       } catch (error) {
-        console.error('Failed to initialize Dynamsoft:', error);
+        console.error('SDK: Failed to initialize Dynamsoft:', error);
         initAttempts.current += 1;
         
         if (initAttempts.current >= 3) {
           setIsError(true);
-          toast.error("Failed to initialize scanner after multiple attempts");
           return false;
         }
         
         // Try reinitializing with a delay
         await new Promise(resolve => setTimeout(resolve, 1000));
         try {
+          console.log('SDK: Retrying Dynamsoft initialization...');
           await initializeDynamsoft();
         } catch (retryError) {
-          console.error('Retry failed to initialize Dynamsoft:', retryError);
+          console.error('SDK: Retry failed to initialize Dynamsoft:', retryError);
           setIsError(true);
           return false;
         }
@@ -153,32 +162,60 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       // Create scanner if needed
       if (!scannerRef.current) {
         try {
-          console.log('Creating scanner instance...');
+          console.log('SDK: Creating scanner instance...');
+          
+          // Release any existing instances first
+          try {
+            if (BarcodeScanner.isWorkerLoaded) {
+              console.log('SDK: Cleaning up existing scanner instances...');
+              await BarcodeScanner.cleanFrameBuffer();
+              const allInstances = await BarcodeScanner.getInstanceCount();
+              console.log(`SDK: Found ${allInstances} existing scanner instances`);
+            }
+          } catch (e) {
+            console.warn('SDK: Error during cleanup:', e);
+          }
+          
+          // Create fresh instance
           const scanner = await BarcodeScanner.createInstance();
           scannerRef.current = scanner;
+          console.log('SDK: Scanner instance created successfully');
           
           // Configure scanner with optimized settings
+          console.log('SDK: Configuring scanner settings...');
           const barcodeFormatIds = BARCODE_READER_CONFIG.barcodeFormats.reduce(
             (acc, cur) => acc | cur, 0
           );
           
-          let settings = await scanner.getRuntimeSettings();
-          settings.barcodeFormatIds = barcodeFormatIds;
-          settings.deblurLevel = BARCODE_READER_CONFIG.deblurLevel;
-          settings.timeout = BARCODE_READER_CONFIG.timeout;
-          
-          await scanner.updateRuntimeSettings(settings);
+          try {
+            let settings = await scanner.getRuntimeSettings();
+            settings.barcodeFormatIds = barcodeFormatIds;
+            settings.deblurLevel = BARCODE_READER_CONFIG.deblurLevel;
+            settings.timeout = BARCODE_READER_CONFIG.timeout; 
+            await scanner.updateRuntimeSettings(settings);
+          } catch (settingErr) {
+            console.warn('SDK: Error updating runtime settings:', settingErr);
+          }
           
           // Configure basic scanner options
           scanner.singleFrameMode = false;
           scanner.ifShowScanRegionMask = false;
           
           // Set video settings
-          await scanner.updateVideoSettings(BARCODE_READER_CONFIG.videoSettings);
+          try {
+            await scanner.updateVideoSettings({
+              video: {
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                facingMode: { ideal: 'environment' }
+              }
+            });
+          } catch (e) {
+            console.warn('SDK: Error setting video settings:', e);
+          }
           
-          console.log('Scanner instance created');
         } catch (error) {
-          console.error('Failed to create scanner instance:', error);
+          console.error('SDK: Failed to create scanner instance:', error);
           setIsError(true);
           return false;
         }
@@ -186,11 +223,11 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       
       // Start the scanner
       try {
-        console.log('Starting scanner...');
+        console.log('SDK: Starting scanner...');
         
         // Get container
         if (!viewRef.current) {
-          throw new Error('View container not available');
+          throw new Error('SDK: View container not available');
         }
         
         // Clear the view container first
@@ -198,49 +235,70 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           viewRef.current.removeChild(viewRef.current.firstChild);
         }
         
-        // Create video container
+        // Create video container with explicit dimensions
         const container = document.createElement('div');
         container.className = 'dce-video-container';
         container.style.width = '100%';
         container.style.height = '100%';
+        container.style.overflow = 'hidden';
+        container.style.position = 'relative';
         viewRef.current.appendChild(container);
         
-        // Set up scan callback
-        scannerRef.current.onUnduplicatedRead = (txt, result) => {
-          console.log('Barcode detected:', txt, result.barcodeFormatString);
-          if (onScan && txt) {
-            onScan(txt, result.barcodeFormatString);
+        // Set up scan callback - use a wrapper to prevent duplicates
+        const scanResults = new Set();
+        scannerRef.current.onFrameRead = (results) => {
+          if (results.length > 0) {
+            const firstResult = results[0];
+            const resultText = firstResult.barcodeText;
+            
+            // Only call once per unique code
+            if (!scanResults.has(resultText) && resultText) {
+              scanResults.add(resultText);
+              console.log('SDK: Barcode detected:', resultText);
+              if (onScan) {
+                onScan(resultText, firstResult.barcodeFormatString);
+                
+                // Clear cache after successful scan
+                setTimeout(() => scanResults.clear(), 3000);
+              }
+            }
           }
         };
         
         // Set UI element
         await scannerRef.current.setUIElement(container);
         
-        // Open camera
-        await scannerRef.current.updateScanSettings({
-          intervalTime: BARCODE_READER_CONFIG.scanSettings.intervalTime
-        });
+        // Try to set scan settings
+        try {
+          await scannerRef.current.updateScanSettings({
+            intervalTime: 100,
+            duplicateForgetTime: 3000
+          });
+        } catch (e) {
+          console.warn('SDK: Error setting scan settings:', e);
+        }
         
+        // Open camera
+        console.log('SDK: Opening camera...');
         await scannerRef.current.open();
         
-        // Style video
+        // Style video with high CSS specificity
         setTimeout(() => {
           try {
             const videoElements = document.querySelectorAll('.dce-video-container video');
             videoElements.forEach((video) => {
               const videoElement = video as HTMLVideoElement;
-              videoElement.style.objectFit = 'cover';
-              videoElement.style.width = '100%';
-              videoElement.style.height = '100%';
+              videoElement.style.cssText = 'object-fit: cover !important; width: 100% !important; height: 100% !important; display: block !important;';
             });
           } catch (e) {
-            console.warn('Video styling error:', e);
+            console.warn('SDK: Video styling error:', e);
           }
         }, 100);
         
         // Show scanner
+        console.log('SDK: Showing scanner UI...');
         await scannerRef.current.show();
-        console.log('Scanner started successfully');
+        console.log('SDK: Scanner started successfully');
         
         if (isMountedRef.current) {
           setIsInitialized(true);
@@ -250,19 +308,19 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         
         return true;
       } catch (error) {
-        console.error('Failed to start scanner:', error);
+        console.error('SDK: Failed to start scanner:', error);
         setIsError(true);
         return false;
       }
     } finally {
       requestInProgressRef.current = false;
     }
-  }, [cameraPermissions, onScan, requestCameraPermission]);
+  }, [onScan]);
 
   // Stop the scanner
   const stopScanner = useCallback(async (): Promise<boolean> => {
     if (requestInProgressRef.current) {
-      console.log('Stop request already in progress');
+      console.log('SDK: Stop request already in progress');
       return false;
     }
     
@@ -270,7 +328,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     
     try {
       if (scannerRef.current) {
-        console.log('Stopping scanner...');
+        console.log('SDK: Stopping scanner...');
         
         // Turn off torch if it's on
         if (isTorchOn) {
@@ -278,29 +336,32 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             await scannerRef.current.turnOffTorch();
             setIsTorchOn(false);
           } catch (e) {
-            console.warn('Failed to turn off torch:', e);
+            console.warn('SDK: Failed to turn off torch:', e);
           }
         }
         
         // Stop scanner if it's open
-        if (scannerRef.current.isOpen) {
-          try {
+        try {
+          if (scannerRef.current.isOpen) {
+            console.log('SDK: Closing scanner...');
+            // Remove callback first
+            scannerRef.current.onFrameRead = undefined;
+            scannerRef.current.onUnduplicatedRead = undefined;
+            
             await scannerRef.current.stop();
             await scannerRef.current.hide();
             await scannerRef.current.close();
-          } catch (e) {
-            console.warn('Failed to stop scanner:', e);
+            console.log('SDK: Scanner closed successfully');
           }
+        } catch (e) {
+          console.warn('SDK: Error stopping scanner:', e);
         }
-        
-        // Remove callback
-        scannerRef.current.onUnduplicatedRead = undefined;
       }
       
       setIsScanning(false);
       return true;
     } catch (error) {
-      console.error('Failed to stop scanner:', error);
+      console.error('SDK: Failed to stop scanner:', error);
       return false;
     } finally {
       requestInProgressRef.current = false;
@@ -313,43 +374,50 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       await stopScanner();
       
       if (scannerRef.current) {
-        console.log('Cleaning up scanner resources...');
+        console.log('SDK: Cleaning up scanner resources...');
         try {
           await scannerRef.current.destroyContext();
           scannerRef.current = null;
         } catch (e) {
-          console.warn('Failed to destroy scanner context:', e);
+          console.warn('SDK: Failed to destroy scanner context:', e);
         }
+      }
+      
+      // Also attempt global cleanup
+      try {
+        await BarcodeScanner.cleanFrameBuffer();
+      } catch (e) {
+        console.warn('SDK: Error cleaning frame buffer:', e);
       }
       
       setIsScanning(false);
       setIsTorchOn(false);
       setIsInitialized(false);
     } catch (error) {
-      console.error('Failed to clean up scanner:', error);
+      console.error('SDK: Failed to clean up scanner:', error);
     }
   }, [stopScanner]);
 
   // Toggle torch
   const toggleTorch = useCallback(async (): Promise<boolean> => {
     if (!scannerRef.current || !isScanning) {
-      console.log('Cannot toggle torch when scanner is not active');
+      console.log('SDK: Cannot toggle torch when scanner is not active');
       return false;
     }
     
     try {
-      console.log(`Toggling torch to ${!isTorchOn ? 'ON' : 'OFF'}`);
+      console.log(`SDK: Toggling torch to ${!isTorchOn ? 'ON' : 'OFF'}`);
       
       // Check if torch is supported
       try {
         const capabilities = await scannerRef.current.getCapabilities();
         const extendedCapabilities = capabilities as ExtendedMediaTrackCapabilities;
         if (!extendedCapabilities?.torch) {
-          console.log('Torch not supported on this device/browser');
+          console.log('SDK: Torch not supported on this device/browser');
           throw new Error('Torch not supported');
         }
       } catch (capError) {
-        console.warn('Error checking torch capabilities:', capError);
+        console.warn('SDK: Error checking torch capabilities:', capError);
         throw new Error('Torch not available');
       }
       
@@ -364,7 +432,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       setIsTorchOn(newState);
       return newState;
     } catch (error) {
-      console.error('Failed to toggle torch:', error);
+      console.error('SDK: Failed to toggle torch:', error);
       throw error;
     }
   }, [isScanning, isTorchOn]);
@@ -372,36 +440,29 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   // Set torch state directly
   const setTorchState = useCallback(async (state: boolean): Promise<boolean> => {
     if (!scannerRef.current || !isScanning) {
-      console.log('Cannot set torch state when scanner is not active');
+      console.log('SDK: Cannot set torch state when scanner is not active');
       return false;
     }
     
     try {
-      console.log(`Setting torch state to ${state ? 'ON' : 'OFF'}`);
-      
-      // Check if torch is supported
-      try {
-        const capabilities = await scannerRef.current.getCapabilities();
-        const extendedCapabilities = capabilities as ExtendedMediaTrackCapabilities;
-        if (!extendedCapabilities?.torch) {
-          console.log('Torch not supported on this device/browser');
-          return false;
-        }
-      } catch (capError) {
-        console.warn('Error checking torch capabilities:', capError);
-      }
+      console.log(`SDK: Setting torch state to ${state ? 'ON' : 'OFF'}`);
       
       // Set torch state
-      if (state) {
-        await scannerRef.current.turnOnTorch();
-      } else {
-        await scannerRef.current.turnOffTorch();
+      try {
+        if (state) {
+          await scannerRef.current.turnOnTorch();
+        } else {
+          await scannerRef.current.turnOffTorch();
+        }
+        
+        setIsTorchOn(state);
+        return true;
+      } catch (error) {
+        console.error(`SDK: Failed to set torch state to ${state}:`, error);
+        return false;
       }
-      
-      setIsTorchOn(state);
-      return true;
     } catch (error) {
-      console.error(`Failed to set torch state to ${state}:`, error);
+      console.error(`SDK: Failed to set torch state:`, error);
       return false;
     }
   }, [isScanning]);

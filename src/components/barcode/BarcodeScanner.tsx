@@ -67,7 +67,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     audioRef.current = new Audio(BEEP_SOUND_URL);
     audioRef.current.preload = "auto";
     
-    // Cleanup function
     return () => {
       cleanupScanner().catch(console.error);
     };
@@ -88,15 +87,29 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
   const handleOpen = async () => {
     setIsOpen(true);
+    
     try {
+      console.log("Scanner: Requesting camera permission first...");
       const hasPermission = await requestCameraPermission();
+      
       if (!hasPermission) {
+        console.error("Scanner: Camera permission denied");
         toast.error("Camera permission is required.");
         setIsOpen(false);
         return;
       }
-
-      await startScanner();
+      
+      console.log("Scanner: Starting scanner after permission granted");
+      const started = await startScanner();
+      
+      if (!started) {
+        console.error("Scanner: Failed to start scanner");
+        toast.error("Failed to start scanner. Please try again.");
+        setIsOpen(false);
+        return;
+      }
+      
+      console.log("Scanner: Scanner started successfully");
       hasBeenInitializedRef.current = true;
     } catch (error) {
       console.error("Failed to start scanner:", error);
@@ -111,9 +124,17 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   };
 
   const handleRetry = async () => {
+    console.log("Scanner: Retrying scanner initialization");
+    toast.info("Reinitializing camera...");
     await cleanupScanner();
+    
     setTimeout(async () => {
-      await startScanner();
+      const permission = await requestCameraPermission();
+      if (permission) {
+        await startScanner();
+      } else {
+        toast.error("Camera permission is required.");
+      }
     }, 500);
   };
 

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Loader, CameraOff, Flashlight, FlashlightOff, RefreshCw } from "lucide-react";
+import { Loader, CameraOff, Flashlight, FlashlightOff, RefreshCw, Camera } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
@@ -45,6 +45,15 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
     try {
       setIsRequestingPermission(true);
       await onRequestPermission();
+      // If we got this far without an error, permissions should be granted
+      // Let's attempt to retry the scanner
+      if (onRetry) {
+        setTimeout(() => {
+          onRetry();
+        }, 500);
+      }
+    } catch (error) {
+      console.error("Permission request failed:", error);
     } finally {
       setIsRequestingPermission(false);
     }
@@ -56,7 +65,9 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
       <div className="w-full flex flex-col items-center justify-center space-y-4">
         <div className="text-center p-4">
           <div className="flex flex-col items-center justify-center">
-            <CameraOff className="w-12 h-12 text-destructive mb-4" />
+            <div className="bg-red-100 p-3 rounded-full mb-4">
+              <CameraOff className="w-10 h-10 text-red-500" />
+            </div>
             <p className="font-medium text-lg">Camera access required</p>
             <Alert variant="destructive" className="my-4 max-w-xs">
               <AlertDescription>
@@ -64,7 +75,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
               </AlertDescription>
             </Alert>
             
-            <div className="flex flex-col sm:flex-row gap-3 mt-2">
+            <div className="flex flex-col sm:flex-row gap-3 mt-4">
               <Button 
                 onClick={requestCameraPermission} 
                 disabled={isRequestingPermission}
@@ -76,7 +87,10 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                     Requesting...
                   </>
                 ) : (
-                  'Allow Camera Access'
+                  <>
+                    <Camera className="w-4 h-4 mr-2" />
+                    Allow Camera Access
+                  </>
                 )}
               </Button>
               
@@ -90,6 +104,10 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                 </Button>
               )}
             </div>
+
+            <p className="text-xs text-gray-500 mt-4 max-w-xs">
+              Tip: If the permission prompt doesn't appear, check your browser settings and make sure camera access is allowed for this site.
+            </p>
           </div>
         </div>
         

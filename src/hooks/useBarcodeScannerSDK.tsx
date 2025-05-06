@@ -2,7 +2,13 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { toast } from 'sonner';
-import { DYNAMSOFT_LICENSE_KEY, BARCODE_READER_CONFIG, initializeDynamsoft, getReaderInstance, cleanupDynamsoft } from '@/utils/dynamsoftConfig';
+import { 
+  DYNAMSOFT_LICENSE_KEY, 
+  BARCODE_READER_CONFIG, 
+  initializeDynamsoft, 
+  getReaderInstance, 
+  cleanupDynamsoft 
+} from '@/utils/dynamsoftConfig';
 
 export interface ScanResult {
   code: string;
@@ -30,7 +36,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const scannerRef = useRef<BarcodeScanner | null>(null);
   const isMountedRef = useRef(true);
   const requestInProgressRef = useRef(false);
-
+  const initAttempts = useRef(0);
+  
   // Initialize Dynamsoft when component mounts
   useEffect(() => {
     const initSDK = async () => {
@@ -121,10 +128,26 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       // Initialize Dynamsoft if needed
       try {
         await initializeDynamsoft();
+        initAttempts.current = 0; // Reset attempt counter on success
       } catch (error) {
         console.error('Failed to initialize Dynamsoft:', error);
-        setIsError(true);
-        return false;
+        initAttempts.current += 1;
+        
+        if (initAttempts.current >= 3) {
+          setIsError(true);
+          toast.error("Failed to initialize scanner after multiple attempts");
+          return false;
+        }
+        
+        // Try reinitializing with a delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        try {
+          await initializeDynamsoft();
+        } catch (retryError) {
+          console.error('Retry failed to initialize Dynamsoft:', retryError);
+          setIsError(true);
+          return false;
+        }
       }
       
       // Create scanner if needed
@@ -170,29 +193,34 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           throw new Error('View container not available');
         }
         
-        // Create video container if needed
-        let container = viewRef.current.querySelector('.dce-video-container') as HTMLElement | null;
-        if (!container) {
-          container = document.createElement('div') as HTMLElement;
-          container.className = 'dce-video-container';
-          container.style.width = '100%';
-          container.style.height = '100%';
-          viewRef.current.appendChild(container);
+        // Clear the view container first
+        while (viewRef.current.firstChild) {
+          viewRef.current.removeChild(viewRef.current.firstChild);
         }
+        
+        // Create video container
+        const container = document.createElement('div');
+        container.className = 'dce-video-container';
+        container.style.width = '100%';
+        container.style.height = '100%';
+        viewRef.current.appendChild(container);
         
         // Set up scan callback
         scannerRef.current.onUnduplicatedRead = (txt, result) => {
           console.log('Barcode detected:', txt, result.barcodeFormatString);
-          onScan(txt, result.barcodeFormatString);
+          if (onScan && txt) {
+            onScan(txt, result.barcodeFormatString);
+          }
         };
         
         // Set UI element
-        await scannerRef.current.setUIElement(container as HTMLElement);
+        await scannerRef.current.setUIElement(container);
         
         // Open camera
         await scannerRef.current.updateScanSettings({
           intervalTime: BARCODE_READER_CONFIG.scanSettings.intervalTime
         });
+        
         await scannerRef.current.open();
         
         // Style video
@@ -208,7 +236,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           } catch (e) {
             console.warn('Video styling error:', e);
           }
-        }, 50);
+        }, 100);
         
         // Show scanner
         await scannerRef.current.show();
@@ -258,6 +286,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         if (scannerRef.current.isOpen) {
           try {
             await scannerRef.current.stop();
+            await scannerRef.current.hide();
+            await scannerRef.current.close();
           } catch (e) {
             console.warn('Failed to stop scanner:', e);
           }
@@ -294,6 +324,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       
       setIsScanning(false);
       setIsTorchOn(false);
+      setIsInitialized(false);
     } catch (error) {
       console.error('Failed to clean up scanner:', error);
     }

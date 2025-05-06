@@ -28,19 +28,19 @@ export const BARCODE_READER_CONFIG = {
   ],
   // Scanning settings - improved for faster scanning
   scanSettings: {
-    intervalTime: 20, // Faster scanning interval (was 40ms)
+    intervalTime: 100, // More reliable scanning interval (was 20ms)
     maxNumberOfResults: 1
   },
-  // Performance settings - optimized for speed
-  timeout: 6000, // Reduced timeout for faster startup
-  deblurLevel: 2, // Lower deblur level for faster processing
-  maxAlgorithmThreadCount: 1, // Single thread for faster startup
-  // Video settings - improved for performance
+  // Performance settings - optimized for reliability
+  timeout: 10000, // Increased timeout for more reliable initialization
+  deblurLevel: 3, // Higher deblur level for better recognition
+  maxAlgorithmThreadCount: 2, // Two threads for better performance
+  // Video settings - improved for compatibility
   videoSettings: {
     video: {
-      facingMode: 'environment',
-      width: { ideal: 640 }, // Lower resolution for faster loading
-      height: { ideal: 480 }, // Lower resolution for faster loading
+      facingMode: { ideal: 'environment' },
+      width: { ideal: 1280 }, // Higher resolution for better scanning
+      height: { ideal: 720 }, // Higher resolution for better scanning
       fill: true,
       objectFit: 'cover' 
     }
@@ -49,11 +49,29 @@ export const BARCODE_READER_CONFIG = {
 
 // Global instance reference to improve reuse
 let globalReaderInstance: BarcodeReader | null = null;
+let isInitializing = false;
 
 /**
  * Initialize the Dynamsoft BarcodeReader SDK with optimized performance
  */
 export const initializeDynamsoft = async () => {
+  // Prevent multiple simultaneous initialization
+  if (isInitializing) {
+    console.log("Initialization already in progress...");
+    // Wait for the current initialization to complete
+    await new Promise(resolve => {
+      const checkInterval = setInterval(() => {
+        if (!isInitializing) {
+          clearInterval(checkInterval);
+          resolve(true);
+        }
+      }, 100);
+    });
+    return true;
+  }
+  
+  isInitializing = true;
+  
   try {
     console.log("Initializing Dynamsoft SDK...");
     
@@ -61,7 +79,7 @@ export const initializeDynamsoft = async () => {
     BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
     
     // Set resource path - preload for faster initialization
-    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@latest/dist/";
+    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
     
     // Enhanced browser compatibility settings
     try {
@@ -70,7 +88,7 @@ export const initializeDynamsoft = async () => {
       // @ts-ignore
       BarcodeReader.useImageSettings = true;
       // @ts-ignore
-      BarcodeReader.loadWasmPriority = "speed"; // Prioritize speed over accuracy
+      BarcodeReader.loadWasmPriority = "balanced"; // Balance of speed and accuracy
     } catch (e) {
       console.warn("Could not set some browser compatibility options:", e);
     }
@@ -80,6 +98,15 @@ export const initializeDynamsoft = async () => {
       await BarcodeReader.loadWasm();
     } catch (e) {
       console.warn("Early WASM loading failed, will retry:", e);
+      // Force a new attempt
+      try {
+        // @ts-ignore - Reset the initialization state if needed
+        BarcodeReader._bInitialized = false;
+        await BarcodeReader.loadWasm();
+      } catch (retryError) {
+        console.error("Failed to initialize BarcodeReader after retry:", retryError);
+        throw new Error("Failed to initialize scanner components");
+      }
     }
     
     console.log("Dynamsoft SDK initialized successfully");
@@ -87,6 +114,8 @@ export const initializeDynamsoft = async () => {
   } catch (error) {
     console.error("Failed to initialize Dynamsoft SDK:", error);
     throw error;
+  } finally {
+    isInitializing = false;
   }
 };
 

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -17,6 +17,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const hasBeenInitializedRef = useRef(false);
 
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -32,6 +33,18 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
 
+  const handleScanSuccess = useCallback((code: string, format: string) => {
+    playBeep();
+    vibrate();
+    onDetected(code);
+    toast.success(`Scanned: ${format}`, { duration: 1500 });
+    
+    // Close the dialog with slight delay
+    setTimeout(() => {
+      setIsOpen(false);
+    }, 300);
+  }, [onDetected]);
+
   const {
     viewRef,
     isInitialized,
@@ -43,25 +56,22 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     toggleTorch,
     setTorchState,
     cameraPermissions,
-    requestCameraPermission
+    requestCameraPermission,
+    cleanupScanner
   } = useBarcodeScannerSDK({
-    onScan: (code, format) => {
-      playBeep();
-      vibrate();
-      onDetected(code);
-      toast.success(`Scanned: ${format}`, { duration: 1500 });
-      
-      // Close the dialog with slight delay
-      setTimeout(() => {
-        setIsOpen(false);
-      }, 300);
-    }
+    onScan: handleScanSuccess
   });
 
   useEffect(() => {
+    // Pre-initialize audio
     audioRef.current = new Audio(BEEP_SOUND_URL);
     audioRef.current.preload = "auto";
-  }, []);
+    
+    // Cleanup function
+    return () => {
+      cleanupScanner().catch(console.error);
+    };
+  }, [cleanupScanner]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -82,13 +92,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       const hasPermission = await requestCameraPermission();
       if (!hasPermission) {
         toast.error("Camera permission is required.");
+        setIsOpen(false);
         return;
       }
 
       await startScanner();
+      hasBeenInitializedRef.current = true;
     } catch (error) {
-      toast.error("Failed to start scanner.");
-      console.error(error);
+      console.error("Failed to start scanner:", error);
+      toast.error("Failed to start scanner. Please try again.");
+      setIsOpen(false);
     }
   };
 
@@ -97,11 +110,19 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(false);
   };
 
+  const handleRetry = async () => {
+    await cleanupScanner();
+    setTimeout(async () => {
+      await startScanner();
+    }, 500);
+  };
+
   const handleTorch = async () => {
     try {
       const newState = await toggleTorch();
       toast.success(newState ? "Torch ON" : "Torch OFF");
-    } catch {
+    } catch (error) {
+      console.error("Torch error:", error);
       toast.error("Torch not supported on this device.");
     }
   };
@@ -125,6 +146,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           onToggleTorch={handleTorch}
           onCancel={handleClose}
           onRequestPermission={requestCameraPermission}
+          onRetry={handleRetry}
         />
       </div>
     </>

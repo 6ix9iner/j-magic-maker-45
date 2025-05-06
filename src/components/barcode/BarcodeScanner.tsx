@@ -18,6 +18,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
   const [scanAttempts, setScanAttempts] = useState(0); // Track number of scan attempts
+  const [needsReset, setNeedsReset] = useState(false); // Flag to indicate camera needs resetting
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
@@ -97,7 +98,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     toggleScanning,
     toggleTorch,
     requestCameraPermission,
-    cleanupScanner
+    cleanupScanner,
+    resetScanner
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
@@ -107,6 +109,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(true);
     setHasOpenedBefore(true);
     setScanAttempts(prev => prev + 1); // Increment scan attempts
+    
+    // Reset flag
+    setNeedsReset(false);
     
     // Show troubleshooting tip if user has tried multiple times
     if (scanAttempts >= 2) {
@@ -138,6 +143,30 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       setIsOpen(false); // Still close even if there's an error
     }
   };
+  
+  // Handle retry operation
+  const handleRetry = async () => {
+    try {
+      toast.info("Retrying scanner...");
+      
+      // First clean up the scanner
+      await cleanupScanner();
+      
+      // Reset the scanner with a complete refresh
+      await resetScanner();
+      
+      // Set flag for retry
+      setNeedsReset(false);
+      
+      // Try to start scanning again after a short delay
+      setTimeout(() => {
+        toggleScanning();
+      }, 1000);
+    } catch (error) {
+      console.error("Error during scanner retry:", error);
+      toast.error("Failed to restart scanner. Please try again.");
+    }
+  };
 
   // Clean up scanner resources when dialog closes or component unmounts
   useEffect(() => {
@@ -159,6 +188,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       }
     };
   }, [isOpen, hasOpenedBefore, cleanupScanner]);
+
+  // Watch for errors and set the needs reset flag
+  useEffect(() => {
+    if (isError && isOpen) {
+      setNeedsReset(true);
+    }
+  }, [isError, isOpen]);
 
   // Prevent multiple open/close cycles that can cause scanner instability
   const handleDialogChange = (open: boolean) => {
@@ -195,12 +231,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                 isScanning={isScanning}
                 isTorchOn={isTorchOn}
                 isInitialized={isInitialized}
-                isError={isError}
+                isError={isError || needsReset}
                 cameraPermissions={cameraPermissions}
                 viewRef={viewRef}
                 onToggleTorch={toggleTorch}
                 onCancel={handleStopScanning}
                 onRequestPermission={requestCameraPermission}
+                onRetry={handleRetry}
               />
             </div>
           </SheetContent>
@@ -219,12 +256,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
                 isScanning={isScanning}
                 isTorchOn={isTorchOn}
                 isInitialized={isInitialized}
-                isError={isError}
+                isError={isError || needsReset}
                 cameraPermissions={cameraPermissions}
                 viewRef={viewRef}
                 onToggleTorch={toggleTorch}
                 onCancel={handleStopScanning}
                 onRequestPermission={requestCameraPermission}
+                onRetry={handleRetry}
               />
             </div>
           </DialogContent>

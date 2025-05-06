@@ -28,12 +28,12 @@ export const BARCODE_READER_CONFIG = {
   ],
   // Scanning settings
   scanSettings: {
-    intervalTime: 100, // milliseconds
+    intervalTime: 50, // Reduced from 100ms for faster scanning
     maxNumberOfResults: 1
   },
   // Enhanced performance settings
-  timeout: 10000,
-  deblurLevel: 3, // Increased from 2 for better recognition
+  timeout: 15000, // Increased from 10000ms for better reliability
+  deblurLevel: 3,
   maxAlgorithmThreadCount: 2,
   // Video settings
   videoSettings: {
@@ -41,28 +41,55 @@ export const BARCODE_READER_CONFIG = {
       facingMode: 'environment',
       width: { ideal: 1280 },
       height: { ideal: 720 },
-      fill: true
+      fill: true,
+      objectFit: 'cover' // Explicitly set for consistent behavior
     }
   }
 };
 
 /**
  * Initialize the Dynamsoft BarcodeReader SDK
+ * This function now includes better error handling and retry logic
  */
 export const initializeDynamsoft = async () => {
-  try {
-    // Set license key
-    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-    
-    // Set up the engine and resource paths
-    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
-    
-    // Configure resource path to ensure worker scripts are loaded correctly
-    await BarcodeReader.loadWasm();
-    
-    return true;
-  } catch (error) {
-    console.error("Failed to initialize Dynamsoft SDK:", error);
-    throw error;
-  }
+  // Track initialization attempts
+  let attempts = 0;
+  const maxAttempts = 2;
+  
+  const tryInitialize = async () => {
+    try {
+      console.log(`Initializing Dynamsoft SDK (attempt ${attempts + 1}/${maxAttempts})...`);
+      
+      // Set license key
+      BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+      
+      // Set up the engine and resource paths with more reliable CDN
+      BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+      
+      // Force clean any previous instances to avoid conflicts
+      await BarcodeReader.cleanCache();
+      
+      // Configure resource path to ensure worker scripts are loaded correctly
+      await BarcodeReader.loadWasm();
+      
+      console.log("Dynamsoft SDK initialized successfully");
+      return true;
+    } catch (error) {
+      console.error(`Failed to initialize Dynamsoft SDK (attempt ${attempts + 1}/${maxAttempts}):`, error);
+      
+      // Increment attempts counter
+      attempts++;
+      
+      // If we haven't reached max attempts, try again after a delay
+      if (attempts < maxAttempts) {
+        console.log("Retrying initialization after delay...");
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        return tryInitialize();
+      }
+      
+      throw error;
+    }
+  };
+  
+  return tryInitialize();
 };

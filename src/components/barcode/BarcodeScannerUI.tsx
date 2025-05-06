@@ -21,6 +21,7 @@ interface BarcodeScannerUIProps {
   onToggleTorch: () => void;
   onCancel: () => void;
   onRequestPermission?: () => Promise<boolean>;
+  onRetry?: () => void;
 }
 
 const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
@@ -32,7 +33,8 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
   viewRef,
   onToggleTorch,
   onCancel,
-  onRequestPermission
+  onRequestPermission,
+  onRetry
 }) => {
   const [isRequestingPermission, setIsRequestingPermission] = React.useState(false);
   
@@ -68,28 +70,40 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                 If the camera permission dialog didn't appear, please check your browser settings and ensure camera access is allowed for this site.
               </AlertDescription>
             </Alert>
-            <Button 
-              onClick={requestCameraPermission} 
-              disabled={isRequestingPermission}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              {isRequestingPermission ? (
-                <>
-                  <Loader className="w-4 h-4 mr-2 animate-spin" />
-                  Requesting Access...
-                </>
-              ) : (
-                'Grant Camera Permission'
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button 
+                onClick={requestCameraPermission} 
+                disabled={isRequestingPermission}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {isRequestingPermission ? (
+                  <>
+                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    Requesting Access...
+                  </>
+                ) : (
+                  'Grant Camera Permission'
+                )}
+              </Button>
+              
+              {onRetry && (
+                <Button 
+                  onClick={onRetry}
+                  variant="outline"
+                >
+                  Retry Scanner
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         </div>
       ) : (
         <div className="w-full flex flex-col items-center">
-          {/* Using AspectRatio to maintain consistent dimensions */}
+          {/* Using fixed dimensions for more consistent behavior */}
           <div className="w-full max-w-sm">
-            <AspectRatio ratio={4/3} className="overflow-hidden bg-black rounded-lg">
-              <div className="relative w-full h-full bg-black">
+            <AspectRatio ratio={4/3} className="overflow-hidden rounded-lg">
+              {/* Scanner container */}
+              <div className="scanner-container" style={{ backgroundColor: 'black' }}>
                 {!isInitialized && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-10">
                     <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
@@ -101,6 +115,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                 <div 
                   ref={viewRef} 
                   className="absolute inset-0 flex items-center justify-center overflow-hidden z-0"
+                  style={{ backgroundColor: 'black' }}
                 >
                   {/* This is the container where Dynamsoft will inject the video */}
                   <div className="dce-video-container" />
@@ -162,9 +177,20 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
         </div>
       )}
       
-      <Button variant="outline" onClick={onCancel} className="mt-2">
-        Cancel
-      </Button>
+      <div className="flex gap-3">
+        <Button variant="outline" onClick={onCancel} className="mt-2">
+          Cancel
+        </Button>
+        
+        {isInitialized && isError && onRetry && (
+          <Button 
+            onClick={onRetry}
+            className="mt-2 bg-blue-600 hover:bg-blue-700"
+          >
+            Retry Scanner
+          </Button>
+        )}
+      </div>
     </div>
   );
 };

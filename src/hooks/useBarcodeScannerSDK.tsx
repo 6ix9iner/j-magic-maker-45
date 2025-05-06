@@ -84,13 +84,21 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
         scanner.singleFrameMode = false;
         
-        // Set camera settings to optimize for barcode scanning
+        // Fix 1: Properly type the video settings to avoid TypeScript errors
         const cameraSettings = await scanner.getVideoSettings();
-        cameraSettings.video.width = { ideal: 1280 };
-        cameraSettings.video.height = { ideal: 720 };
-        cameraSettings.video.facingMode = { ideal: 'environment' };
-        await scanner.updateVideoSettings(cameraSettings);
-        console.log('Camera video settings updated');
+        if (cameraSettings.video) {
+          // Only set these if video property exists and is an object (not boolean)
+          if (typeof cameraSettings.video === 'object') {
+            cameraSettings.video = {
+              ...cameraSettings.video,
+              width: { ideal: 1280 },
+              height: { ideal: 720 },
+              facingMode: { ideal: 'environment' }
+            };
+            await scanner.updateVideoSettings(cameraSettings);
+            console.log('Camera video settings updated');
+          }
+        }
 
         setIsInitialized(true);
       } catch (error) {
@@ -147,9 +155,11 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           await barcodeScannerRef.current.show();
           console.log('Scanner showed successfully');
           
-          // Get camera info to check if torch is available
-          const cameraInfo = await barcodeScannerRef.current.getCameraInfo();
-          console.log('Camera capabilities:', cameraInfo);
+          // Fix 2: Remove getCameraInfo which doesn't exist on BarcodeScanner
+          // Just log that scanner is active
+          console.log('Camera is now active');
+          
+          // We can check torch capability in a safer way later when needed
         } catch (e) {
           console.error('Error showing scanner:', e);
           toast({

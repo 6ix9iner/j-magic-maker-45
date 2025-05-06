@@ -17,10 +17,15 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
+  // Make sure to preload the audio for faster playback
   useEffect(() => {
-    // Initialize audio element for beep sound
+    // Initialize audio element for beep sound with higher volume and preload
     audioRef.current = new Audio(BEEP_SOUND_URL);
     audioRef.current.volume = 1.0;
+    audioRef.current.preload = 'auto';
+    
+    // Preload the sound
+    audioRef.current.load();
     
     return () => {
       if (audioRef.current) {
@@ -30,11 +35,21 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
   
+  // Handle successful scan with sound and vibration
   const handleScan = (code: string, symbology: string) => {
-    // Play beep sound
+    // Play beep sound with more reliable method
     if (audioRef.current) {
-      audioRef.current.play()
-        .catch(e => console.error("Error playing sound:", e));
+      // Reset to beginning in case it was already played
+      audioRef.current.currentTime = 0;
+      
+      const playPromise = audioRef.current.play();
+      
+      // Handle the promise to avoid uncaught promise errors
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.error("Error playing sound:", e);
+        });
+      }
     }
     
     // Vibrate the device if supported
@@ -46,7 +61,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     onDetected(code);
     toast.success(`Barcode detected: ${symbology}`);
     
-    // Close the dialog
+    // Close the dialog and cleanup scanner properly
     setIsOpen(false);
   };
 
@@ -60,25 +75,25 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     toggleScanning,
     toggleTorch,
     requestCameraPermission,
-    cleanupScanner // NEW: Using the cleanup function
+    cleanupScanner
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
   
-  // When opening the dialog, we need to ensure we have a small delay before starting the scanner
+  // When opening the dialog, start scanning after a small delay
   const handleStartScanning = () => {
     setIsOpen(true);
     setHasOpenedBefore(true);
-    // Slight delay to ensure dialog is open before starting camera
+    // Slightly longer delay to ensure dialog is fully rendered before starting camera
     setTimeout(() => {
       if (!isScanning) {
         toggleScanning();
       }
-    }, 500);
+    }, 700); // Increased delay for more reliability
   };
 
+  // Properly clean up resources when stopping
   const handleStopScanning = async () => {
-    // NEW: Make sure we properly cleanup when stopping
     await cleanupScanner();
     setIsOpen(false);
   };
@@ -91,7 +106,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   }, [isOpen, hasOpenedBefore, isError, requestCameraPermission]);
 
-  // NEW: Clean up scanner resources when dialog closes or component unmounts
+  // Clean up scanner resources when dialog closes or component unmounts
   useEffect(() => {
     if (!isOpen && hasOpenedBefore) {
       // Clean up resources when dialog closes

@@ -112,7 +112,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         // Set license
         BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
         
-        // Set resource path to ensure worker scripts load correctly
+        // Make sure to set public CDN path for resources (this is critical)
         BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
         
         // Wait for engine to initialize
@@ -121,7 +121,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
         // Create scanner if we don't already have one
         if (!barcodeScannerRef.current) {
-          console.log('Starting scanner cleanup...');
+          console.log('Creating scanner instance...');
           const scanner = await BarcodeScanner.createInstance();
           barcodeScannerRef.current = scanner;
           console.log('Scanner instance created successfully');
@@ -137,7 +137,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           
           // Then modify the settings
           settings.barcodeFormatIds = barcodeFormatIds;
-          settings.deblurLevel = 2;
+          settings.deblurLevel = 3; // Increased from 2
           
           // Update with the modified settings
           await scanner.updateRuntimeSettings(settings);
@@ -155,7 +155,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
                 facingMode: { ideal: 'environment' },
                 width: { ideal: 1280 },
                 height: { ideal: 720 },
-                fill: true
+                fill: true,
+                objectFit: 'cover'
               }
             });
             console.log('Camera video settings updated');
@@ -301,7 +302,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           // Wait a moment for cleanup to complete
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          // Make sure we have a reference to the UI container
+          // Find video container with more reliable query
           const container = viewRef.current.querySelector('.dce-video-container');
           if (!container) {
             console.error('Video container not found in DOM');
@@ -314,21 +315,24 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             onScan(txt, result.barcodeFormatString);
           };
           
-          // Important: Cast container as HTMLElement to match the expected type
-          // Only set UI element if scanner is not already open
-          if (!scanner.isOpen) {
+          // Set UI element
+          try {
             await scanner.setUIElement(container as HTMLElement);
             console.log('UI element set successfully');
+          } catch (e) {
+            console.error('Error setting UI element:', e);
+            throw e;
           }
           
           try {
-            // Enforce video positioning and fill behavior
+            // Try to set enhanced video settings before opening
             await scanner.updateVideoSettings({ 
               video: {
                 facingMode: 'environment',
                 fill: true,
                 width: { ideal: 1280 },
-                height: { ideal: 720 }
+                height: { ideal: 720 },
+                objectFit: 'cover'
               } 
             });
             console.log('Video settings updated to fill mode');
@@ -365,6 +369,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
                   videoElement.style.top = '0';
                 });
                 console.log('Applied cover style to video elements');
+              } else {
+                console.warn('No video elements found to style');
               }
             }, 100);
             

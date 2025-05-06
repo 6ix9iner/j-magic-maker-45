@@ -17,6 +17,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
+  const [scanAttempts, setScanAttempts] = useState(0); // Track number of scan attempts
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
@@ -73,6 +74,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       navigator.vibrate(200);
     }
     
+    // Reset scan attempts
+    setScanAttempts(0);
+    
     // Call the onDetected callback
     onDetected(code);
     toast.success(`Barcode detected: ${symbology}`);
@@ -102,6 +106,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const handleStartScanning = () => {
     setIsOpen(true);
     setHasOpenedBefore(true);
+    setScanAttempts(prev => prev + 1); // Increment scan attempts
+    
+    // Show troubleshooting tip if user has tried multiple times
+    if (scanAttempts >= 2) {
+      toast.info("Camera not showing? Try closing and reopening the scanner.", {
+        duration: 5000
+      });
+    }
     
     // Use a longer delay to ensure dialog is fully rendered and everything is ready
     setTimeout(() => {

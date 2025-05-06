@@ -144,6 +144,8 @@
   width: 100% !important;
   height: 100% !important;
   overflow: hidden !important;
+  background: #000 !important; /* Add black background */
+  z-index: 1 !important; /* Ensure it's above other elements */
 }
 
 .dce-video-container video {
@@ -155,6 +157,9 @@
   top: 0 !important;
   display: block !important;
   transform: none !important;
+  min-width: 100% !important;
+  min-height: 100% !important;
+  max-width: none !important;
 }
 
 .dce-scanarea {

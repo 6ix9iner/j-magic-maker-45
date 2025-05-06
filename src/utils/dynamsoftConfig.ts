@@ -33,8 +33,17 @@ export const BARCODE_READER_CONFIG = {
   },
   // Enhanced performance settings
   timeout: 10000,
-  deblurLevel: 2,
+  deblurLevel: 3, // Increased from 2 for better recognition
   maxAlgorithmThreadCount: 2,
+  // Video settings
+  videoSettings: {
+    video: {
+      facingMode: 'environment',
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+      fill: true
+    }
+  }
 };
 
 /**
@@ -42,10 +51,13 @@ export const BARCODE_READER_CONFIG = {
  */
 export const initializeDynamsoft = async () => {
   try {
+    // Set license key
+    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+    
     // Set up the engine and resource paths
     BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
     
-    // Configure paths to ensure worker scripts are loaded correctly
+    // Configure resource path to ensure worker scripts are loaded correctly
     await BarcodeReader.loadWasm();
     
     return true;

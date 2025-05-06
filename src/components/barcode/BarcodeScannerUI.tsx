@@ -89,7 +89,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
           {/* Using AspectRatio to maintain consistent dimensions */}
           <div className="w-full max-w-sm">
             <AspectRatio ratio={4/3} className="overflow-hidden bg-black rounded-lg">
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full bg-black">
                 {!isInitialized && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900 z-10">
                     <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
@@ -97,67 +97,34 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
                   </div>
                 )}
                 
-                {/* Container for the Dynamsoft scanner - this is where the video appears */}
+                {/* Scanner container with proper z-index */}
                 <div 
                   ref={viewRef} 
-                  className="absolute inset-0 flex items-center justify-center overflow-hidden"
+                  className="absolute inset-0 flex items-center justify-center overflow-hidden z-0"
                 >
-                  {/* Video container where Dynamsoft will inject the video element */}
-                  <div 
-                    className="dce-video-container absolute inset-0"
-                  />
-                  
-                  {/* Global styles for video elements - CRITICAL for proper display */}
-                  <style dangerouslySetInnerHTML={{
-                    __html: `
-                      .dce-video-container {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        overflow: hidden !important;
-                      }
-                      .dce-video-container video {
-                        object-fit: cover !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        display: block !important;
-                        transform: none !important;
-                      }
-                      .dce-scanarea {
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                      }
-                    `
-                  }} />
-                  
-                  {/* The scan area overlay */}
-                  {isScanning && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-10">
-                      <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
-                      
-                      {/* Target area border with enhanced visibility */}
-                      <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
-                        <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
-                        <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
-                        <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
-                        <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
-                      </div>
-                      
-                      {/* Status indicator */}
-                      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
-                        Scanning for barcodes...
-                      </div>
-                    </div>
-                  )}
+                  {/* This is the container where Dynamsoft will inject the video */}
+                  <div className="dce-video-container" />
                 </div>
+                
+                {/* Scan area overlay */}
+                {isScanning && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none z-20">
+                    <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
+                    
+                    {/* Target area border with enhanced visibility */}
+                    <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">
+                      <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
+                      <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
+                      <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
+                      <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
+                    </div>
+                    
+                    {/* Status indicator */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
+                      Scanning for barcodes...
+                    </div>
+                  </div>
+                )}
                 
                 {/* Torch control */}
                 {isInitialized && isScanning && (

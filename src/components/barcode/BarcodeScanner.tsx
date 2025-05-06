@@ -80,7 +80,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }, 300);
   };
 
-  // Initialize the barcode scanner SDK
+  // Initialize the barcode scanner SDK with improved error recovery
   const {
     viewRef,
     isScanning,
@@ -125,6 +125,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     const success = await resetScanner();
     
     if (success) {
+      // Request permissions explicitly to ensure we have camera access
+      await requestCameraPermission();
+      
       // Start scanning again
       setTimeout(() => {
         toggleScanning();

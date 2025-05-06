@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { toast } from 'sonner';
@@ -36,7 +37,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     };
   }, []);
 
-  // Initialize camera permissions check
+  // More reliable camera permissions check
   useEffect(() => {
     const checkPermissions = async () => {
       if (permissionRequestedRef.current) return;
@@ -44,43 +45,54 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       try {
         console.log('Checking camera permissions...');
         
-        // Try the Permissions API first
-        if (navigator.permissions && navigator.permissions.query) {
-          try {
-            const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
-            
-            if (result.state === 'granted') {
-              console.log('Camera permission is already granted');
-              setCameraPermissions(true);
-              return;
-            } else if (result.state === 'prompt') {
-              console.log('Camera permission will be requested');
-              // Continue to request access
-            } else if (result.state === 'denied') {
-              console.log('Camera permission was previously denied');
-              setCameraPermissions(false);
-              return;
+        // Check if we already have an active camera
+        if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(device => device.kind === 'videoinput');
+          
+          if (videoDevices.length > 0) {
+            // Try the Permissions API first
+            if (navigator.permissions && navigator.permissions.query) {
+              try {
+                const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
+                
+                if (result.state === 'granted') {
+                  console.log('Camera permission is already granted');
+                  setCameraPermissions(true);
+                  return;
+                } else if (result.state === 'prompt') {
+                  console.log('Camera permission will be requested');
+                  // Continue to request access
+                } else if (result.state === 'denied') {
+                  console.log('Camera permission was previously denied');
+                  setCameraPermissions(false);
+                  return;
+                }
+              } catch (e) {
+                console.log('Permission query not supported, trying direct access');
+              }
             }
-          } catch (e) {
-            console.log('Permission query not supported, trying direct access');
+            
+            // Only auto-request if configured to do so
+            if (autoRequestPermissionsRef.current) {
+              permissionRequestedRef.current = true;
+              
+              // Use simple constraints for permission check
+              console.log('Auto-requesting camera access...');
+              const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: true, 
+                audio: false 
+              });
+              
+              // Release the stream immediately
+              stream.getTracks().forEach(track => track.stop());
+              console.log('Camera permission granted');
+              setCameraPermissions(true);
+            }
+          } else {
+            console.log('No video devices found');
+            setCameraPermissions(false);
           }
-        }
-        
-        // Only auto-request if configured to do so
-        if (autoRequestPermissionsRef.current) {
-          permissionRequestedRef.current = true;
-          
-          // Use simple constraints for permission check
-          console.log('Auto-requesting camera access...');
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: true, 
-            audio: false 
-          });
-          
-          // Release the stream immediately
-          stream.getTracks().forEach(track => track.stop());
-          console.log('Camera permission granted');
-          setCameraPermissions(true);
         }
       } catch (err) {
         console.error('Camera permission check failed:', err);
@@ -297,7 +309,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     }
   }, [isTorchOn]);
 
-  // Start or stop scanner
+  // Start or stop scanner with better error handling
   const toggleScanning = useCallback(async () => {
     if (requestInProgressRef.current) {
       console.log('Request already in progress, ignoring');
@@ -305,8 +317,28 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     }
     
     if (!isInitialized || !scannerRef.current) {
-      console.log('Scanner not initialized yet');
-      toast.error('Scanner not ready. Please try again.');
+      console.log('Scanner not initialized yet, re-checking permissions');
+      
+      // Reset initialization flag and try again
+      initializeAttemptedRef.current = false;
+      
+      // Check permissions again
+      if (cameraPermissions !== true) {
+        const permGranted = await requestCameraPermission();
+        if (!permGranted) {
+          toast.error('Camera access required for scanning');
+          return;
+        }
+      }
+      
+      // Give a moment for initialization to complete
+      setTimeout(() => {
+        if (scannerRef.current) {
+          toggleScanning();
+        } else {
+          toast.error('Scanner not ready. Please try again.');
+        }
+      }, 800);
       return;
     }
     
@@ -346,18 +378,35 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             onScan(txt, result.barcodeFormatString);
           };
           
+          // Make sure camera is stopped before setting UI element
+          try {
+            if (scannerRef.current.isOpen) {
+              await scannerRef.current.stop();
+              await new Promise(resolve => setTimeout(resolve, 300));
+            }
+          } catch (e) {
+            console.warn('Error checking camera state:', e);
+          }
+          
           // Set UI element
           try {
             await scannerRef.current.setUIElement(container as HTMLElement);
           } catch (e) {
             // If error with UI element, reset and try again
-            if (e instanceof Error && e.message.includes("not allowed to change")) {
-              console.log('UI element error - stopping and trying again');
+            console.log('UI element error - stopping and trying again');
+            
+            if (scannerRef.current.isOpen) {
               await scannerRef.current.stop();
-              await new Promise(resolve => setTimeout(resolve, 500));
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Try one more time
+            try {
               await scannerRef.current.setUIElement(container as HTMLElement);
-            } else {
-              throw e;
+            } catch (retryError) {
+              console.error('Failed to set UI element after retry:', retryError);
+              throw retryError;
             }
           }
           
@@ -411,7 +460,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     } finally {
       requestInProgressRef.current = false;
     }
-  }, [isInitialized, isScanning, cleanupScanner, onScan, resetScanner]);
+  }, [isInitialized, isScanning, cleanupScanner, onScan, resetScanner, cameraPermissions, requestCameraPermission]);
 
   // Toggle torch
   const toggleTorch = useCallback(async () => {
@@ -435,16 +484,23 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     }
   }, [isInitialized, isScanning, isTorchOn]);
 
-  // Explicitly request camera permission
+  // Explicitly request camera permission with better feedback
   const requestCameraPermission = useCallback(async (): Promise<boolean> => {
     try {
       console.log('Requesting camera permission...');
       permissionRequestedRef.current = true;
       
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: true, 
-        audio: false 
-      });
+      // Use more detailed constraints for better mobile compatibility
+      const constraints = {
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       // Release the stream
       stream.getTracks().forEach(track => track.stop());
@@ -460,6 +516,9 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     } catch (err) {
       console.error('Failed to get camera permission:', err);
       setCameraPermissions(false);
+      
+      // If it fails, update UI to show proper error
+      toast.error('Camera permission denied. Please allow access in your browser settings.');
       return false;
     }
   }, []);

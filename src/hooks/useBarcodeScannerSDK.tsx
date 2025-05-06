@@ -144,25 +144,19 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   
           scanner.singleFrameMode = false;
           
-          // Properly type check before accessing properties
+          // Configure to fit video inside the container instead of stretching/overflowing
           try {
-            const cameraSettings = await scanner.getVideoSettings();
-            if (cameraSettings && typeof cameraSettings === 'object' && cameraSettings.video) {
-              // Only update if video is an object and not a boolean
-              if (typeof cameraSettings.video === 'object') {
-                cameraSettings.video = {
-                  ...cameraSettings.video,
-                  width: { ideal: 1280 },
-                  height: { ideal: 720 },
-                  facingMode: { ideal: 'environment' }
-                };
-                await scanner.updateVideoSettings(cameraSettings);
-                console.log('Camera video settings updated');
+            await scanner.updateVideoSettings({
+              video: {
+                facingMode: { ideal: 'environment' },
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                objectFit: 'contain'
               }
-            }
+            });
+            console.log('Camera video settings updated with objectFit: contain');
           } catch (e) {
             console.error('Failed to update video settings:', e);
-            // Continue initialization even if video settings fail
           }
           
           scannerReadyRef.current = true;
@@ -328,6 +322,16 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             console.log('Barcode detected:', txt, result.barcodeFormatString);
             onScan(txt, result.barcodeFormatString);
           };
+          
+          // Special settings to ensure video fits inside container
+          try {
+            if (scanner.setVideoFit) {
+              await scanner.setVideoFit('contain');
+              console.log('Video fit mode set to contain');
+            }
+          } catch (e) {
+            console.log('Error setting video fit mode:', e);
+          }
           
           // Important: Cast container as HTMLElement to match the expected type
           // Only set UI element if scanner is not already open

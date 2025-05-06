@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { useBarcodeScannerSDK } from '@/hooks/useBarcodeScannerSDK';
 import BarcodeScannerUI from './BarcodeScannerUI';
 import { BEEP_SOUND_URL } from '@/utils/dynamsoftConfig';
+import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface BarcodeScannerProps {
   onDetected: (result: string) => void;
@@ -15,7 +16,22 @@ interface BarcodeScannerProps {
 const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
+  const [useSheet, setUseSheet] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  
+  // Check if we're on a mobile device to use Sheet instead of Dialog
+  useEffect(() => {
+    const checkMobile = () => {
+      setUseSheet(window.innerWidth <= 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+    };
+  }, []);
   
   // Make sure to preload the audio for faster playback
   useEffect(() => {
@@ -143,6 +159,30 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   };
 
+  // Scanner UI content - shared between Dialog and Sheet
+  const ScannerUIContent = () => (
+    <>
+      <div className="p-4">
+        <h2 className="text-xl font-semibold mb-2">Scan Barcode</h2>
+        <p className="text-sm text-gray-500 mb-4">
+          Position the barcode within the camera view for automatic scanning
+        </p>
+      </div>
+      
+      <BarcodeScannerUI 
+        isScanning={isScanning}
+        isTorchOn={isTorchOn}
+        isInitialized={isInitialized}
+        isError={isError}
+        cameraPermissions={cameraPermissions}
+        viewRef={viewRef}
+        onToggleTorch={toggleTorch}
+        onCancel={handleStopScanning}
+        onRequestPermission={requestCameraPermission}
+      />
+    </>
+  );
+
   return (
     <>
       <Button 
@@ -153,28 +193,19 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         Scan Barcode
       </Button>
 
-      <Dialog open={isOpen} onOpenChange={handleDialogChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Scan Barcode</DialogTitle>
-            <DialogDescription>
-              Position the barcode within the camera view for automatic scanning
-            </DialogDescription>
-          </DialogHeader>
-          
-          <BarcodeScannerUI 
-            isScanning={isScanning}
-            isTorchOn={isTorchOn}
-            isInitialized={isInitialized}
-            isError={isError}
-            cameraPermissions={cameraPermissions}
-            viewRef={viewRef}
-            onToggleTorch={toggleTorch}
-            onCancel={handleStopScanning}
-            onRequestPermission={requestCameraPermission}
-          />
-        </DialogContent>
-      </Dialog>
+      {useSheet ? (
+        <Sheet open={isOpen} onOpenChange={handleDialogChange}>
+          <SheetContent side="bottom" className="h-[85vh] sm:max-w-md flex flex-col items-center justify-center p-0">
+            <ScannerUIContent />
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <Dialog open={isOpen} onOpenChange={handleDialogChange}>
+          <DialogContent className="sm:max-w-md p-0">
+            <ScannerUIContent />
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 };

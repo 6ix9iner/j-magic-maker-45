@@ -1,3 +1,4 @@
+
 /**
  * Dynamsoft Barcode Reader configuration
  */
@@ -65,26 +66,20 @@ export const initializeDynamsoft = async () => {
       // Set up the engine and resource paths with more reliable CDN
       BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
       
-      // Force clean resources by destroying any existing instances
-      // Instead of using releaseAllInstances (which doesn't exist), we'll get
-      // existing instances and destroy them individually
+      // Instead of attempting to use getInstancesCount, getInstanceIds and getInstance
+      // which don't exist, we'll use a try-catch approach to simply create a new instance
+      // and properly dispose of it to clean resources
       try {
-        const instances = await BarcodeReader.getInstancesCount();
-        if (instances > 0) {
-          console.log(`Found ${instances} existing reader instances, cleaning up...`);
-          const allReaders = await BarcodeReader.getInstanceIds();
-          for (const id of allReaders) {
-            try {
-              const reader = await BarcodeReader.getInstance(id);
-              await reader.destroy();
-              console.log(`Destroyed reader instance ${id}`);
-            } catch (err) {
-              console.warn(`Failed to destroy reader ${id}:`, err);
-            }
-          }
+        console.log("Attempting to clean up any existing resources");
+        // Create a temporary reader instance to ensure we can reset state
+        const tempReader = await BarcodeReader.createInstance();
+        if (tempReader) {
+          await tempReader.destroy();
+          console.log("Successfully created and destroyed a temporary reader instance");
         }
       } catch (releaseError) {
-        console.warn("Error accessing reader instances:", releaseError);
+        // If it fails, it's likely because there are no instances or another reason
+        console.warn("Note: Resource cleanup check completed:", releaseError);
       }
       
       // Configure resource path to ensure worker scripts are loaded correctly

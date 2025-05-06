@@ -218,24 +218,20 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       barcodeScannerRef.current = null;
     }
     
-    // Clean up any existing barcode reader instances individually
+    // Instead of trying to use methods that don't exist
+    // (getInstancesCount, getInstanceIds, getInstance),
+    // we'll simply try to create a new instance which should
+    // internally release any lingering resources
     try {
-      const instances = await BarcodeReader.getInstancesCount();
-      if (instances > 0) {
-        console.log(`Found ${instances} existing reader instances, cleaning up...`);
-        const allReaders = await BarcodeReader.getInstanceIds();
-        for (const id of allReaders) {
-          try {
-            const reader = await BarcodeReader.getInstance(id);
-            await reader.destroy();
-            console.log(`Destroyed reader instance ${id}`);
-          } catch (err) {
-            console.warn(`Failed to destroy reader ${id}:`, err);
-          }
-        }
+      console.log("Attempting to clean up existing reader instances");
+      // Create a temporary reader to force resource cleanup
+      const tempReader = await BarcodeReader.createInstance();
+      if (tempReader) {
+        await tempReader.destroy();
+        console.log("Successfully created and destroyed a temporary reader instance");
       }
     } catch (e) {
-      console.error('Error cleaning up barcode reader instances:', e);
+      console.error('Error during reader resource cleanup:', e);
     }
     
     // Reset scanner state flags

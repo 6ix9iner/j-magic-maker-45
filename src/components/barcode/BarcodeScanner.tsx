@@ -59,7 +59,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     cameraPermissions,
     toggleScanning,
     toggleTorch,
-    requestCameraPermission
+    requestCameraPermission,
+    cleanupScanner // NEW: Using the cleanup function
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
@@ -76,10 +77,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }, 500);
   };
 
-  const handleStopScanning = () => {
-    if (isScanning) {
-      toggleScanning();
-    }
+  const handleStopScanning = async () => {
+    // NEW: Make sure we properly cleanup when stopping
+    await cleanupScanner();
     setIsOpen(false);
   };
 
@@ -90,6 +90,27 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       requestCameraPermission();
     }
   }, [isOpen, hasOpenedBefore, isError, requestCameraPermission]);
+
+  // NEW: Clean up scanner resources when dialog closes or component unmounts
+  useEffect(() => {
+    if (!isOpen && hasOpenedBefore) {
+      // Clean up resources when dialog closes
+      const cleanup = async () => {
+        await cleanupScanner();
+      };
+      cleanup();
+    }
+    
+    // Clean up on unmount
+    return () => {
+      if (cleanupScanner) {
+        const cleanup = async () => {
+          await cleanupScanner();
+        };
+        cleanup();
+      }
+    };
+  }, [isOpen, hasOpenedBefore, cleanupScanner]);
 
   return (
     <>

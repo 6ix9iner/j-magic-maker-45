@@ -1,8 +1,7 @@
-
 /**
  * Dynamsoft Barcode Reader configuration
  */
-import { BarcodeReader, EnumBarcodeFormat } from "dynamsoft-javascript-barcode";
+import { BarcodeReader, BarcodeScanner, EnumBarcodeFormat } from "dynamsoft-javascript-barcode";
 
 // License key for Dynamsoft Barcode Reader
 export const DYNAMSOFT_LICENSE_KEY = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAzOTU3ODgwLVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTAzOTU3ODgwIiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjotMTgyODIwMDQwNH0=";
@@ -28,95 +27,101 @@ export const BARCODE_READER_CONFIG = {
   ],
   // Scanning settings - improved for faster scanning
   scanSettings: {
-    intervalTime: 20, // Faster scanning interval (was 40ms)
+    intervalTime: 10, // Even faster scanning interval (was 20ms)
     maxNumberOfResults: 1
   },
   // Performance settings - optimized for speed
-  timeout: 6000, // Reduced timeout for faster startup (was 12000ms)
-  deblurLevel: 2, // Lower deblur level for faster processing (was 3)
+  timeout: 3000, // Further reduced timeout for faster startup (was 6000ms)
+  deblurLevel: 1, // Lowest deblur level for maximum speed (was 2)
   maxAlgorithmThreadCount: 1, // Single thread for faster startup
   // Video settings - improved for performance
   videoSettings: {
     video: {
       facingMode: 'environment',
-      width: { ideal: 640 }, // Lower resolution for faster loading (was 1280)
-      height: { ideal: 480 }, // Lower resolution for faster loading (was 720)
+      width: { ideal: 480 }, // Lower resolution for faster loading (was 640)
+      height: { ideal: 360 }, // Lower resolution for faster loading (was 480)
       fill: true,
       objectFit: 'cover' 
     }
   }
 };
 
+// Flag to track SDK initialization
+let isDynamsoftInitialized = false;
+let initializationInProgress = false;
+
 // Global instance reference to improve reuse
 let globalReaderInstance: BarcodeReader | null = null;
+let globalScannerInstance: BarcodeScanner | null = null;
 
 /**
  * Initialize the Dynamsoft BarcodeReader SDK with optimized performance
+ * This function now tracks initialization state to prevent multiple license settings
  */
 export const initializeDynamsoft = async () => {
+  // If initialization is already in progress, wait for it
+  if (initializationInProgress) {
+    console.log("SDK initialization already in progress, waiting...");
+    // Wait for initialization to complete
+    while (initializationInProgress) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    }
+    return isDynamsoftInitialized;
+  }
+
+  // If already initialized, return immediately
+  if (isDynamsoftInitialized) {
+    console.log("Dynamsoft SDK already initialized");
+    return true;
+  }
+
   try {
+    initializationInProgress = true;
     console.log("Initializing Dynamsoft SDK...");
     
-    // Set license key
-    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-    
-    // Set resource path - preload for faster initialization
-    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@latest/dist/";
-    
-    // Enhanced browser compatibility settings
-    try {
-      // @ts-ignore - may not exist in type definition but useful for compatibility
-      BarcodeReader.browserFriendly = true;
-      // @ts-ignore
-      BarcodeReader.useImageSettings = true;
-      // @ts-ignore
-      BarcodeReader.loadWasmPriority = "speed"; // Prioritize speed over accuracy
-    } catch (e) {
-      console.warn("Could not set some browser compatibility options:", e);
+    // Only set license if not initialized yet
+    if (!isDynamsoftInitialized) {
+      // Set license key ONLY ONCE
+      BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+      
+      // Disable debug log to improve performance
+      try {
+        // @ts-ignore
+        BarcodeReader.isDebugMode = false;
+      } catch (e) {
+        console.warn("Could not disable debug mode:", e);
+      }
+      
+      // Set resource path - optimize for faster loading
+      BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@latest/dist/";
+      
+      // Enhanced browser compatibility settings
+      try {
+        // @ts-ignore - may not exist in type definition but useful for compatibility
+        BarcodeReader.browserFriendly = true;
+        // @ts-ignore
+        BarcodeReader.loadWasmPriority = "speed"; // Prioritize speed over accuracy
+      } catch (e) {
+        console.warn("Could not set some browser compatibility options:", e);
+      }
     }
     
-    // Check if there's already a global instance we can reuse
-    if (globalReaderInstance) {
-      console.log("Reusing existing reader instance");
-      return true;
-    }
-    
-    // Faster SDK loader - load WASM resources early
+    // Load WASM resources early
     try {
       await BarcodeReader.loadWasm();
     } catch (e) {
       console.warn("Early WASM loading failed, will retry:", e);
     }
     
-    // Create a new reader instance with fast settings
-    try {
-      console.log("Creating new BarcodeReader instance");
-      globalReaderInstance = await BarcodeReader.createInstance();
-      console.log("Successfully created reader instance");
-    } catch (error) {
-      console.error("Error creating reader instance:", error);
-      // If we failed, try to reset everything and try again with minimal settings
-      try {
-        console.log("Attempting to reset SDK state with minimal settings");
-        // Try with minimum settings
-        const tempReader = await BarcodeReader.createInstance();
-        if (tempReader) {
-          await tempReader.destroyContext();
-          console.log("Reset SDK state successfully");
-        }
-        // Try again after reset with minimal configuration
-        globalReaderInstance = await BarcodeReader.createInstance();
-      } catch (resetError) {
-        console.error("Failed to reset SDK state:", resetError);
-        throw resetError;
-      }
-    }
-    
+    // Mark as initialized to prevent multiple license settings
+    isDynamsoftInitialized = true;
     console.log("Dynamsoft SDK initialized successfully");
     return true;
   } catch (error) {
     console.error("Failed to initialize Dynamsoft SDK:", error);
-    throw error;
+    return false;
+  } finally {
+    initializationInProgress = false;
   }
 };
 
@@ -124,28 +129,82 @@ export const initializeDynamsoft = async () => {
  * Get the global reader instance or create one if it doesn't exist
  */
 export const getReaderInstance = async (): Promise<BarcodeReader> => {
-  if (!globalReaderInstance) {
+  // Make sure SDK is initialized first
+  if (!isDynamsoftInitialized) {
     await initializeDynamsoft();
   }
   
-  if (!globalReaderInstance) {
-    throw new Error("Failed to get reader instance");
+  try {
+    // Create a new reader instance if needed
+    if (!globalReaderInstance) {
+      console.log("Creating new BarcodeReader instance");
+      globalReaderInstance = await BarcodeReader.createInstance();
+      console.log("Successfully created reader instance");
+    }
+    
+    return globalReaderInstance;
+  } catch (error) {
+    console.error("Error creating reader instance:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get the global scanner instance or create one if it doesn't exist
+ */
+export const getScannerInstance = async (): Promise<BarcodeScanner> => {
+  // Make sure SDK is initialized first
+  if (!isDynamsoftInitialized) {
+    await initializeDynamsoft();
   }
   
-  return globalReaderInstance;
+  try {
+    // Create a new scanner instance if needed
+    if (!globalScannerInstance) {
+      console.log("Creating new BarcodeScanner instance");
+      globalScannerInstance = await BarcodeScanner.createInstance();
+      console.log("Successfully created scanner instance");
+    }
+    
+    return globalScannerInstance;
+  } catch (error) {
+    console.error("Error creating scanner instance:", error);
+    
+    // If we failed, try once more after a brief delay
+    await new Promise(resolve => setTimeout(resolve, 100));
+    globalScannerInstance = await BarcodeScanner.createInstance();
+    return globalScannerInstance;
+  }
 };
 
 /**
  * Clean up Dynamsoft resources
  */
 export const cleanupDynamsoft = async () => {
+  // Clean up scanner instance
+  if (globalScannerInstance) {
+    try {
+      if (globalScannerInstance.isOpen) {
+        await globalScannerInstance.stop();
+      }
+      await globalScannerInstance.destroyContext();
+      globalScannerInstance = null;
+      console.log("Cleaned up scanner resources");
+    } catch (error) {
+      console.error("Error cleaning up scanner resources:", error);
+    }
+  }
+  
+  // Clean up reader instance
   if (globalReaderInstance) {
     try {
       await globalReaderInstance.destroyContext();
       globalReaderInstance = null;
-      console.log("Cleaned up Dynamsoft resources");
+      console.log("Cleaned up reader resources");
     } catch (error) {
-      console.error("Error cleaning up Dynamsoft resources:", error);
+      console.error("Error cleaning up reader resources:", error);
     }
   }
+  
+  // Don't reset initialization flag - we want to keep the license
 };

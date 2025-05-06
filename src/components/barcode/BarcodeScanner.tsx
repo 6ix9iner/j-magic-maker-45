@@ -6,7 +6,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { toast } from "sonner";
 import { useBarcodeScannerSDK } from '@/hooks/useBarcodeScannerSDK';
 import BarcodeScannerUI from './BarcodeScannerUI';
-import { BEEP_SOUND_URL } from '@/utils/dynamsoftConfig';
+import { BEEP_SOUND_URL, initializeDynamsoft } from '@/utils/dynamsoftConfig';
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface BarcodeScannerProps {
@@ -20,7 +20,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const retryCountRef = useRef<number>(0);
   const torchStateRef = useRef<boolean>(false);
-  const scannerInitializedRef = useRef<boolean>(false);
+  const sdkPreloadedRef = useRef<boolean>(false);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -36,23 +36,39 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
   
-  // Initialize audio - do this early for faster response later
+  // Pre-load Dynamsoft SDK when the component is first mounted
+  useEffect(() => {
+    // Only do this once
+    if (!sdkPreloadedRef.current) {
+      sdkPreloadedRef.current = true;
+      
+      // Pre-initialize SDK silently in the background
+      const timer = setTimeout(() => {
+        initializeDynamsoft().catch(err => {
+          // Just log errors, don't show to user
+          console.log('Background SDK initialization failed:', err);
+        });
+      }, 1000); // Short delay after page load
+      
+      return () => clearTimeout(timer);
+    }
+  }, []);
+  
+  // Initialize audio
   useEffect(() => {
     try {
-      // Preload audio element for faster playback
       audioRef.current = new Audio();
       audioRef.current.src = BEEP_SOUND_URL;
       audioRef.current.volume = 1.0;
       audioRef.current.preload = 'auto';
       
-      // Attempt early loading to reduce delay when scanning
+      // Try to load audio after user interaction
       const loadAudio = () => {
         if (audioRef.current) {
           audioRef.current.load();
         }
       };
       
-      // Try to load after user interaction
       document.addEventListener('click', loadAudio, { once: true });
       
       return () => {
@@ -67,19 +83,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   }, []);
 
-  // Handle successful scan with sound and vibration
+  // Handle scan result
   const handleScan = (code: string, symbology: string) => {
-    // Play sound with better cross-browser support
+    // Play sound
     if (audioRef.current) {
       try {
         audioRef.current.currentTime = 0;
-        
-        // Only attempt to play if we have user interaction
         const playPromise = audioRef.current.play();
         if (playPromise !== undefined) {
           playPromise.catch(e => {
             console.log("Sound play error:", e);
-            // Don't show error to user, just silently fail
           });
         }
       } catch (e) {
@@ -89,7 +102,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     // Vibrate device if supported
     try {
-      if (window.navigator && navigator.vibrate) {
+      if (navigator.vibrate) {
         navigator.vibrate(200);
       }
     } catch (e) {
@@ -110,7 +123,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }, 300);
   };
 
-  // Initialize the barcode scanner SDK with improved performance
+  // Initialize the barcode scanner SDK
   const {
     viewRef,
     isScanning,
@@ -119,53 +132,33 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     isError,
     cameraPermissions,
     toggleScanning,
-    toggleTorch,
+    setTorchState,
     requestCameraPermission,
     cleanupScanner,
-    resetScanner,
-    setTorchState,
     preInitialize
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
 
-  // Pre-initialize scanner when component loads to speed up first scan
-  useEffect(() => {
-    // Only do this once
-    if (!scannerInitializedRef.current) {
-      scannerInitializedRef.current = true;
-      
-      // Wait a bit after page load before pre-initializing
-      const timer = setTimeout(() => {
-        preInitialize().catch(err => {
-          // Silently fail pre-initialization, we'll retry when needed
-          console.log("Pre-initialization failed:", err);
-        });
-      }, 2000); // 2 second delay
-      
-      return () => clearTimeout(timer);
-    }
-  }, [preInitialize]);
-
-  // Start scanning when dialog opens with automatic retry
+  // Open scanner and start scanning
   const handleOpenScanner = async () => {
     setIsOpen(true);
     setScanReady(true);
     retryCountRef.current = 0;
     torchStateRef.current = false;
     
-    // Request permissions explicitly first for better UX
+    // Request permissions first
     await requestCameraPermission();
     
-    // Start scanning with shorter delay
+    // Start scanning with a small delay to let UI render
     setTimeout(() => {
       toggleScanning();
-    }, 300); // Reduced from 800ms for faster startup
+    }, 300);
   };
 
   // Stop scanning when dialog closes
   const handleStopScanning = async () => {
-    // First turn off the torch if it's on
+    // Turn off torch if it's on
     if (torchStateRef.current) {
       try {
         await setTorchState(false);
@@ -179,7 +172,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(false);
   };
 
-  // Handle the torch toggle with better state tracking
+  // Handle torch toggle
   const handleTorchToggle = async () => {
     try {
       const newTorchState = !torchStateRef.current;
@@ -190,16 +183,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         toast.success(newTorchState ? "Torch turned on" : "Torch turned off", {
           duration: 1000
         });
-      } else {
-        toast.error("Torch not available on this device");
       }
     } catch (error) {
       console.error("Torch toggle error:", error);
-      toast.error("Could not toggle torch");
     }
   };
 
-  // Try to reset the scanner when it fails, with retry limit
+  // Try to restart the scanner when it fails
   const handleRetry = async () => {
     if (retryCountRef.current >= 3) {
       toast.error("Too many attempts. Please close and try again.");
@@ -209,23 +199,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     retryCountRef.current++;
     toast.info("Restarting scanner...");
     
-    // First clean up
+    // Clean up current scanner
     await cleanupScanner();
     
-    // Then reset and try again with faster initialization
-    const success = await resetScanner();
+    // Reset torch state
+    torchStateRef.current = false;
     
-    if (success) {
-      // Reset torch state
-      torchStateRef.current = false;
-      
-      // Start scanning again
-      setTimeout(() => {
-        toggleScanning();
-      }, 400); // Reduced delay for faster restart
-    } else {
-      toast.error("Failed to restart scanner. Please try again.");
-    }
+    // Start scanning again with a delay
+    setTimeout(() => {
+      toggleScanning();
+    }, 300);
   };
 
   // Handle dialog/sheet state changes
@@ -244,10 +227,17 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, [cleanupScanner]);
 
+  // Start preloading when button is hovered for faster launch
+  const handleScanButtonHover = () => {
+    preInitialize().catch(() => {}); // Silently preload on hover
+  };
+
   return (
     <>
       <Button 
         onClick={handleOpenScanner}
+        onMouseOver={handleScanButtonHover}
+        onTouchStart={handleScanButtonHover}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
       >
         <ScanBarcode className="w-5 h-5 mr-2" />
@@ -260,7 +250,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             <div className="p-4 border-b">
               <h2 className="text-xl font-semibold">Scan Barcode</h2>
               <p className="text-sm text-gray-500 mt-1">
-                Position barcode within view for automatic scanning
+                Position barcode within view for scanning
               </p>
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
@@ -287,7 +277,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             <DialogHeader className="p-4 border-b">
               <DialogTitle>Scan Barcode</DialogTitle>
               <DialogDescription>
-                Position barcode within view for automatic scanning
+                Position barcode within view for scanning
               </DialogDescription>
             </DialogHeader>
             <div className="p-4 flex flex-col items-center justify-center">

@@ -1,16 +1,13 @@
+
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { BrowserMultiFormatReader, HTMLCanvasElementLuminanceSource } from '@zxing/library';
+import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
 import { 
-  createBarcodeReaderHints, 
+  createBarcodeReaderConfig, 
   getCameraConstraints, 
   applyCameraSettings,
-  BEEP_SOUND_URL 
+  BEEP_SOUND_URL,
+  DYNAMSOFT_LICENSE_KEY
 } from './BarcodeConfigUtils';
-import { 
-  enhanceCanvasForBlurryBarcodes,
-  tryMultipleBinarizers,
-  processImageSections 
-} from './BarcodeProcessingUtils';
 
 interface UseBarcodeScannerProps {
   onDetected: (result: string) => void;
@@ -21,27 +18,47 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const beepSoundRef = useRef<HTMLAudioElement | null>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const codeReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const scannerRef = useRef<DynamsoftScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
-  const scanIntervalRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const lastDetectionRef = useRef<string | null>(null);
   const lastDetectionTimeRef = useRef<number>(0);
   const [zoom, setZoom] = useState(1);
-  const [focusMode, setFocusMode] = useState<string>("continuous");
   
-  // Initialize barcode reader and audio
+  // Initialize Dynamsoft and audio
   useEffect(() => {
-    // Initialize audio element for beep sound - louder volume for Samsung devices
+    // Set license key for Dynamsoft
+    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+    
+    // Initialize audio element for beep sound
     beepSoundRef.current = new Audio(BEEP_SOUND_URL);
     beepSoundRef.current.volume = 1.0; // Maximum volume for the beep
     
-    // Initialize barcode reader with hints
-    const hints = createBarcodeReaderHints();
-    const codeReader = new BrowserMultiFormatReader(hints, 3000); 
-    codeReaderRef.current = codeReader;
-
+    // Initialize Dynamsoft BarcodeScanner
+    const initScanner = async () => {
+      try {
+        // Make sure BarcodeScanner is supported
+        if (!(await DynamsoftScanner.isSupported())) {
+          throw new Error("Your browser doesn't support the scanner.");
+        }
+        
+        // Get configuration
+        const config = createBarcodeReaderConfig();
+        
+        // Configure Dynamsoft BarcodeScanner
+        DynamsoftScanner.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+        
+        // Use the BarcodeReader engine
+        await BarcodeReader.loadWasm();
+      } catch (err: any) {
+        console.error("Failed to initialize barcode scanner:", err);
+        setError(err.message || "Failed to initialize scanner");
+      }
+    };
+    
+    initScanner();
+    
     return () => {
       stopScanning();
     };
@@ -61,12 +78,12 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
     
     // Play beep sound
     if (beepSoundRef.current) {
-      // Attempt multiple times to play the sound (common issue on Samsung)
+      // Attempt multiple times to play the sound
       const playBeep = () => {
         beepSoundRef.current?.play()
           .catch(e => {
             console.error("Error playing sound:", e);
-            // Try again for Samsung devices which may have initial audio issues
+            // Try again which may have initial audio issues
             setTimeout(() => {
               beepSoundRef.current?.play().catch(() => console.log("Retry failed"));
             }, 100);
@@ -74,7 +91,7 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
       };
       
       playBeep();
-      // Vibrate the device - better feedback for Samsung phones
+      // Vibrate the device for better feedback
       if (navigator.vibrate) {
         navigator.vibrate(200);
       }
@@ -86,73 +103,74 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
     stopScanning();
   }, [onDetected]);
 
-  // Process a video frame to detect barcodes
-  const processVideoFrame = useCallback(() => {
-    if (!videoRef.current || !canvasRef.current || !codeReaderRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const context = canvas.getContext('2d');
-    
-    if (!context) return;
+  // Toggle scanner
+  const startScanning = useCallback(async () => {
+    setIsScanning(true);
+    setError(null);
     
     try {
-      // Make sure video is actually playing and has dimensions
-      if (video.videoWidth === 0 || video.videoHeight === 0 || video.paused || video.ended) {
-        return;
+      // First check if browser supports getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Your browser doesn't support camera access");
       }
 
-      // Set canvas dimensions to match video
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      
-      // Try multiple processing techniques for better results
-      
-      // First attempt: Standard processing
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      const luminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
-      let barcodeValue = tryMultipleBinarizers(luminanceSource, codeReaderRef.current);
-      
-      if (barcodeValue && barcodeValue.trim() !== '') {
-        handleDetection(barcodeValue);
-        return;
+      // Create and configure a scanner if we don't have one
+      if (!scannerRef.current) {
+        const scanner = await DynamsoftScanner.createInstance();
+        
+        // Configure scanner
+        const config = createBarcodeReaderConfig();
+        await scanner.updateRuntimeSettings("speed");
+        
+        // Set formats to decode
+        if (config.barcodeFormats && config.barcodeFormats.length > 0) {
+          const formatSettings = config.barcodeFormats.join(';');
+          await scanner.updateRuntimeSettings({
+            barcodeFormatIds: formatSettings,
+            timeout: config.timeout
+          });
+        }
+        
+        // Set up detection callback
+        scanner.onUniqueRead = (txt, result) => {
+          handleDetection(txt);
+        };
+        
+        scannerRef.current = scanner;
       }
       
-      // Second attempt: Enhanced processing for blurry codes
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      enhanceCanvasForBlurryBarcodes(context, canvas);
-      const enhancedLuminanceSource = new HTMLCanvasElementLuminanceSource(canvas);
-      barcodeValue = tryMultipleBinarizers(enhancedLuminanceSource, codeReaderRef.current);
-      
-      if (barcodeValue && barcodeValue.trim() !== '') {
-        handleDetection(barcodeValue);
-        return;
+      // Get video element and start scanning
+      if (videoRef.current && scannerRef.current) {
+        // Open camera with proper settings
+        await scannerRef.current.setUIElement(videoRef.current);
+        
+        // Set camera constraints
+        const constraints = getCameraConstraints();
+        await scannerRef.current.updateVideoSettings({
+          video: constraints
+        });
+        
+        // Start scanning
+        await scannerRef.current.open();
+        
+        // Get the stream for camera controls
+        const videoTrack = scannerRef.current.getVideoTrack();
+        if (videoTrack) {
+          streamRef.current = new MediaStream([videoTrack]);
+          
+          // Apply any zoom settings
+          await applyCameraSettings(videoTrack, zoom);
+        }
+        
+        setHasPermission(true);
       }
-      
-      // Third attempt: Try with different sections of the image
-      barcodeValue = processImageSections(video, canvas, context, codeReaderRef.current);
-      if (barcodeValue) {
-        handleDetection(barcodeValue);
-      }
-    } catch (err) {
-      // Silent failure for this method as we're trying repeatedly
-      // Most frames won't contain a valid barcode
+    } catch (err: any) {
+      console.error("Error accessing camera:", err);
+      setError(err.message || "Failed to access camera");
+      setHasPermission(false);
+      setIsScanning(false);
     }
-  }, [handleDetection]);
-
-  // Toggle between focus modes
-  const toggleFocusMode = useCallback(async () => {
-    const nextMode = focusMode === 'continuous' ? 'manual' : 'continuous';
-    setFocusMode(nextMode);
-    
-    // Apply new focus mode immediately if scanning
-    if (isScanning && streamRef.current) {
-      const track = streamRef.current.getVideoTracks()[0];
-      if (track) {
-        await applyCameraSettings(track, zoom, nextMode);
-      }
-    }
-  }, [focusMode, zoom, isScanning]);
+  }, [zoom, handleDetection]);
 
   // Adjust zoom level
   const adjustZoom = useCallback(async (increment: boolean) => {
@@ -166,166 +184,22 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
     if (isScanning && streamRef.current) {
       const track = streamRef.current.getVideoTracks()[0];
       if (track) {
-        await applyCameraSettings(track, newZoom, focusMode);
+        await applyCameraSettings(track, newZoom);
       }
     }
-  }, [zoom, focusMode, isScanning]);
+  }, [zoom, isScanning]);
 
-  const startScanning = useCallback(async () => {
-    if (!codeReaderRef.current) return;
-    
-    setIsScanning(true);
-    setError(null);
-    
-    try {
-      // First check if browser supports getUserMedia
-      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error("Your browser doesn't support camera access");
-      }
-
-      // Properly structure the MediaStreamConstraints
-      const constraints: MediaStreamConstraints = {
-        video: getCameraConstraints(zoom, focusMode),
-        audio: false
-      };
-      
-      console.log("Using camera constraints for Samsung S10:", constraints.video);
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      streamRef.current = stream;
-      
-      setHasPermission(true);
-      
-      if (videoRef.current) {
-        // Connect the stream to our video element
-        videoRef.current.srcObject = stream;
-        
-        // Important: Set playsInline again programmatically
-        videoRef.current.playsInline = true;
-        videoRef.current.autoplay = true;
-        
-        // Play the video and handle any errors
-        videoRef.current.play().catch(e => {
-          console.error("Video play error:", e);
-          setError("Failed to start video stream: " + e.message);
-        });
-        
-        // Apply focus settings immediately
-        await applyCameraSettings(stream.getVideoTracks()[0], zoom, focusMode);
-        
-        // Wait for video to be ready
-        videoRef.current.onloadedmetadata = async () => {
-          if (!videoRef.current) return;
-          
-          console.log("Video ready with dimensions:", videoRef.current.videoWidth, "x", videoRef.current.videoHeight);
-          
-          // Keep the video playing
-          videoRef.current.play().catch(e => console.error("Video play retry error:", e));
-          
-          // Apply focus settings again after video is loaded
-          await applyCameraSettings(stream.getVideoTracks()[0], zoom, focusMode);
-          
-          // Reset any previous scanning attempts
-          if (codeReaderRef.current) {
-            codeReaderRef.current.reset();
-          }
-          
-          // Start continuous scanning with ZXing directly on video element
-          try {
-            codeReaderRef.current?.decodeFromVideoElement(videoRef.current)
-              .then(result => {
-                if (result) {
-                  const barcodeValue = result.getText();
-                  if (barcodeValue && barcodeValue.trim() !== '') {
-                    handleDetection(barcodeValue);
-                  }
-                }
-              })
-              .catch(error => {
-                // Silent failure - normal for frames without barcodes
-                if (error.name !== 'NotFoundException') {
-                  console.error("ZXing error:", error);
-                }
-                
-                // Continue scanning if still active
-                if (isScanning && videoRef.current && codeReaderRef.current) {
-                  setTimeout(() => {
-                    if (isScanning && videoRef.current && codeReaderRef.current) {
-                      codeReaderRef.current.decodeFromVideoElement(videoRef.current)
-                        .then(result => {
-                          if (result) {
-                            const barcodeValue = result.getText();
-                            if (barcodeValue && barcodeValue.trim() !== '') {
-                              handleDetection(barcodeValue);
-                            }
-                          }
-                        })
-                        .catch(() => {
-                          // Continue scanning silently
-                        });
-                    }
-                  }, 200);
-                }
-              });
-          } catch (err) {
-            console.error("Failed to start ZXing scanner:", err);
-            // Fallback to canvas method only
-          }
-          
-          // Backup method - process frames manually on an interval
-          if (scanIntervalRef.current) {
-            clearInterval(scanIntervalRef.current);
-          }
-          
-          // Use faster scanning interval (60ms ≈ 16fps) for Samsung phones
-          scanIntervalRef.current = window.setInterval(() => {
-            processVideoFrame();
-            
-            // Check if video is still playing and restart if needed
-            if (videoRef.current && (videoRef.current.paused || videoRef.current.ended)) {
-              videoRef.current.play().catch(e => console.error("Video auto-restart error:", e));
-            }
-          }, 60);
-        };
-        
-        // Add event listeners to handle video issues
-        videoRef.current.onpause = () => {
-          console.log("Video paused - attempting to resume");
-          if (isScanning && videoRef.current) {
-            videoRef.current.play().catch(e => console.error("Resume error:", e));
-          }
-        };
-        
-        videoRef.current.onended = () => {
-          console.log("Video ended - attempting to restart");
-          if (isScanning && videoRef.current && streamRef.current) {
-            videoRef.current.srcObject = streamRef.current;
-            videoRef.current.play().catch(e => console.error("Restart error:", e));
-          }
-        };
-      }
-    } catch (err: any) {
-      console.error("Error accessing camera:", err);
-      setError(err.message || "Failed to access camera");
-      setHasPermission(false);
-      setIsScanning(false);
-    }
-  }, [zoom, focusMode, handleDetection, processVideoFrame]);
-
-  const stopScanning = useCallback(() => {
+  const stopScanning = useCallback(async () => {
     console.log("Stopping scanner...");
     
-    if (codeReaderRef.current) {
-      codeReaderRef.current.reset();
+    // Close the scanner
+    if (scannerRef.current) {
+      try {
+        await scannerRef.current.close();
+      } catch (e) {
+        console.error("Error closing scanner:", e);
+      }
     }
-    
-    if (scanIntervalRef.current) {
-      clearInterval(scanIntervalRef.current);
-      scanIntervalRef.current = null;
-    }
-    
-    // Stop all tracks on the media stream but keep a reference temporarily
-    const tempStream = streamRef.current;
     
     // Clear the video source
     if (videoRef.current) {
@@ -335,19 +209,20 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
       }
     }
     
-    // Now stop the tracks after clearing the video element
-    if (tempStream) {
-      const tracks = tempStream.getTracks();
-      tracks.forEach(track => {
-        console.log("Stopping track:", track.kind);
-        track.stop();
-      });
+    // Also stop any stream tracks we have
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
+      tracks.forEach(track => track.stop());
+      streamRef.current = null;
     }
     
-    // Finally clear the stream reference
-    streamRef.current = null;
-    
     setIsScanning(false);
+  }, []);
+
+  // Toggle focus mode - removed as Dynamsoft handles focus automatically
+  const toggleFocusMode = useCallback(() => {
+    // This is a no-op with Dynamsoft, but kept for UI consistency
+    console.log("Focus mode toggling not needed with Dynamsoft");
   }, []);
 
   return {
@@ -358,11 +233,11 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
     error,
     hasPermission,
     zoom,
-    focusMode,
+    focusMode: "auto", // Dynamsoft handles focus automatically
     startScanning,
     stopScanning,
     adjustZoom,
     toggleFocusMode,
-    hasVideoFeed: Boolean(videoRef.current?.srcObject)
+    hasVideoFeed: Boolean(videoRef.current?.srcObject) || isScanning
   };
 };

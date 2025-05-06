@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Loader, Flashlight, FlashlightOff } from "lucide-react";
+import { Loader, Camera, CameraOff, Flashlight, FlashlightOff } from "lucide-react";
 import { 
   Tooltip,
   TooltipContent,
@@ -14,6 +14,7 @@ interface BarcodeScannerUIProps {
   isTorchOn: boolean;
   isInitialized: boolean;
   isError: boolean;
+  cameraPermissions?: boolean | null;
   viewRef: React.RefObject<HTMLDivElement>;
   onToggleTorch: () => void;
   onCancel: () => void;
@@ -24,22 +25,40 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
   isTorchOn,
   isInitialized,
   isError,
+  cameraPermissions,
   viewRef,
   onToggleTorch,
   onCancel
 }) => {
+  // Function to handle requesting camera permissions
+  const requestCameraPermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ video: true });
+      window.location.reload(); // Reload to reinitialize everything with new permissions
+    } catch (err) {
+      console.error('Failed to get camera permission:', err);
+    }
+  };
+
   return (
     <div className="flex flex-col items-center justify-center space-y-4">
-      {isError ? (
+      {isError || cameraPermissions === false ? (
         <div className="text-destructive text-center">
-          <p>Failed to initialize barcode scanner.</p>
-          <p className="text-sm mt-2">Please ensure you've granted camera permissions.</p>
+          <div className="flex flex-col items-center justify-center p-4">
+            <CameraOff className="w-12 h-12 text-destructive mb-4" />
+            <p className="font-medium">Camera access is required</p>
+            <p className="text-sm mt-2 mb-4">Please allow camera access to use the barcode scanner.</p>
+            <Button onClick={requestCameraPermission} className="bg-blue-600 hover:bg-blue-700">
+              Grant Camera Permission
+            </Button>
+          </div>
         </div>
       ) : (
         <div className="relative w-full max-w-sm aspect-[3/4] bg-black rounded-lg overflow-hidden">
           {!isInitialized && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Loader className="w-8 h-8 text-blue-500 animate-spin" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-900">
+              <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2" />
+              <p className="text-white text-sm">Initializing camera...</p>
             </div>
           )}
           
@@ -64,7 +83,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
               
               {/* Status indicator */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-60 px-4 py-1 rounded-full text-white text-xs">
-                Dynamsoft Scanner
+                Scanning for barcodes...
               </div>
             </div>
           )}
@@ -98,9 +117,11 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
         </div>
       )}
       
-      <p className="text-sm text-center text-gray-600">
-        Position barcode within the frame for automatic scanning.
-      </p>
+      {!isError && cameraPermissions !== false && (
+        <p className="text-sm text-center text-gray-600">
+          Position barcode within the frame for automatic scanning.
+        </p>
+      )}
       
       <Button variant="outline" onClick={onCancel} className="mt-4">
         Cancel

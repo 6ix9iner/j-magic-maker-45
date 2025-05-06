@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useBarcodeScannerSDK } from '@/hooks/useBarcodeScannerSDK';
 import BarcodeScannerUI from './BarcodeScannerUI';
@@ -43,7 +43,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     // Call the onDetected callback
     onDetected(code);
-    toast.success("Barcode detected!");
+    toast.success(`Barcode detected: ${symbology}`);
     
     // Close the dialog
     setIsOpen(false);
@@ -55,6 +55,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     isTorchOn,
     isInitialized,
     isError,
+    cameraPermissions,
     toggleScanning,
     toggleTorch
   } = useBarcodeScannerSDK({
@@ -63,7 +64,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
   const handleStartScanning = () => {
     setIsOpen(true);
-    toggleScanning();
+    // Slight delay to ensure dialog is open before starting camera
+    setTimeout(() => {
+      toggleScanning();
+    }, 300);
   };
 
   const handleStopScanning = () => {
@@ -90,6 +94,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Scan Barcode</DialogTitle>
+            <DialogDescription>
+              Position the barcode within the camera view for automatic scanning
+            </DialogDescription>
           </DialogHeader>
           
           <BarcodeScannerUI 
@@ -97,6 +104,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             isTorchOn={isTorchOn}
             isInitialized={isInitialized}
             isError={isError}
+            cameraPermissions={cameraPermissions}
             viewRef={viewRef}
             onToggleTorch={toggleTorch}
             onCancel={handleStopScanning}

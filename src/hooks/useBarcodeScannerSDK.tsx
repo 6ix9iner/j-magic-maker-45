@@ -19,13 +19,37 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const [isTorchOn, setIsTorchOn] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isError, setIsError] = useState(false);
+  const [cameraPermissions, setCameraPermissions] = useState<boolean | null>(null);
 
   const barcodeScannerRef = useRef<BarcodeScanner | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
+    const checkPermissions = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: { 
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          } 
+        });
+        // Release the stream immediately after permission check
+        stream.getTracks().forEach(track => track.stop());
+        setCameraPermissions(true);
+      } catch (err) {
+        console.error('Camera permission check failed:', err);
+        setCameraPermissions(false);
+      }
+    };
+
+    checkPermissions();
+  }, []);
+
+  useEffect(() => {
     const initSDK = async () => {
       try {
+        console.log('Initializing Dynamsoft SDK...');
         // Set license
         BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
         
@@ -34,10 +58,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         
         // Wait for engine to initialize
         await BarcodeReader.loadWasm();
+        console.log('BarcodeReader WASM loaded successfully');
 
         // Create scanner
         const scanner = await BarcodeScanner.createInstance();
         barcodeScannerRef.current = scanner;
+        console.log('Scanner instance created successfully');
 
         // Configure runtime settings
         const barcodeFormatIds = BARCODE_READER_CONFIG.barcodeFormats.reduce(
@@ -54,8 +80,17 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         
         // Update with the modified settings
         await scanner.updateRuntimeSettings(settings);
+        console.log('Scanner runtime settings configured');
 
         scanner.singleFrameMode = false;
+        
+        // Set camera settings to optimize for barcode scanning
+        const cameraSettings = await scanner.getVideoSettings();
+        cameraSettings.video.width = { ideal: 1280 };
+        cameraSettings.video.height = { ideal: 720 };
+        cameraSettings.video.facingMode = { ideal: 'environment' };
+        await scanner.updateVideoSettings(cameraSettings);
+        console.log('Camera video settings updated');
 
         setIsInitialized(true);
       } catch (error) {
@@ -73,6 +108,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
     return () => {
       if (barcodeScannerRef.current) {
+        console.log('Cleaning up scanner...');
         barcodeScannerRef.current.destroyContext();
         barcodeScannerRef.current = null;
       }
@@ -81,20 +117,49 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
   const toggleScanning = async () => {
     if (!isInitialized || !barcodeScannerRef.current || !viewRef.current) {
+      console.log('Cannot toggle scanning - scanner not initialized or view not ready');
       return;
     }
 
     try {
       if (isScanning) {
+        console.log('Stopping scanner...');
         await barcodeScannerRef.current.stop();
+        // Make sure torch is off when stopping
+        if (isTorchOn) {
+          try {
+            await barcodeScannerRef.current.turnOffTorch();
+            setIsTorchOn(false);
+          } catch (e) {
+            console.log('Error turning off torch on stop:', e);
+          }
+        }
       } else {
+        console.log('Starting scanner...');
         await barcodeScannerRef.current.setUIElement(viewRef.current);
 
         barcodeScannerRef.current.onUnduplicatedRead = (txt, result) => {
+          console.log('Barcode detected:', txt, result.barcodeFormatString);
           onScan(txt, result.barcodeFormatString);
         };
 
-        await barcodeScannerRef.current.show();
+        try {
+          await barcodeScannerRef.current.show();
+          console.log('Scanner showed successfully');
+          
+          // Get camera info to check if torch is available
+          const cameraInfo = await barcodeScannerRef.current.getCameraInfo();
+          console.log('Camera capabilities:', cameraInfo);
+        } catch (e) {
+          console.error('Error showing scanner:', e);
+          toast({
+            title: 'Camera Error',
+            description: 'Failed to access camera. Please check permissions.',
+            variant: 'destructive'
+          });
+          setIsError(true);
+          return;
+        }
       }
       setIsScanning(prev => !prev);
     } catch (error) {
@@ -109,15 +174,20 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
   const toggleTorch = async () => {
     if (!isInitialized || !barcodeScannerRef.current || !isScanning) {
+      console.log('Cannot toggle torch - scanner not initialized or not scanning');
       return;
     }
 
     try {
       const newTorchState = !isTorchOn;
+      console.log('Toggling torch to:', newTorchState);
+      
       if (newTorchState) {
         await barcodeScannerRef.current.turnOnTorch();
+        console.log('Torch turned on');
       } else {
         await barcodeScannerRef.current.turnOffTorch();
+        console.log('Torch turned off');
       }
       setIsTorchOn(newTorchState);
     } catch (error) {
@@ -135,6 +205,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     isTorchOn,
     isInitialized,
     isError,
+    cameraPermissions,
     toggleScanning,
     toggleTorch
   };

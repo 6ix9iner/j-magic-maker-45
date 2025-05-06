@@ -14,6 +14,7 @@ interface BarcodeScannerProps {
 
 const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [hasOpenedBefore, setHasOpenedBefore] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   
   useEffect(() => {
@@ -57,7 +58,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     isError,
     cameraPermissions,
     toggleScanning,
-    toggleTorch
+    toggleTorch,
+    requestCameraPermission
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
@@ -65,10 +67,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   // When opening the dialog, we need to ensure we have a small delay before starting the scanner
   const handleStartScanning = () => {
     setIsOpen(true);
+    setHasOpenedBefore(true);
     // Slight delay to ensure dialog is open before starting camera
     setTimeout(() => {
-      toggleScanning();
-    }, 300);
+      if (!isScanning) {
+        toggleScanning();
+      }
+    }, 500);
   };
 
   const handleStopScanning = () => {
@@ -77,6 +82,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
     setIsOpen(false);
   };
+
+  // Reset the scanner if there's an error when reopening
+  useEffect(() => {
+    if (isOpen && hasOpenedBefore && isError) {
+      // Attempt to reinitialize if there was an error and the user is reopening
+      requestCameraPermission();
+    }
+  }, [isOpen, hasOpenedBefore, isError, requestCameraPermission]);
 
   return (
     <>
@@ -109,6 +122,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
             viewRef={viewRef}
             onToggleTorch={toggleTorch}
             onCancel={handleStopScanning}
+            onRequestPermission={requestCameraPermission}
           />
         </DialogContent>
       </Dialog>

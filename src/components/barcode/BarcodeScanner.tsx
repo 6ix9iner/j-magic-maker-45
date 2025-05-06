@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -138,11 +137,15 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }, 500);
   };
 
+  // Improved torch handling to prevent scanner closure
   const handleTorch = async () => {
     try {
       const newState = await toggleTorch();
-      toast.success(newState ? "Torch ON" : "Torch OFF");
+      if (newState !== undefined) {
+        toast.success(newState ? "Torch ON" : "Torch OFF");
+      }
     } catch (error) {
+      // Just show a message but keep scanner open
       console.error("Torch error:", error);
       toast.error("Torch not supported on this device.");
     }

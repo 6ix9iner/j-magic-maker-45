@@ -331,9 +331,9 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           }
           
           // Get or create video container
-          let container = viewRef.current.querySelector('.dce-video-container');
+          let container = viewRef.current.querySelector('.dce-video-container') as HTMLElement | null;
           if (!container) {
-            container = document.createElement('div');
+            container = document.createElement('div') as HTMLElement;
             container.className = 'dce-video-container';
             container.style.width = '100%';
             container.style.height = '100%';
@@ -365,7 +365,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           console.log('Opening camera...');
           await scannerRef.current.open();
           
-          // Style video elements - THIS IS THE SECTION WE NEED TO FIX
+          // Style video elements
           setTimeout(() => {
             const videoElements = document.querySelectorAll('.dce-video-container video');
             videoElements.forEach((video) => {

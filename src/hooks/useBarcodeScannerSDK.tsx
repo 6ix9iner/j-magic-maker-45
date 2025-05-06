@@ -227,7 +227,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       // Create a temporary reader to force resource cleanup
       const tempReader = await BarcodeReader.createInstance();
       if (tempReader) {
-        await tempReader.destroy();
+        // Use destroyContext() instead of destroy() for BarcodeReader
+        await tempReader.destroyContext();
         console.log("Successfully created and destroyed a temporary reader instance");
       }
     } catch (e) {

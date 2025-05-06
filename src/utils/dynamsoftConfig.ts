@@ -74,7 +74,8 @@ export const initializeDynamsoft = async () => {
         // Create a temporary reader instance to ensure we can reset state
         const tempReader = await BarcodeReader.createInstance();
         if (tempReader) {
-          await tempReader.destroy();
+          // Use destroyContext instead of destroy for BarcodeReader instances
+          await tempReader.destroyContext();
           console.log("Successfully created and destroyed a temporary reader instance");
         }
       } catch (releaseError) {

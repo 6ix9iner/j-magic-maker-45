@@ -44,8 +44,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
         await scanner.updateRuntimeSettings({
           barcodeFormatIds,
-          maxAlgorithmThreadCount: 1,
           deblurLevel: 2
+          // Removed maxAlgorithmThreadCount as it doesn't exist in RuntimeSettings
         });
 
         scanner.singleFrameMode = false;

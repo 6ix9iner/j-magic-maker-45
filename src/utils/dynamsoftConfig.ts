@@ -2,7 +2,7 @@
 /**
  * Dynamsoft Barcode Reader configuration
  */
-import { EnumBarcodeFormat } from "dynamsoft-javascript-barcode";
+import { BarcodeReader, EnumBarcodeFormat } from "dynamsoft-javascript-barcode";
 
 // License key for Dynamsoft Barcode Reader
 export const DYNAMSOFT_LICENSE_KEY = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAzOTU3ODgwLVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTAzOTU3ODgwIiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjotMTgyODIwMDQwNH0=";
@@ -40,7 +40,14 @@ export const BARCODE_READER_CONFIG = {
 /**
  * Initialize the Dynamsoft BarcodeReader SDK
  */
-export const initializeDynamsoft = () => {
-  // Set CDN path
-  BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+export const initializeDynamsoft = async () => {
+  try {
+    // Set CDN path
+    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+    // Wait for engine to load
+    return await BarcodeReader.loadWasm();
+  } catch (error) {
+    console.error("Failed to initialize Dynamsoft SDK:", error);
+    throw error;
+  }
 };

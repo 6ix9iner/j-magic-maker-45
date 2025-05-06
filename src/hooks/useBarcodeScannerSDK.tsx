@@ -28,11 +28,17 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const requestInProgressRef = useRef(false);
   const permissionRequestedRef = useRef(false);
   const initSuccessRef = useRef(false);
+  const isIOSRef = useRef(false);
 
   // Track if permissions should be requested automatically
   const autoRequestPermissionsRef = useRef(true);
   
+  // Detect browser for specific handling
   useEffect(() => {
+    const ua = navigator.userAgent;
+    isIOSRef.current = /iPad|iPhone|iPod/.test(ua) || 
+                      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
     return () => {
       isMountedRef.current = false;
     };
@@ -51,12 +57,15 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       permissionRequestedRef.current = true;
       
       // Use more detailed constraints for better mobile compatibility
+      // iOS devices need a different approach
       const constraints = {
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
+        video: isIOSRef.current ? 
+          true : // Simplified for iOS
+          { 
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          },
         audio: false
       };
       
@@ -81,7 +90,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       setCameraPermissions(false);
       
       // If it fails, update UI to show proper error
-      toast.error('Camera permission denied. Please allow access in your browser settings.');
+      toast.error('Camera permission denied. Please allow camera access in your browser settings.');
       return false;
     } finally {
       requestInProgressRef.current = false;
@@ -107,7 +116,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             return;
           }
           
-          // Try the Permissions API first
+          // Try the Permissions API first - only works in secure contexts and some browsers
           if (navigator.permissions && navigator.permissions.query) {
             try {
               const result = await navigator.permissions.query({ name: 'camera' as PermissionName });
@@ -129,10 +138,15 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             }
           }
           
-          // Only auto-request if configured to do so
+          // On browsers without permissions API, try direct access
+          // Direct permission request - this works more reliably across browsers
           if (autoRequestPermissionsRef.current) {
             await requestCameraPermission();
           }
+        } else {
+          console.log('MediaDevices API not available in this browser');
+          setCameraPermissions(false);
+          toast.error('Your browser does not support camera access');
         }
       } catch (err) {
         console.error('Camera permission check failed:', err);
@@ -181,7 +195,18 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           scanner.ifShowScanRegionMask = false;
           
           try {
-            await scanner.updateVideoSettings(BARCODE_READER_CONFIG.videoSettings);
+            // Use simplified video settings for iOS
+            if (isIOSRef.current) {
+              await scanner.updateVideoSettings({
+                video: {
+                  facingMode: 'environment',
+                  width: { ideal: 1280 },
+                  height: { ideal: 720 }
+                }
+              });
+            } else {
+              await scanner.updateVideoSettings(BARCODE_READER_CONFIG.videoSettings);
+            }
             console.log('Video settings configured');
           } catch (e) {
             console.warn('Failed to update video settings:', e);
@@ -319,7 +344,18 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         scanner.singleFrameMode = false;
         scanner.ifShowScanRegionMask = false;
         
-        await scanner.updateVideoSettings(BARCODE_READER_CONFIG.videoSettings);
+        // Use different settings for iOS
+        if (isIOSRef.current) {
+          await scanner.updateVideoSettings({
+            video: {
+              facingMode: 'environment',
+              width: { ideal: 1280 },
+              height: { ideal: 720 }
+            }
+          });
+        } else {
+          await scanner.updateVideoSettings(BARCODE_READER_CONFIG.videoSettings);
+        }
         
         // Update state
         if (isMountedRef.current) {
@@ -472,32 +508,51 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             onScan(txt, result.barcodeFormatString);
           };
           
-          // Set UI element
-          try {
-            await scannerRef.current.setUIElement(container as HTMLElement);
-          } catch (e) {
-            console.error('UI element error:', e);
-            
-            // If camera is somehow still open, stop it
-            if (scannerRef.current.isOpen) {
-              try {
-                await scannerRef.current.stop();
-                await new Promise(resolve => setTimeout(resolve, 500));
-              } catch (stopError) {
-                console.warn('Error stopping camera:', stopError);
+          // Handle iOS differently for better compatibility
+          if (isIOSRef.current) {
+            try {
+              // For iOS, use a simpler approach
+              await scannerRef.current.setUIElement(container as HTMLElement);
+            } catch (e) {
+              console.error('UI element error on iOS:', e);
+              // Retry with a different approach for iOS
+              await resetScanner();
+              
+              if (!scannerRef.current) {
+                throw new Error('Failed to recover scanner on iOS');
               }
+              
+              // Try again with simpler settings
+              await scannerRef.current.setUIElement(container as HTMLElement);
             }
-            
-            // Complete reset of scanner
-            await resetScanner();
-            
-            if (!scannerRef.current) {
-              throw new Error('Failed to recover scanner');
+          } else {
+            // Regular browsers
+            try {
+              await scannerRef.current.setUIElement(container as HTMLElement);
+            } catch (e) {
+              console.error('UI element error:', e);
+              
+              // If camera is somehow still open, stop it
+              if (scannerRef.current.isOpen) {
+                try {
+                  await scannerRef.current.stop();
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                } catch (stopError) {
+                  console.warn('Error stopping camera:', stopError);
+                }
+              }
+              
+              // Complete reset of scanner
+              await resetScanner();
+              
+              if (!scannerRef.current) {
+                throw new Error('Failed to recover scanner');
+              }
+              
+              // Try setting UI element again after reset
+              console.log('Retrying UI element setup after reset');
+              await scannerRef.current.setUIElement(container as HTMLElement);
             }
-            
-            // Try setting UI element again after reset
-            console.log('Retrying UI element setup after reset');
-            await scannerRef.current.setUIElement(container as HTMLElement);
           }
           
           // Open camera
@@ -562,6 +617,21 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     try {
       console.log(`Setting torch state to ${state ? 'ON' : 'OFF'}`);
       
+      // Check if torch is supported on the device first - useful for iOS
+      try {
+        const capabilities = await scannerRef.current.getCapabilities();
+        if (!capabilities?.torch) {
+          console.log('Torch not supported on this device/browser');
+          if (state) {
+            toast.error("Torch not available on this device");
+          }
+          return false;
+        }
+      } catch (capError) {
+        console.warn('Error checking torch capabilities:', capError);
+        // Continue anyway, might work on some devices
+      }
+      
       if (state) {
         await scannerRef.current.turnOnTorch();
       } else {
@@ -576,6 +646,11 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       return true;
     } catch (error) {
       console.error(`Error setting torch state to ${state ? 'ON' : 'OFF'}:`, error);
+      
+      // Don't show error when turning off torch, just succeed silently
+      if (state) {
+        toast.error("Torch not available on this device");
+      }
       return false;
     }
   }, [isInitialized, isScanning]);

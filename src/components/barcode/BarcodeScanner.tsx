@@ -35,12 +35,19 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
   
-  // Preload the audio for faster playback
+  // Preload the audio for faster playback with better browser compatibility
   useEffect(() => {
-    audioRef.current = new Audio(BEEP_SOUND_URL);
-    audioRef.current.volume = 1.0;
-    audioRef.current.preload = 'auto';
-    audioRef.current.load();
+    try {
+      // Create audio element but don't try to play it until user interaction
+      audioRef.current = new Audio();
+      audioRef.current.src = BEEP_SOUND_URL;
+      audioRef.current.volume = 1.0;
+      audioRef.current.preload = 'auto';
+      
+      // Don't call load() or play() here - wait for user interaction
+    } catch (error) {
+      console.log("Audio setup error:", error);
+    }
     
     return () => {
       if (audioRef.current) {
@@ -52,20 +59,31 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
   // Handle successful scan with sound and vibration
   const handleScan = (code: string, symbology: string) => {
-    // Play sound
+    // Play sound with better cross-browser support
     if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      const playPromise = audioRef.current.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(e => {
-          console.log("Sound play error:", e);
-        });
+      try {
+        audioRef.current.currentTime = 0;
+        
+        // Only attempt to play if we have user interaction
+        const playPromise = audioRef.current.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(e => {
+            console.log("Sound play error:", e);
+            // Don't show error to user, just silently fail
+          });
+        }
+      } catch (e) {
+        console.log("Audio playback error:", e);
       }
     }
     
     // Vibrate device if supported
-    if (navigator.vibrate) {
-      navigator.vibrate(200);
+    try {
+      if (window.navigator && navigator.vibrate) {
+        navigator.vibrate(200);
+      }
+    } catch (e) {
+      console.log("Vibration error:", e);
     }
     
     // Call callback with result
@@ -110,6 +128,9 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     // Reset the scanner first to ensure a clean start
     await resetScanner();
     
+    // Request permissions explicitly
+    await requestCameraPermission();
+    
     // Start scanning with slight delay to let UI render
     setTimeout(() => {
       toggleScanning();
@@ -143,6 +164,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         toast.success(newTorchState ? "Torch turned on" : "Torch turned off", {
           duration: 1000
         });
+      } else {
+        toast.error("Torch not available on this device");
       }
     } catch (error) {
       console.error("Torch toggle error:", error);

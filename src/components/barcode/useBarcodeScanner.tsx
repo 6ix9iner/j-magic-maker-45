@@ -131,7 +131,8 @@ export const useBarcodeScanner = ({ onDetected }: UseBarcodeScannerProps) => {
           const formatSettings = config.barcodeFormats.join(';');
           await scanner.updateRuntimeSettings({
             barcodeFormatIds: formatSettings,
-            timeout: config.timeout
+            // Fix the type error here: timeout should be a number, not a string
+            timeout: config.timeout as number
           });
         }
         

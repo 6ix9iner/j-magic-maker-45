@@ -24,6 +24,15 @@ interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
   torch?: boolean;
 }
 
+// Define types for missing methods in BarcodeScanner
+interface BarcodeScannerExtended {
+  isWorkerLoaded?: boolean;
+  cleanFrameBuffer?: () => Promise<void>;
+  getInstanceCount?: () => Promise<number>;
+  preloadModule?: () => Promise<void>;
+  isDesktopBrowser?: () => boolean;
+}
+
 export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const viewRef = useRef<HTMLDivElement | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -166,11 +175,18 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           
           // Release any existing instances first
           try {
-            if (BarcodeScanner.isWorkerLoaded) {
+            // Safely check and use extended properties
+            const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
+            
+            if (extendedBarcodeScanner.isWorkerLoaded) {
               console.log('SDK: Cleaning up existing scanner instances...');
-              await BarcodeScanner.cleanFrameBuffer();
-              const allInstances = await BarcodeScanner.getInstanceCount();
-              console.log(`SDK: Found ${allInstances} existing scanner instances`);
+              if (extendedBarcodeScanner.cleanFrameBuffer) {
+                await extendedBarcodeScanner.cleanFrameBuffer();
+              }
+              if (extendedBarcodeScanner.getInstanceCount) {
+                const allInstances = await extendedBarcodeScanner.getInstanceCount();
+                console.log(`SDK: Found ${allInstances} existing scanner instances`);
+              }
             }
           } catch (e) {
             console.warn('SDK: Error during cleanup:', e);
@@ -385,7 +401,11 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       
       // Also attempt global cleanup
       try {
-        await BarcodeScanner.cleanFrameBuffer();
+        // Safely access extended property
+        const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
+        if (extendedBarcodeScanner.cleanFrameBuffer) {
+          await extendedBarcodeScanner.cleanFrameBuffer();
+        }
       } catch (e) {
         console.warn('SDK: Error cleaning frame buffer:', e);
       }

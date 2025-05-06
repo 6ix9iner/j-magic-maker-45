@@ -4,6 +4,13 @@
  */
 import { BarcodeReader, BarcodeScanner, EnumBarcodeFormat } from "dynamsoft-javascript-barcode";
 
+// Interface for extended BarcodeScanner functionality
+interface BarcodeScannerExtended {
+  isDesktopBrowser?: () => boolean;
+  preloadModule?: () => Promise<void>;
+  cleanFrameBuffer?: () => Promise<void>;
+}
+
 // License key for Dynamsoft Barcode Reader
 export const DYNAMSOFT_LICENSE_KEY = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAzOTU3ODgwLVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTAzOTU3ODgwIiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjotMTgyODIwMDQwNH0=";
 
@@ -138,9 +145,14 @@ export const initializeDynamsoft = async () => {
     
     // Pre-initialize scanner components for faster camera opening
     try {
-      if (BarcodeScanner.isDesktopBrowser()) {
-        await BarcodeScanner.preloadModule();
-        console.log("Scanner module preloaded for desktop browser");
+      // Access extended properties safely
+      const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
+      
+      if (extendedBarcodeScanner.isDesktopBrowser && extendedBarcodeScanner.isDesktopBrowser()) {
+        if (extendedBarcodeScanner.preloadModule) {
+          await extendedBarcodeScanner.preloadModule();
+          console.log("Scanner module preloaded for desktop browser");
+        }
       }
     } catch (e) {
       console.warn("Failed to preload scanner module:", e);
@@ -189,9 +201,11 @@ export const cleanupDynamsoft = async () => {
   
   // Also try to clean up scanner instances if any exist
   try {
-    // @ts-ignore - Attempt to clean up any global state
-    if (typeof BarcodeScanner !== 'undefined' && BarcodeScanner.cleanFrameBuffer) {
-      await BarcodeScanner.cleanFrameBuffer();
+    // Access extended properties safely
+    const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
+    
+    if (extendedBarcodeScanner.cleanFrameBuffer) {
+      await extendedBarcodeScanner.cleanFrameBuffer();
     }
   } catch (e) {
     console.warn("Error during scanner cleanup:", e);

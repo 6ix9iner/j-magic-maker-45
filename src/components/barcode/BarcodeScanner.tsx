@@ -20,6 +20,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const retryCountRef = useRef<number>(0);
   const torchStateRef = useRef<boolean>(false);
+  const scannerInitializedRef = useRef<boolean>(false);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -35,26 +36,35 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     };
   }, []);
   
-  // Preload the audio for faster playback with better browser compatibility
+  // Initialize audio - do this early for faster response later
   useEffect(() => {
     try {
-      // Create audio element but don't try to play it until user interaction
+      // Preload audio element for faster playback
       audioRef.current = new Audio();
       audioRef.current.src = BEEP_SOUND_URL;
       audioRef.current.volume = 1.0;
       audioRef.current.preload = 'auto';
       
-      // Don't call load() or play() here - wait for user interaction
+      // Attempt early loading to reduce delay when scanning
+      const loadAudio = () => {
+        if (audioRef.current) {
+          audioRef.current.load();
+        }
+      };
+      
+      // Try to load after user interaction
+      document.addEventListener('click', loadAudio, { once: true });
+      
+      return () => {
+        document.removeEventListener('click', loadAudio);
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current = null;
+        }
+      };
     } catch (error) {
       console.log("Audio setup error:", error);
     }
-    
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
-    };
   }, []);
 
   // Handle successful scan with sound and vibration
@@ -100,7 +110,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }, 300);
   };
 
-  // Initialize the barcode scanner SDK with improved error recovery
+  // Initialize the barcode scanner SDK with improved performance
   const {
     viewRef,
     isScanning,
@@ -113,10 +123,29 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     requestCameraPermission,
     cleanupScanner,
     resetScanner,
-    setTorchState
+    setTorchState,
+    preInitialize
   } = useBarcodeScannerSDK({
     onScan: handleScan
   });
+
+  // Pre-initialize scanner when component loads to speed up first scan
+  useEffect(() => {
+    // Only do this once
+    if (!scannerInitializedRef.current) {
+      scannerInitializedRef.current = true;
+      
+      // Wait a bit after page load before pre-initializing
+      const timer = setTimeout(() => {
+        preInitialize().catch(err => {
+          // Silently fail pre-initialization, we'll retry when needed
+          console.log("Pre-initialization failed:", err);
+        });
+      }, 2000); // 2 second delay
+      
+      return () => clearTimeout(timer);
+    }
+  }, [preInitialize]);
 
   // Start scanning when dialog opens with automatic retry
   const handleOpenScanner = async () => {
@@ -125,16 +154,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     retryCountRef.current = 0;
     torchStateRef.current = false;
     
-    // Reset the scanner first to ensure a clean start
-    await resetScanner();
-    
-    // Request permissions explicitly
+    // Request permissions explicitly first for better UX
     await requestCameraPermission();
     
-    // Start scanning with slight delay to let UI render
+    // Start scanning with shorter delay
     setTimeout(() => {
       toggleScanning();
-    }, 800);
+    }, 300); // Reduced from 800ms for faster startup
   };
 
   // Stop scanning when dialog closes
@@ -186,24 +212,17 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     // First clean up
     await cleanupScanner();
     
-    // Then reset and try again
+    // Then reset and try again with faster initialization
     const success = await resetScanner();
     
     if (success) {
-      // Request permissions explicitly to ensure we have camera access
-      const hasPermission = await requestCameraPermission();
+      // Reset torch state
+      torchStateRef.current = false;
       
-      if (hasPermission) {
-        // Reset torch state
-        torchStateRef.current = false;
-        
-        // Start scanning again
-        setTimeout(() => {
-          toggleScanning();
-        }, 800);
-      } else {
-        toast.error("Camera permission denied. Please allow access in your browser settings.");
-      }
+      // Start scanning again
+      setTimeout(() => {
+        toggleScanning();
+      }, 400); // Reduced delay for faster restart
     } else {
       toast.error("Failed to restart scanner. Please try again.");
     }

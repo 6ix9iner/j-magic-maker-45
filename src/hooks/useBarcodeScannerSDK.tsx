@@ -37,6 +37,45 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     };
   }, []);
 
+  // Explicitly request camera permission with better feedback
+  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log('Requesting camera permission...');
+      permissionRequestedRef.current = true;
+      
+      // Use more detailed constraints for better mobile compatibility
+      const constraints = {
+        video: { 
+          facingMode: 'environment',
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      
+      // Release the stream
+      stream.getTracks().forEach(track => track.stop());
+      
+      console.log('Camera permission granted');
+      setCameraPermissions(true);
+      setIsError(false);
+      
+      // Reset initialization flag to try again
+      initializeAttemptedRef.current = false;
+      
+      return true;
+    } catch (err) {
+      console.error('Failed to get camera permission:', err);
+      setCameraPermissions(false);
+      
+      // If it fails, update UI to show proper error
+      toast.error('Camera permission denied. Please allow access in your browser settings.');
+      return false;
+    }
+  }, []);
+
   // More reliable camera permissions check
   useEffect(() => {
     const checkPermissions = async () => {
@@ -483,45 +522,6 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       toast.error('Failed to toggle flashlight');
     }
   }, [isInitialized, isScanning, isTorchOn]);
-
-  // Explicitly request camera permission with better feedback
-  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
-    try {
-      console.log('Requesting camera permission...');
-      permissionRequestedRef.current = true;
-      
-      // Use more detailed constraints for better mobile compatibility
-      const constraints = {
-        video: { 
-          facingMode: 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      // Release the stream
-      stream.getTracks().forEach(track => track.stop());
-      
-      console.log('Camera permission granted');
-      setCameraPermissions(true);
-      setIsError(false);
-      
-      // Reset initialization flag to try again
-      initializeAttemptedRef.current = false;
-      
-      return true;
-    } catch (err) {
-      console.error('Failed to get camera permission:', err);
-      setCameraPermissions(false);
-      
-      // If it fails, update UI to show proper error
-      toast.error('Camera permission denied. Please allow access in your browser settings.');
-      return false;
-    }
-  }, []);
 
   return {
     viewRef,

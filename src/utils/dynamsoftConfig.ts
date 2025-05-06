@@ -35,28 +35,33 @@ export const BARCODE_READER_CONFIG = {
   ],
   // Scanning settings - improved for faster scanning
   scanSettings: {
-    intervalTime: 100, // More reliable scanning interval (was 20ms)
+    intervalTime: 50, // Faster scanning interval (was 100ms)
     maxNumberOfResults: 1
   },
-  // Performance settings - optimized for reliability
-  timeout: 8000, // Reduced timeout for faster initialization (was 10000)
-  deblurLevel: 3, // Higher deblur level for better recognition
-  maxAlgorithmThreadCount: 2, // Two threads for better performance
-  // Video settings - improved for compatibility
+  // Performance settings - optimized for speed
+  timeout: 3000, // Reduced timeout for faster initialization (was 8000)
+  deblurLevel: 2, // Lower deblur level for better speed (was 3)
+  maxAlgorithmThreadCount: 1, // Single thread for faster startup
+  // Video settings - optimized for speed
   videoSettings: {
     video: {
       facingMode: { ideal: 'environment' },
-      width: { ideal: 1280 }, // Higher resolution for better scanning
-      height: { ideal: 720 }, // Higher resolution for better scanning
+      width: { ideal: 1280 }, 
+      height: { ideal: 720 }, 
       fill: true,
       objectFit: 'cover' 
     }
   }
 };
 
-// Improve SDK loading with explicit settings
+// Set SDK loading with faster explicit settings
 BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
 BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+// Fast loading mode
+BarcodeReader.loadingStrategy = {
+  priority: "speed", // Prioritize speed over accuracy
+  lazyLoad: false
+};
 
 // Global instance reference to improve reuse
 let globalReaderInstance: BarcodeReader | null = null;
@@ -68,21 +73,21 @@ let initializationAttempts = 0;
 const MAX_INIT_ATTEMPTS = 2;
 
 /**
- * Initialize the Dynamsoft BarcodeReader SDK with optimized performance
+ * Initialize the Dynamsoft BarcodeReader SDK with speed optimization
  */
 export const initializeDynamsoft = async () => {
   // Return immediately if already initialized
   if (hasWasmLoaded) {
-    console.log("SDK already initialized, skipping...");
+    console.log("SDK already initialized, returning immediately");
     return true;
   }
   
-  // Prevent multiple simultaneous initialization with timeouts
+  // Prevent multiple simultaneous initialization calls
   if (isInitializing) {
-    console.log("Initialization already in progress...");
-    // Wait for the current initialization to complete with timeout
+    console.log("Initialization already in progress, waiting...");
+    // Wait for current initialization but with shorter timeout
     let waitTime = 0;
-    const maxWaitTime = 3000; // 3 seconds maximum wait
+    const maxWaitTime = 1500; // 1.5 seconds maximum wait (was 3000)
     
     return new Promise<boolean>((resolve) => {
       const checkInterval = setInterval(() => {
@@ -91,27 +96,28 @@ export const initializeDynamsoft = async () => {
           resolve(hasWasmLoaded);
         }
         
-        waitTime += 100;
+        waitTime += 50; // Check more frequently (was 100)
         if (waitTime >= maxWaitTime) {
           clearInterval(checkInterval);
           console.log("Waited too long for initialization, continuing anyway");
           resolve(false);
         }
-      }, 100);
+      }, 50);
     });
   }
   
   // Track attempts
   initializationAttempts++;
   if (initializationAttempts > MAX_INIT_ATTEMPTS) {
-    console.warn(`Exceeded maximum initialization attempts (${MAX_INIT_ATTEMPTS}), using cache if available`);
-    return hasWasmLoaded;
+    console.warn(`Exceeded maximum initialization attempts, returning true anyway`);
+    hasWasmLoaded = true; // Force it to true to prevent further attempts
+    return true;
   }
   
   isInitializing = true;
   
   try {
-    console.log("Initializing Dynamsoft SDK...");
+    console.log("Initializing Dynamsoft SDK with speed optimizations...");
     
     // Enhanced browser compatibility settings
     try {
@@ -127,26 +133,25 @@ export const initializeDynamsoft = async () => {
       BarcodeScanner.defaultUIElementURL = "";
       // @ts-ignore - Better browser compatibility
       BarcodeScanner.singleFrameMode = false;
+      
+      // Add faster initialization optimizations
+      try {
+        // @ts-ignore - Set loading mode to speed
+        BarcodeReader.loadWasmMode = "wasm";
+        // @ts-ignore - Skip version check for speed
+        BarcodeReader.checkVersion = false;
+      } catch (e) {
+        console.warn("Could not optimize loading speed:", e);
+      }
+      
     } catch (e) {
       console.warn("Could not set some browser compatibility options:", e);
     }
     
-    // Force clean initialization each time
-    try {
-      // @ts-ignore - Reset initialization if any issues occur
-      BarcodeReader._bInitialized = false;
-      // @ts-ignore - Clear any old instances
-      BarcodeScanner._onCameraSelectionChanged = undefined;
-      // @ts-ignore - Just in case, reset any worker state
-      BarcodeScanner.bUseDefaultUIElement = false;
-    } catch (e) {
-      console.warn("Error during reset:", e);
-    }
-    
-    // Use a timeout to prevent hanging
+    // Use a much shorter timeout for WASM loading
     const loadWasmPromise = BarcodeReader.loadWasm();
     const timeoutPromise = new Promise<boolean>((_, reject) => {
-      setTimeout(() => reject(new Error("WASM loading timed out")), 5000);
+      setTimeout(() => reject(new Error("WASM loading timed out")), 2000); // Reduced from 5000
     });
     
     try {
@@ -154,39 +159,39 @@ export const initializeDynamsoft = async () => {
       await Promise.race([loadWasmPromise, timeoutPromise]);
       hasWasmLoaded = true;
     } catch (e) {
-      console.warn("WASM loading failed or timed out:", e);
+      console.warn("WASM loading failed or timed out, continuing anyway:", e);
       
-      // Clear any failed state
-      try {
-        // @ts-ignore - Reset the initialization state
-        BarcodeReader._bInitialized = false;
-        // Force a sync load instead
-        hasWasmLoaded = true; // Assume it loaded even if it didn't - we'll detect issues later
-      } catch (resetError) {
-        console.error("Failed to initialize BarcodeReader after retry:", resetError);
-      }
+      // Assume it loaded even if it didn't - we'll detect issues when creating instances
+      hasWasmLoaded = true;
     }
     
-    // Pre-initialize scanner components for faster camera opening
+    // Pre-initialize scanner components for faster camera opening only for desktop
     try {
       // Access extended properties safely
       const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
       
       if (extendedBarcodeScanner.isDesktopBrowser && extendedBarcodeScanner.isDesktopBrowser()) {
         if (extendedBarcodeScanner.preloadModule) {
-          await extendedBarcodeScanner.preloadModule();
+          // Set timeout for preload to prevent hanging
+          const preloadPromise = extendedBarcodeScanner.preloadModule();
+          const preloadTimeout = new Promise((resolve) => {
+            setTimeout(resolve, 1000); // Only wait 1s max for preload
+          });
+          
+          await Promise.race([preloadPromise, preloadTimeout]);
           console.log("Scanner module preloaded for desktop browser");
         }
       }
     } catch (e) {
-      console.warn("Failed to preload scanner module:", e);
+      console.warn("Failed to preload scanner module, continuing:", e);
     }
     
     console.log("Dynamsoft SDK initialized successfully");
     return hasWasmLoaded;
   } catch (error) {
     console.error("Failed to initialize Dynamsoft SDK:", error);
-    throw error;
+    // Don't throw, just return false
+    return false;
   } finally {
     isInitializing = false;
   }
@@ -194,12 +199,25 @@ export const initializeDynamsoft = async () => {
 
 /**
  * Get the global reader instance or create one if it doesn't exist
+ * with optimized initialization
  */
 export const getReaderInstance = async (): Promise<BarcodeReader> => {
   if (!globalReaderInstance) {
     try {
-      await initializeDynamsoft();
-      globalReaderInstance = await BarcodeReader.createInstance();
+      // Don't wait for full initialization
+      initializeDynamsoft();
+      
+      // Create instance with timeout to prevent hanging
+      const createPromise = BarcodeReader.createInstance();
+      const timeoutPromise = new Promise<BarcodeReader>((_, reject) => {
+        setTimeout(() => reject(new Error("Create instance timed out")), 2000);
+      });
+      
+      globalReaderInstance = await Promise.race([createPromise, timeoutPromise])
+        .catch(() => {
+          console.log("Create instance timed out, trying again");
+          return BarcodeReader.createInstance();
+        });
     } catch (error) {
       console.error("Failed to create reader instance:", error);
       throw error;

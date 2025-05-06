@@ -17,6 +17,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [useSheet, setUseSheet] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasBeenInitializedRef = useRef(false);
+  const [preInitStarted, setPreInitStarted] = useState(false);
 
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -56,12 +57,22 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setTorchState,
     cameraPermissions,
     requestCameraPermission,
-    cleanupScanner
+    cleanupScanner,
+    preInitialize
   } = useBarcodeScannerSDK({
     onScan: handleScanSuccess
   });
 
+  // Pre-initialize scanner when component mounts
   useEffect(() => {
+    if (!preInitStarted) {
+      setPreInitStarted(true);
+      // Start pre-initialization after a very short delay
+      setTimeout(() => {
+        preInitialize().catch(console.error);
+      }, 50);
+    }
+    
     // Pre-initialize audio
     audioRef.current = new Audio(BEEP_SOUND_URL);
     audioRef.current.preload = "auto";
@@ -69,7 +80,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     return () => {
       cleanupScanner().catch(console.error);
     };
-  }, [cleanupScanner]);
+  }, [cleanupScanner, preInitialize, preInitStarted]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -88,17 +99,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(true);
     
     try {
-      console.log("Scanner: Requesting camera permission first...");
-      const hasPermission = await requestCameraPermission();
-      
-      if (!hasPermission) {
-        console.error("Scanner: Camera permission denied");
-        toast.error("Camera permission is required.");
-        setIsOpen(false);
-        return;
-      }
-      
-      console.log("Scanner: Starting scanner after permission granted");
+      console.log("Scanner: Starting scanner directly...");
       const started = await startScanner();
       
       if (!started) {
@@ -128,29 +129,22 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     await cleanupScanner();
     
     setTimeout(async () => {
-      const permission = await requestCameraPermission();
-      if (permission) {
-        await startScanner();
-      } else {
-        toast.error("Camera permission is required.");
-      }
-    }, 500);
+      await startScanner();
+    }, 300);
   };
 
-  // Improved torch handling to prevent scanner closure
+  // Improved torch handling that won't close the scanner
   const handleTorch = async () => {
     try {
-      const newState = await toggleTorch();
-      if (newState !== undefined) {
-        toast.success(newState ? "Torch ON" : "Torch OFF");
-      }
+      await toggleTorch();
     } catch (error) {
-      // Just show a message but keep scanner open
       console.error("Torch error:", error);
-      toast.error("Torch not supported on this device.");
+      // Just show message but keep scanner open
+      toast.error("Torch not available on this device");
     }
   };
 
+  // Same dialog content as before
   const dialogContent = (
     <>
       <div className={useSheet ? "p-4 border-b" : ""}>

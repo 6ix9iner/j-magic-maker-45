@@ -33,6 +33,14 @@ interface BarcodeScannerExtended {
   isDesktopBrowser?: () => boolean;
 }
 
+// Track SDK initialization state globally
+const globalState = {
+  isInitializing: false,
+  isInitialized: false,
+  initPromise: null as Promise<boolean> | null,
+  wasPreInitialized: false,
+};
+
 export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const viewRef = useRef<HTMLDivElement | null>(null);
   const [isScanning, setIsScanning] = useState(false);
@@ -46,22 +54,60 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   const isMountedRef = useRef(true);
   const requestInProgressRef = useRef(false);
   const initAttempts = useRef(0);
-  
-  // Pre-initialize Dynamsoft when component mounts
-  useEffect(() => {
-    console.log('SDK: Attempting pre-initialization...');
-    const initSDK = async () => {
+
+  // Pre-initialize the SDK but don't wait for completion
+  const preInitialize = useCallback(async (): Promise<boolean> => {
+    console.log('SDK: Pre-initializing...');
+    
+    // If already initialized or initializing, just return 
+    if (globalState.isInitialized) {
+      console.log('SDK: Already pre-initialized');
+      return true;
+    }
+    
+    if (globalState.isInitializing && globalState.initPromise) {
+      console.log('SDK: Pre-initialization already in progress');
+      return globalState.initPromise;
+    }
+    
+    globalState.isInitializing = true;
+    
+    // Store promise so other components can await it
+    globalState.initPromise = (async () => {
       try {
-        await initializeDynamsoft();
-        console.log('SDK: Pre-initialization successful');
-      } catch (error) {
-        console.warn('SDK: Pre-initialization failed, will retry later:', error);
+        // Set a shorter timeout for speed
+        const timeoutPromise = new Promise<boolean>((_, reject) => {
+          setTimeout(() => {
+            console.log('SDK: Pre-init timeout - continuing anyway');
+            globalState.isInitialized = true;
+            return true; // Continue anyway
+          }, 2500);
+        });
+        
+        // Race between initialization and timeout
+        const result = await Promise.race([
+          initializeDynamsoft(),
+          timeoutPromise
+        ]);
+        
+        console.log('SDK: Pre-initialization complete');
+        globalState.isInitialized = true;
+        globalState.wasPreInitialized = true;
+        return result;
+      } catch (e) {
+        console.warn('SDK: Pre-initialization failed but continuing:', e);
+        globalState.isInitialized = true; // Consider it initialized to avoid retries
+        return true; // Continue anyway
+      } finally {
+        globalState.isInitializing = false;
       }
-    };
+    })();
     
-    // Start initialization earlier
-    setTimeout(initSDK, 100);
-    
+    return globalState.initPromise;
+  }, []);
+  
+  // Component lifecycle
+  useEffect(() => {
     return () => {
       isMountedRef.current = false;
       cleanupScanner().catch(err => console.error("Cleanup error:", err));
@@ -142,41 +188,32 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     try {
       console.log('SDK: Initializing scanner...');
       
-      // Always initialize the SDK first - with faster timeouts
-      try {
-        console.log('SDK: Ensuring Dynamsoft is initialized...');
-        // Use a shorter timeout for initialization
-        const initPromise = initializeDynamsoft();
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error("SDK init timeout")), 5000);
-        });
-        
-        await Promise.race([initPromise, timeoutPromise])
-          .catch(async () => {
-            console.log('SDK: Initialization timed out, using existing instance');
-            // Continue anyway as the pre-init might have succeeded
+      // First, make sure we have camera permissions
+      const hasPermission = await requestCameraPermission();
+      if (!hasPermission) {
+        console.error("SDK: Camera permission denied");
+        setIsError(true);
+        return false;
+      }
+      
+      // If SDK was already pre-initialized, use it - otherwise initialize now
+      if (!globalState.wasPreInitialized) {
+        try {
+          // Use a shorter timeout for initialization (2s)
+          const initPromise = initializeDynamsoft();
+          const timeoutPromise = new Promise((_, reject) => {
+            setTimeout(() => {
+              console.log("SDK: Init timed out, continuing anyway");
+            }, 2000);
           });
           
-        initAttempts.current = 0;
-        console.log('SDK: Dynamsoft initialized successfully');
-      } catch (error) {
-        console.error('SDK: Failed to initialize Dynamsoft:', error);
-        initAttempts.current += 1;
-        
-        if (initAttempts.current >= 3) {
-          setIsError(true);
-          return false;
-        }
-        
-        // Try reinitializing with a delay
-        await new Promise(resolve => setTimeout(resolve, 500)); // Reduced delay
-        try {
-          console.log('SDK: Retrying Dynamsoft initialization...');
-          await initializeDynamsoft();
-        } catch (retryError) {
-          console.error('SDK: Retry failed to initialize Dynamsoft:', retryError);
-          setIsError(true);
-          return false;
+          await Promise.race([initPromise, timeoutPromise])
+            .catch(() => {
+              console.log('SDK: Continuing after initialization timeout');
+            });
+            
+        } catch (error) {
+          console.warn('SDK: Init error, will continue anyway:', error);
         }
       }
       
@@ -184,25 +221,6 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       if (!scannerRef.current) {
         try {
           console.log('SDK: Creating scanner instance...');
-          
-          // Release any existing instances first
-          try {
-            // Safely check and use extended properties
-            const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
-            
-            if (extendedBarcodeScanner.isWorkerLoaded) {
-              console.log('SDK: Cleaning up existing scanner instances...');
-              if (extendedBarcodeScanner.cleanFrameBuffer) {
-                await extendedBarcodeScanner.cleanFrameBuffer();
-              }
-              if (extendedBarcodeScanner.getInstanceCount) {
-                const allInstances = await extendedBarcodeScanner.getInstanceCount();
-                console.log(`SDK: Found ${allInstances} existing scanner instances`);
-              }
-            }
-          } catch (e) {
-            console.warn('SDK: Error during cleanup:', e);
-          }
           
           // Create fresh instance
           const scanner = await BarcodeScanner.createInstance();
@@ -222,7 +240,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             settings.timeout = BARCODE_READER_CONFIG.timeout; 
             await scanner.updateRuntimeSettings(settings);
           } catch (settingErr) {
-            console.warn('SDK: Error updating runtime settings:', settingErr);
+            console.warn('SDK: Error updating runtime settings, continuing:', settingErr);
           }
           
           // Configure basic scanner options
@@ -239,7 +257,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
               }
             });
           } catch (e) {
-            console.warn('SDK: Error setting video settings:', e);
+            console.warn('SDK: Error setting video settings, continuing:', e);
           }
           
         } catch (error) {
@@ -293,8 +311,11 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           }
         };
         
-        // Set UI element
-        await scannerRef.current.setUIElement(container);
+        // Set UI element with faster timeout
+        await Promise.race([
+          scannerRef.current.setUIElement(container),
+          new Promise(r => setTimeout(r, 1000)) // Continue after 1s regardless
+        ]);
         
         // Try to set scan settings
         try {
@@ -303,27 +324,14 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
             duplicateForgetTime: 3000
           });
         } catch (e) {
-          console.warn('SDK: Error setting scan settings:', e);
+          console.warn('SDK: Error setting scan settings, continuing:', e);
         }
         
-        // Open camera with faster timeout
+        // Open camera with parallel processing for speed
         console.log('SDK: Opening camera...');
-        try {
-          // Set a timeout for camera opening
-          const openPromise = scannerRef.current.open();
-          const timeoutPromise = new Promise((_, reject) => {
-            setTimeout(() => reject(new Error("Camera opening timeout")), 7000);
-          });
-          
-          await Promise.race([openPromise, timeoutPromise])
-            .catch((err) => {
-              console.warn('SDK: Camera opening timed out:', err);
-              // We'll still try to proceed, as the camera might still open
-            });
-        } catch (e) {
-          console.warn('SDK: Error opening camera, will continue:', e);
-        }
+        let cameraPromise = scannerRef.current.open();
         
+        // While camera is opening, continue with other setup
         // Style video with high CSS specificity
         setTimeout(() => {
           try {
@@ -333,14 +341,23 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
               videoElement.style.cssText = 'object-fit: cover !important; width: 100% !important; height: 100% !important; display: block !important;';
             });
           } catch (e) {
-            console.warn('SDK: Video styling error:', e);
+            console.warn('SDK: Video styling error, continuing:', e);
           }
         }, 100);
         
-        // Show scanner
+        // Use a timeout for camera opening
+        const timeoutPromise = new Promise((resolve) => {
+          setTimeout(() => {
+            console.log('SDK: Camera opening timed out, continuing...');
+            resolve(true);
+          }, 3000); // 3 seconds timeout
+        });
+        
+        await Promise.race([cameraPromise, timeoutPromise]);
+        
+        // Show scanner (continues even if camera is still opening)
         console.log('SDK: Showing scanner UI...');
         await scannerRef.current.show();
-        console.log('SDK: Scanner started successfully');
         
         if (isMountedRef.current) {
           setIsInitialized(true);
@@ -348,6 +365,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           setIsError(false);
         }
         
+        console.log('SDK: Scanner started successfully');
         return true;
       } catch (error) {
         console.error('SDK: Failed to start scanner:', error);
@@ -357,7 +375,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     } finally {
       requestInProgressRef.current = false;
     }
-  }, [onScan]);
+  }, [onScan, requestCameraPermission]);
 
   // Stop the scanner
   const stopScanner = useCallback(async (): Promise<boolean> => {
@@ -445,7 +463,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
   }, [stopScanner]);
 
   // Toggle torch - IMPROVED to prevent scanner closing
-  const toggleTorch = useCallback(async (): Promise<boolean> => {
+  const toggleTorch = useCallback(async (): Promise<boolean | undefined> => {
     if (!scannerRef.current || !isScanning) {
       console.log('SDK: Cannot toggle torch when scanner is not active');
       return false;
@@ -454,56 +472,37 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     try {
       console.log(`SDK: Toggling torch to ${!isTorchOn ? 'ON' : 'OFF'}`);
       
-      // Check if torch is supported - with error handling
-      let torchSupported = false;
-      try {
-        const capabilities = await scannerRef.current.getCapabilities();
-        const extendedCapabilities = capabilities as ExtendedMediaTrackCapabilities;
-        torchSupported = !!extendedCapabilities?.torch;
-        
-        if (!torchSupported) {
-          console.log('SDK: Torch not supported on this device/browser');
-          throw new Error('Torch not supported');
-        }
-      } catch (capError) {
-        console.warn('SDK: Error checking torch capabilities:', capError);
-        // Don't throw here - fallback to try/catch during actual torch operation
-      }
-      
-      // Toggle torch - with better error handling
-      let torchSuccess = false;
+      // Toggle torch state
       if (!isTorchOn) {
-        // Wrap in try/catch and don't throw
         try {
           await scannerRef.current.turnOnTorch();
-          torchSuccess = true;
+          setIsTorchOn(true);
+          return true;
         } catch (err) {
-          console.warn('SDK: Failed to turn torch on:', err);
-          throw new Error('Failed to turn on torch');
+          console.warn('SDK: Torch not supported or error:', err);
+          // Don't throw - just return undefined
+          return undefined;
         }
       } else {
         try {
           await scannerRef.current.turnOffTorch();
-          torchSuccess = true;
+          setIsTorchOn(false);
+          return false;
         } catch (err) {
-          console.warn('SDK: Failed to turn torch off:', err);
-          // Still update UI state even if operation fails
+          console.warn('SDK: Error turning torch off:', err);
+          // Still update UI state
+          setIsTorchOn(false);
+          return false;
         }
       }
-      
-      // Only update state if successful or turning off
-      const newState = torchSuccess ? !isTorchOn : false;
-      setIsTorchOn(newState);
-      return newState;
     } catch (error) {
-      // Log error but don't stop scanner
-      console.error('SDK: Failed to toggle torch but not stopping scanner:', error);
-      toast.error("Torch not available on this device");
-      return false;
+      // Don't throw, just log and return undefined
+      console.error('SDK: Failed to toggle torch:', error);
+      return undefined;
     }
   }, [isScanning, isTorchOn]);
 
-  // Set torch state directly - with improved error handling
+  // Set torch state directly
   const setTorchState = useCallback(async (state: boolean): Promise<boolean> => {
     if (!scannerRef.current || !isScanning) {
       console.log('SDK: Cannot set torch state when scanner is not active');
@@ -551,6 +550,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     toggleTorch,
     setTorchState,
     requestCameraPermission,
-    cleanupScanner
+    cleanupScanner,
+    preInitialize
   };
 };

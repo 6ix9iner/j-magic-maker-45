@@ -18,6 +18,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [useSheet, setUseSheet] = useState(false);
   const [scanReady, setScanReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const retryCountRef = useRef<number>(0);
   
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -97,10 +98,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     onScan: handleScan
   });
 
-  // Start scanning when dialog opens
-  const handleOpenScanner = () => {
+  // Start scanning when dialog opens with automatic retry
+  const handleOpenScanner = async () => {
     setIsOpen(true);
     setScanReady(true);
+    retryCountRef.current = 0;
+    
+    // Reset the scanner first to ensure a clean start
+    await resetScanner();
     
     // Start scanning with slight delay to let UI render
     setTimeout(() => {
@@ -114,8 +119,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     setIsOpen(false);
   };
 
-  // Try to reset the scanner when it fails
+  // Try to reset the scanner when it fails, with retry limit
   const handleRetry = async () => {
+    if (retryCountRef.current >= 3) {
+      toast.error("Too many attempts. Please close and try again.");
+      return;
+    }
+    
+    retryCountRef.current++;
     toast.info("Restarting scanner...");
     
     // First clean up
@@ -126,12 +137,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     if (success) {
       // Request permissions explicitly to ensure we have camera access
-      await requestCameraPermission();
+      const hasPermission = await requestCameraPermission();
       
-      // Start scanning again
-      setTimeout(() => {
-        toggleScanning();
-      }, 800);
+      if (hasPermission) {
+        // Start scanning again
+        setTimeout(() => {
+          toggleScanning();
+        }, 800);
+      } else {
+        toast.error("Camera permission denied. Please allow access in your browser settings.");
+      }
     } else {
       toast.error("Failed to restart scanner. Please try again.");
     }

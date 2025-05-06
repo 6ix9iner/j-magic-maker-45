@@ -42,11 +42,15 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           0
         );
 
-        await scanner.updateRuntimeSettings({
-          barcodeFormatIds,
-          deblurLevel: 2
-          // Removed maxAlgorithmThreadCount as it doesn't exist in RuntimeSettings
-        });
+        // Create a default runtime settings first
+        let settings = await scanner.getRuntimeSettings();
+        
+        // Then modify the settings
+        settings.barcodeFormatIds = barcodeFormatIds;
+        settings.deblurLevel = 2;
+        
+        // Update with the modified settings
+        await scanner.updateRuntimeSettings(settings);
 
         scanner.singleFrameMode = false;
 

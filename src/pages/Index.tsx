@@ -1,6 +1,5 @@
-
 import React, { useState, useCallback } from 'react';
-import BarcodeScanner from '@/components/barcode/BarcodeScanner';
+import BarcodeScanner from '@/components/BarcodeScanner';
 import BarcodeResult from '@/components/BarcodeResult';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
@@ -8,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 const Index = () => {
+  
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null);
   const [saleManagerRef, setSaleManagerRef] = useState<React.RefObject<any> | null>(null);
 

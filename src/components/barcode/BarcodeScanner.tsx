@@ -90,15 +90,21 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
       isMounted = false;
       if (scannerInstance) {
         // Make sure to properly close and destroy the scanner
-        try {
-          scannerInstance.close().then(() => {
-            scannerInstance!.destroy().then(() => {
-              console.log("Scanner instance destroyed");
-            }).catch(e => console.error("Error destroying scanner:", e));
-          }).catch(e => console.error("Error closing scanner:", e));
-        } catch (e) {
-          console.error("Error in scanner cleanup:", e);
-        }
+        (async () => {
+          try {
+            if (scannerInstance) {
+              try {
+                await scannerInstance.close();
+                await scannerInstance.destroy();
+                console.log("Scanner instance destroyed");
+              } catch (e) {
+                console.error("Error in scanner cleanup:", e);
+              }
+            }
+          } catch (e) {
+            console.error("Error in scanner cleanup:", e);
+          }
+        })();
       }
     };
   }, [onDetected]);

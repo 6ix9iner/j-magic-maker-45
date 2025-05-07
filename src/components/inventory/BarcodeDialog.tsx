@@ -33,7 +33,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   }, [isOpen]);
   
   // Create a handler that adapts onDetected to the expected onScan interface
-  const handleScan = (code: string, symbology: string) => {
+  const handleDetection = (code: string) => {
     onDetected(code);
     onClose();
   };
@@ -52,7 +52,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
         <div className="py-4">
           {shouldRenderScanner && (
             <BarcodeScanner 
-              onScan={handleScan} 
+              onDetected={handleDetection} 
               key={`scanner-instance-${Date.now()}`}
             />
           )}

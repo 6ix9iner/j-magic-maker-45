@@ -57,7 +57,7 @@ const ScannerPage = () => {
           </CardHeader>
           <CardContent>
             {isScannerActive ? (
-              <BarcodeScanner onScan={handleScan} />
+              <BarcodeScanner onDetected={code => handleScan(code, "Unknown")} />
             ) : (
               <div className="flex justify-center p-12">
                 <Button onClick={toggleScanner}>

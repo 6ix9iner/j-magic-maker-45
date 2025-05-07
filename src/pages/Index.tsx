@@ -17,7 +17,7 @@ const Index = () => {
   }, []);
 
   // Use useCallback for stable reference to avoid recreation on re-renders
-  const handleBarcodeDetected = useCallback((code: string, symbology: string) => {
+  const handleBarcodeDetected = useCallback((code: string) => {
     // Ensure we have a valid barcode result
     if (!code || code.trim() === '') {
       toast.error("Invalid barcode detected");
@@ -67,7 +67,7 @@ const Index = () => {
                       Position the barcode within the camera view for automatic scanning
                     </p>
                   </div>
-                  <BarcodeScanner onScan={handleBarcodeDetected} />
+                  <BarcodeScanner onDetected={handleBarcodeDetected} />
                 </div>
               )}
             </div>

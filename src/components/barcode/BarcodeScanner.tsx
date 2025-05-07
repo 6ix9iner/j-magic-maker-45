@@ -11,9 +11,11 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 interface BarcodeScannerProps {
   onDetected: (result: string) => void;
+  // Add onScan as an alias to onDetected for backward compatibility
+  onScan?: (code: string, symbology: string) => void;
 }
 
-const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
+const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
   const [scanReady, setScanReady] = useState(false);
@@ -76,7 +78,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     if (navigator.vibrate) {
       navigator.vibrate(200);
     }
+    
+    // Call both callback types for backward compatibility
     onDetected(code);
+    if (onScan) {
+      onScan(code, symbology);
+    }
+    
     toast.success(`Barcode scanned: ${symbology}`, { duration: 2000 });
     setTimeout(() => {
       setIsOpen(false);

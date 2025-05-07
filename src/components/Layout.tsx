@@ -1,18 +1,19 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { Menu, X, LogOut, User } from 'lucide-react';
+import { Home, BarChart3, Package, Settings, Menu, X, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const Layout = () => {
   const location = useLocation();
@@ -21,148 +22,129 @@ const Layout = () => {
   const { user, signOut } = useAuth();
   
   const navItems = [
-    { name: "Home", path: "/" },
-    ...(user ? [
-      { name: "Scanner/Sales", path: "/scanner" },
-      { name: "Inventory", path: "/inventory" },
-      { name: "Dashboard", path: "/dashboard" }
-    ] : [])
+    { name: "Home", path: "/scanner", icon: Home },
+    { name: "Inventory", path: "/inventory", icon: Package },
+    { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
+    { name: "Settings", path: "/settings", icon: Settings }
   ];
 
   const handleSignOut = async () => {
     await signOut();
-    navigate('/');
+    navigate('/auth');
+  };
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname]);
+
+  // If user not authenticated and not at auth page, redirect to auth
+  useEffect(() => {
+    if (!user && !location.pathname.includes('/auth') && !location.pathname.includes('/reset-password')) {
+      navigate('/auth');
+    }
+  }, [user, location, navigate]);
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user || !user.email) return '?';
+    const parts = user.email.split('@');
+    return parts[0].substring(0, 2).toUpperCase();
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="bg-white border-b shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex">
-              <div className="flex-shrink-0 flex items-center">
-                <h1 className="text-xl font-bold text-gray-900">
-                  <Link to="/">Insight Inventory</Link>
-                </h1>
-              </div>
-            </div>
-            
-            <div className="flex items-center">
-              {/* Desktop navigation */}
-              <nav className="hidden md:flex items-center space-x-4">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "px-3 py-2 rounded-md text-sm font-medium",
-                      location.pathname === item.path
-                        ? "bg-gray-100 text-gray-900"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                    )}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
-                
-                {user ? (
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="ml-2">
-                        <User className="h-4 w-4 mr-2" />
-                        Account
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut}>
-                        <LogOut className="h-4 w-4 mr-2" />
-                        Sign Out
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                ) : (
-                  <Button onClick={() => navigate('/auth')} size="sm">
-                    Sign In
-                  </Button>
-                )}
-              </nav>
-              
-              {/* Mobile menu button */}
-              <div className="flex md:hidden">
-                <button
-                  onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  className="p-2 rounded-md text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                >
-                  <span className="sr-only">Open menu</span>
-                  {mobileMenuOpen ? (
-                    <X className="h-6 w-6" />
-                  ) : (
-                    <Menu className="h-6 w-6" />
-                  )}
-                </button>
-              </div>
-            </div>
+    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+      {/* Top Navigation Bar */}
+      <header className="bg-white shadow-sm border-b z-10">
+        <div className="px-4 h-14 flex items-center justify-between">
+          <div className="flex items-center">
+            <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+              Insight Inventory
+            </h1>
           </div>
+          
+          {user && (
+            <div className="flex items-center gap-2">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="" />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+                  <SheetHeader>
+                    <SheetTitle>Account</SheetTitle>
+                  </SheetHeader>
+                  <div className="py-6">
+                    <div className="flex items-center gap-3 mb-6">
+                      <Avatar className="h-12 w-12">
+                        <AvatarImage src="" />
+                        <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">{user.email}</p>
+                        <p className="text-sm text-gray-500">User</p>
+                      </div>
+                    </div>
+                    <Button 
+                      onClick={handleSignOut} 
+                      variant="destructive" 
+                      className="w-full"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
+          )}
         </div>
-        
-        {/* Mobile menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden">
-            <div className="pt-2 pb-3 space-y-1 px-2">
-              {navItems.map((item) => (
+      </header>
+      
+      {/* Main Content */}
+      <main className="flex-1 overflow-y-auto">
+        <Outlet />
+      </main>
+      
+      {/* Bottom Tab Navigation for Mobile */}
+      {user && (
+        <nav className="bg-white border-t shadow-md">
+          <div className="flex justify-around items-center h-16">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              const Icon = item.icon;
+              
+              return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "block px-3 py-2 rounded-md text-base font-medium",
-                    location.pathname === item.path
-                      ? "bg-gray-100 text-gray-900"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    "flex flex-col items-center justify-center w-1/4 py-1",
+                    isActive ? "text-blue-600" : "text-gray-500"
                   )}
-                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  {item.name}
+                  <div className="relative">
+                    <Icon className="h-5 w-5" />
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeIndicator"
+                        className="absolute -bottom-2 w-full h-0.5 bg-blue-600 rounded-full"
+                        initial={false}
+                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                      />
+                    )}
+                  </div>
+                  <span className="text-xs mt-1">{item.name}</span>
                 </Link>
-              ))}
-              
-              {user ? (
-                <button
-                  onClick={() => {
-                    handleSignOut();
-                    setMobileMenuOpen(false);
-                  }}
-                  className="w-full text-left block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                >
-                  <LogOut className="h-4 w-4 inline mr-2" />
-                  Sign Out
-                </button>
-              ) : (
-                <Link
-                  to="/auth"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 border-t border-gray-200 mt-2 pt-2"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Sign In
-                </Link>
-              )}
-            </div>
+              );
+            })}
           </div>
-        )}
-      </header>
-      
-      <main className="flex-1">
-        <Outlet />
-      </main>
-      
-      <footer className="bg-white border-t py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-sm text-gray-500">
-            Insight Inventory &copy; {new Date().getFullYear()}
-          </p>
-        </div>
-      </footer>
+        </nav>
+      )}
     </div>
   );
 };

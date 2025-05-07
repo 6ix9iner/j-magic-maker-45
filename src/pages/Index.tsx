@@ -1,13 +1,14 @@
+
 import React, { useState, useCallback } from 'react';
+import { motion } from 'framer-motion';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import BarcodeScanner from '@/components/BarcodeScanner';
 import BarcodeResult from '@/components/BarcodeResult';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
-import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 const Index = () => {
-  
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null);
   const [saleManagerRef, setSaleManagerRef] = useState<React.RefObject<any> | null>(null);
 
@@ -34,51 +35,62 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">
-      <div className="max-w-4xl mx-auto">
-        <header className="mb-6 sm:mb-10 text-center">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventory & Sales System</h1>
-          <p className="mt-2 text-gray-600">
-            Scan products to look up information and add to sales
-          </p>
-        </header>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column - Scanner and Product Info */}
-          <div className="space-y-6">
-            <div className="bg-white shadow rounded-lg p-6">
-              <h2 className="text-lg font-bold mb-4">Barcode Scanner</h2>
-              {barcodeValue ? (
-                <div className="space-y-4">
-                  <BarcodeResult barcodeValue={barcodeValue} onClear={clearResult} />
-                  <ProductLookup 
-                    barcodeValue={barcodeValue} 
-                    onAddToSale={(product, quantity) => {
-                      if (saleManagerRef?.current?.addItem) {
-                        saleManagerRef.current.addItem(product, quantity);
-                      }
-                    }} 
-                  />
+    <div className="flex flex-col min-h-full bg-gray-50 pb-16">
+      <Tabs defaultValue="scan" className="w-full">
+        <TabsList className="grid grid-cols-2 w-full rounded-none border-b bg-white sticky top-0 z-10">
+          <TabsTrigger value="scan" className="py-3">Scan & Lookup</TabsTrigger>
+          <TabsTrigger value="sale" className="py-3">Current Sale</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="scan" className="p-4 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-4"
+          >
+            {barcodeValue ? (
+              <div className="space-y-4">
+                <BarcodeResult barcodeValue={barcodeValue} onClear={clearResult} />
+                <ProductLookup 
+                  barcodeValue={barcodeValue} 
+                  onAddToSale={(product, quantity) => {
+                    if (saleManagerRef?.current?.addItem) {
+                      saleManagerRef.current.addItem(product, quantity);
+                      toast.success(`Added ${quantity} ${product.name} to sale`);
+                    }
+                  }} 
+                />
+              </div>
+            ) : (
+              <motion.div
+                className="bg-white rounded-xl shadow-sm overflow-hidden relative"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="p-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+                  <h2 className="font-medium text-lg">Scan Barcode</h2>
+                  <p className="text-sm opacity-90">Position a barcode within the frame</p>
                 </div>
-              ) : (
-                <div>
-                  <div className="mb-6 text-center">
-                    <p className="text-gray-600">
-                      Position the barcode within the camera view for automatic scanning
-                    </p>
-                  </div>
+                <div className="relative p-2">
                   <BarcodeScanner onDetected={handleBarcodeDetected} />
                 </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right Column - Sale Manager */}
-          <div className="space-y-6">
+              </motion.div>
+            )}
+          </motion.div>
+        </TabsContent>
+        
+        <TabsContent value="sale" className="p-4 mb-16">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
             <SaleManager ref={saleManagerRef} />
-          </div>
-        </div>
-      </div>
+          </motion.div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

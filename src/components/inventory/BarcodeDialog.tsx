@@ -55,14 +55,14 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) onClose();
     }}>
-      <DialogContent className="sm:max-w-md bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700 text-white">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Scan Barcode</DialogTitle>
-          <DialogDescription className="text-slate-300">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-32px)] p-0 bg-white overflow-hidden">
+        <DialogHeader className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
+          <DialogTitle className="text-xl font-bold">Scan Barcode</DialogTitle>
+          <DialogDescription className="text-white/80">
             Position the barcode in view of your camera
           </DialogDescription>
         </DialogHeader>
-        <div className="py-4">
+        <div className="p-2">
           {shouldRenderScanner && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}
@@ -70,16 +70,30 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
               transition={{ duration: 0.3 }}
               ref={containerRef} 
               className="barcode-container relative overflow-hidden rounded-xl" 
-              style={{ minHeight: "300px" }}
+              style={{ height: "350px" }}
             >
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 pointer-events-none z-10 rounded-xl"></div>
-              <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-gradient-to-r from-blue-400 to-purple-500 z-20 animate-pulse"></div>
+              <div className="absolute inset-0 bg-black/5 pointer-events-none z-10 rounded-xl"></div>
               
+              {/* Animated scanning line */}
+              <motion.div 
+                className="absolute inset-x-0 h-0.5 bg-blue-500 z-20"
+                initial={{ top: "0%" }}
+                animate={{ 
+                  top: ["0%", "100%", "0%"]
+                }}
+                transition={{ 
+                  duration: 3, 
+                  repeat: Infinity,
+                  ease: "easeInOut" 
+                }}
+              />
+              
+              {/* Targeting frame */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                 <motion.div 
-                  className="w-64 h-64 border-2 border-blue-400 rounded-lg"
+                  className="w-64 h-64 border-2 border-white/60 rounded-lg"
                   animate={{
-                    boxShadow: ["0 0 0 0 rgba(59, 130, 246, 0)", "0 0 0 10px rgba(59, 130, 246, 0.3)"],
+                    boxShadow: ["0 0 0 0 rgba(255,255,255,0)", "0 0 0 10px rgba(255,255,255,0.2)"],
                   }}
                   transition={{
                     duration: 2,

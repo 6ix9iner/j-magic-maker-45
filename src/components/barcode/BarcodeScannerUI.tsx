@@ -50,7 +50,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
       if (onRetry) {
         setTimeout(() => {
           onRetry();
-        }, 500);
+        }, 200); // Reduced from 500ms to 200ms
       }
     } catch (error) {
       console.error("Permission request failed:", error);
@@ -135,11 +135,15 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
           )}
           
           {/* Scanner container */}
-          <div className="scanner-container relative bg-black w-full h-full">
+          <div 
+            className="scanner-container relative bg-black w-full h-full"
+            data-scanner-container
+          >
             {/* Video container for Dynamsoft */}
             <div 
               ref={viewRef} 
               className="absolute inset-0 flex items-center justify-center overflow-hidden"
+              data-scanner-view
               style={{ backgroundColor: 'black' }}
             />
             

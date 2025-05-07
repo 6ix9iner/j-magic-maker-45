@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const hasBeenInitializedRef = useRef(false);
   const [preInitStarted, setPreInitStarted] = useState(false);
   const scannerContainerRef = useRef<HTMLDivElement>(null);
+  const [initTimeoutOccurred, setInitTimeoutOccurred] = useState(false);
 
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -69,7 +71,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     if (!preInitStarted) {
       setPreInitStarted(true);
       // Start pre-initialization immediately
-      preInitialize().catch(console.error);
+      preInitialize().catch(() => {
+        // Silently catch errors - we'll handle them during the actual scan
+        console.log("Pre-initialization failed, will retry during scan");
+      });
     }
     
     // Pre-initialize audio
@@ -77,7 +82,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     audioRef.current.preload = "auto";
     
     return () => {
-      cleanupScanner().catch(console.error);
+      cleanupScanner().catch(() => {
+        // Silent cleanup errors
+        console.log("Cleanup failed, but continuing");
+      });
     };
   }, [cleanupScanner, preInitialize, preInitStarted]);
 
@@ -105,7 +113,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       let attempts = 0;
       const checkInterval = setInterval(() => {
         attempts++;
-        const container = document.querySelector('.scanner-container') as HTMLDivElement;
+        // Try finding the container by multiple selectors to be more reliable
+        const container = 
+          document.querySelector('.scanner-container') as HTMLDivElement || 
+          document.querySelector('[data-scanner-container]') as HTMLDivElement;
         
         if (container) {
           clearInterval(checkInterval);
@@ -113,19 +124,22 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           resolve(container);
         }
         
-        if (attempts >= 10) { // 10 * 100ms = 1 second max
+        if (attempts >= 5) { // 5 * 50ms = 250ms max (reduced from 1 second)
           clearInterval(checkInterval);
           resolve(null);
         }
-      }, 100);
+      }, 50); // Check more frequently
     });
   };
 
   const handleOpen = async () => {
+    // Reset error states
+    setInitTimeoutOccurred(false);
+    
     // First, set open state to show the dialog/sheet
     setIsOpen(true);
     
-    // Give time for the dialog to render before starting the scanner
+    // Give minimal time for the dialog to render
     setTimeout(async () => {
       try {
         console.log("Scanner: Starting scanner...");
@@ -133,8 +147,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         // Connect viewRef to scannerContainer for faster startup
         const scannerContainer = await waitForScannerContainer();
         if (!scannerContainer && !viewRef.current) {
-          console.error("Scanner: Scanner container not found after 1 second");
-          toast.error("Failed to initialize scanner. Please try again.");
+          console.error("Scanner: Scanner container not found in DOM");
+          toast.error("Scanner initialization failed. Please try again.");
           setIsOpen(false);
           return;
         }
@@ -144,14 +158,26 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           viewRef.current = scannerContainer;
         }
         
-        const started = await Promise.race([
-          startScanner(),
-          new Promise<boolean>(resolve => setTimeout(() => resolve(false), 1000)) // 1 second timeout
-        ]);
+        // Start scanner with strict 900ms timeout to ensure we stay within 1 second
+        const startPromise = startScanner();
+        const timeoutPromise = new Promise<boolean>((resolve) => {
+          setTimeout(() => {
+            setInitTimeoutOccurred(true);
+            resolve(false);
+          }, 900); // 900ms timeout to ensure we stay within 1 second
+        });
+        
+        const started = await Promise.race([startPromise, timeoutPromise]);
         
         if (started === false) {
           console.error("Scanner: Failed to start scanner within 1 second");
-          toast.error("Scanner initialization timed out. Please try again.");
+          
+          if (initTimeoutOccurred) {
+            toast.error("Scanner initialization timed out.");
+          } else {
+            toast.error("Failed to start scanner. Please try again.");
+          }
+          
           setIsOpen(false);
           return;
         }
@@ -163,7 +189,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         toast.error("Failed to start scanner. Please try again.");
         setIsOpen(false);
       }
-    }, 100);
+    }, 50); // Reduced from 100ms to 50ms
   };
 
   const handleClose = async () => {
@@ -178,7 +204,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     setTimeout(async () => {
       await startScanner();
-    }, 100);
+    }, 50); // Reduced from 100ms to 50ms
   };
 
   // Improved torch handling that won't close the scanner
@@ -201,11 +227,14 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           Point your camera at a barcode to scan.
         </p>
       </div>
-      <div className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}>
+      <div 
+        className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}
+        data-scanner-container // Add this data attribute as backup selector
+      >
         <BarcodeScannerUI
           isScanning={isScanning}
           isInitialized={isInitialized}
-          isError={isError}
+          isError={isError || initTimeoutOccurred}
           isTorchOn={isTorchOn}
           viewRef={viewRef}
           cameraPermissions={cameraPermissions}

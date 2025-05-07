@@ -52,43 +52,6 @@ export const getCameraConstraints = (): MediaTrackConstraints => {
   };
 };
 
-/**
- * Apply camera focus and zoom settings
- */
-export const applyCameraSettings = async (
-  track: MediaStreamTrack, 
-  zoom: number
-): Promise<void> => {
-  try {
-    const capabilities = track.getCapabilities();
-    console.log("Camera capabilities:", capabilities);
-    
-    // Apply zoom if supported
-    if ('zoom' in capabilities && capabilities.zoom) {
-      try {
-        // Get zoom capabilities
-        const zoomCapability = capabilities.zoom as {min: number, max: number, step: number};
-        
-        // Ensure zoom is within valid range
-        const validZoom = Math.min(
-          Math.max(zoom, zoomCapability.min || 1),
-          zoomCapability.max || 10
-        );
-        
-        // Apply the constraint using proper type assertion
-        await track.applyConstraints({
-          advanced: [{ zoom: validZoom } as MediaTrackConstraintSet]
-        });
-        console.log(`Zoom set to ${validZoom}x`);
-      } catch (e) {
-        console.error("Zoom not supported:", e);
-      }
-    }
-  } catch (err) {
-    console.error("Error setting camera parameters:", err);
-  }
-};
-
 // Beep sound for successful scan (base64 encoded)
 export const BEEP_SOUND_URL = "data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAAAAAWGluZwAAAA8AAAAKAAAJTAAXFxcXJCQkJCQwMDAwPT09PT1JSUlJVlZWVlZiYmJib29vb295eXl5hoaGhoaTk5OToKCgoKCsrKystbW1tbXBwcHBzs7Ozs7a2tra5ubm5ub09PT0/v7+/v8AAAAAUE1QAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABMuJAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/7kMQAAAiNHWG1iYAI447zTqTQARbSfG5WJgAnBF+nDRJgBOx3J8KxGFTru0KhQKhwMBgMDx8fH8fBwH/4OA+D/8H/wfB//8Hwf//B8H//B8H//wH/4EA//xAP/8QD//EA//xAP/8QD//EA//wF2xBUHZH6kR9SEkj6R/iNH3d3d0REd3d3d0REX//////////////////+qqq7u7uqqqqqqu7u7qqqqqqu7u7qqqqqqqIiIiO7u7oiIiIju7u6IiIiI7u7uiIiIiHREX/////////////////////////////////////////////////////////////////////////8AAgIJiBBQGJYF4X+AQcZEfH5YFwX//B8H//B///////8QD//iAf/4CAf/4CJAOHj4/jwOAgGAwKhQKHcnBZx9CzuQoFAoHB6qqrUIddVVVVbh2191VVVVdw7fh2qqqqrhLexwl1VVVXVVlC3ucJdVVVVVVTtcOsO7h1VVVVVVWpVV3d3VEREREVVVVXV1dERERFVVVVdXV0REREVVVVXd3dERERE=";
 

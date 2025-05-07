@@ -50,7 +50,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
       if (onRetry) {
         setTimeout(() => {
           onRetry();
-        }, 200); // Reduced from 500ms to 200ms
+        }, 100); // Reduced from 200ms to 100ms for faster retry
       }
     } catch (error) {
       console.error("Permission request failed:", error);
@@ -120,7 +120,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
 
   // Show scanner UI
   return (
-    <div className="w-full flex flex-col items-center space-y-4">
+    <div className="w-full flex flex-col items-center space-y-4" data-scanner-container>
       {/* Scanner view container */}
       <div className="w-full max-w-sm">
         <AspectRatio ratio={4/3} className="overflow-hidden rounded-lg">
@@ -144,6 +144,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
               ref={viewRef} 
               className="absolute inset-0 flex items-center justify-center overflow-hidden"
               data-scanner-view
+              id="dynamsoft-scanner-container"
               style={{ backgroundColor: 'black' }}
             />
             

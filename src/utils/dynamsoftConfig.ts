@@ -27,53 +27,60 @@ export const BEEP_SOUND_URL = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAA
 
 // Configure barcode formats
 export const BARCODE_READER_CONFIG = {
-  // Set formats to scan for
+  // Set formats to scan for - focusing on the most common formats for faster scanning
   barcodeFormats: [
-    0x3FF | 0x80000000 | 0x8000000 // All 1D, QR and PDF417 formats
+    0x3FF | 0x1000000 | 0x2000000 // Most common 1D formats and QR code for speed
   ],
   // Scanning settings - extremely optimized for faster scanning
   scanSettings: {
-    intervalTime: 40, // Even faster scanning interval
+    intervalTime: 30, // Even faster scanning interval (reduced from 40ms)
     maxNumberOfResults: 1
   },
   // Performance settings - extreme optimization for speed
-  timeout: 500, // Reduced timeout to 500ms for faster initialization
+  timeout: 400, // Reduced timeout to 400ms for faster initialization (reduced from 500ms)
   deblurLevel: 0, // Lowest deblur level for maximum speed
   maxAlgorithmThreadCount: 1, // Single thread for faster startup
   // Video settings - lowest resolution for speed
   videoSettings: {
     video: {
       facingMode: { ideal: 'environment' },
-      width: { ideal: 480 }, // Reduced from 640
-      height: { ideal: 360 }, // Reduced from 480
+      width: { ideal: 320 }, // Reduced from 480 to 320 for faster initialization
+      height: { ideal: 240 }, // Reduced from 360 to 240
       fill: true,
       objectFit: 'cover' 
     }
   }
 };
 
-// Track initialization state globally (not reset on hot reloads)
-let hasSetLicense = false;
-let globalReaderInstance: BarcodeReader | null = null;
-let isInitializing = false;
+// Safety flag to prevent multiple license initialization
+let licenseInitialized = false;
 let hasWasmLoaded = false;
+let isInitializing = false;
 
-// License initialization that ensures we only set once
+// Initialize with a direct approach that only sets the license once
 export const ensureLicenseIsSet = () => {
   if (typeof window === 'undefined') return; // Server-side safety check
   
-  // Use a global flag to prevent repeated calls
+  // Skip if already initialized
+  if (licenseInitialized) return;
+
+  // Use global window flag to ensure license is only set once across hot reloads
   // @ts-ignore - Access window as global storage
-  if (window._dynamsoft_license_initialized) return;
+  if (window._dynamsoft_license_initialized) {
+    licenseInitialized = true;
+    return;
+  }
   
   try {
     console.log("Setting Dynamsoft license");
+    
+    // Set license key only if it hasn't been set before
     BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
     
     // Set CDN path with specific version to prevent redirects
     BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
     
-    // Optimize for speed
+    // Extreme speed optimizations
     try {
       // Use type assertion for faster loading
       const extendedReader = BarcodeReader as unknown as typeof BarcodeReader & BarcodeReaderExtended;
@@ -97,16 +104,21 @@ export const ensureLicenseIsSet = () => {
     }
     
     // Mark as initialized globally
+    licenseInitialized = true;
     // @ts-ignore - Access window as global storage
     window._dynamsoft_license_initialized = true;
-    hasSetLicense = true;
   } catch (e) {
-    console.error("License initialization error:", e);
+    // If error contains "license is not allowed to change", it means the license was already set
+    if (e instanceof Error && e.message && e.message.includes('not allowed to change')) {
+      // License is already set, mark as initialized
+      licenseInitialized = true;
+      // @ts-ignore - Access window as global storage
+      window._dynamsoft_license_initialized = true;
+    } else {
+      console.error("License initialization error:", e);
+    }
   }
 };
-
-// Initialize license as soon as this module is imported
-ensureLicenseIsSet();
 
 /**
  * Initialize the Dynamsoft BarcodeReader SDK with extreme speed optimization
@@ -134,13 +146,13 @@ export const initializeDynamsoft = async () => {
           return;
         }
         
-        waited += 20;
-        if (waited >= 500) { // 500ms maximum wait
+        waited += 10; // Reduced from 20ms to 10ms check interval
+        if (waited >= 300) { // 300ms maximum wait (reduced from 500ms)
           clearInterval(interval);
           console.log("Waited too long for initialization, continuing anyway");
           resolve(true);
         }
-      }, 20); // Check very frequently
+      }, 10); // Check very frequently (reduced from 20ms to 10ms)
     });
   }
   
@@ -149,7 +161,7 @@ export const initializeDynamsoft = async () => {
   try {
     console.log("Initializing Dynamsoft SDK with extreme speed optimizations...");
     
-    // Use a strict timeout of 950ms for the entire initialization
+    // Use a strict timeout of 400ms for the entire initialization (reduced from 950ms)
     const loadPromise = (async () => {
       try {
         await BarcodeReader.loadWasm();
@@ -164,7 +176,7 @@ export const initializeDynamsoft = async () => {
       setTimeout(() => {
         console.log("WASM loading timed out, continuing anyway");
         resolve(true);
-      }, 950); // 950ms timeout to stay within 1 second
+      }, 400); // 400ms timeout (reduced from 950ms)
     });
     
     // Race between loading and timeout
@@ -184,60 +196,9 @@ export const initializeDynamsoft = async () => {
 };
 
 /**
- * Get the global reader instance or create one if it doesn't exist
- */
-export const getReaderInstance = async (): Promise<BarcodeReader> => {
-  if (!globalReaderInstance) {
-    try {
-      // Ensure license is set
-      ensureLicenseIsSet();
-      
-      // Initialize with timeout
-      const initPromise = initializeDynamsoft();
-      const timeoutPromise = new Promise<boolean>(resolve => {
-        setTimeout(() => resolve(true), 500);
-      });
-      
-      // Don't wait more than 500ms
-      await Promise.race([initPromise, timeoutPromise]);
-      
-      // Create instance with strict timeout
-      const createPromise = BarcodeReader.createInstance();
-      const instanceTimeoutPromise = new Promise<BarcodeReader>((_, reject) => {
-        setTimeout(() => reject(new Error("Create instance timed out")), 500);
-      });
-      
-      globalReaderInstance = await Promise.race([createPromise, instanceTimeoutPromise])
-        .catch(() => {
-          console.log("Create instance timed out, using null instance");
-          return null as unknown as BarcodeReader;
-        });
-    } catch (error) {
-      console.error("Failed to create reader instance:", error);
-      // Return a mock instance that won't break the app
-      return {
-        destroyContext: async () => {},
-        decode: async () => [] 
-      } as unknown as BarcodeReader;
-    }
-  }
-  
-  return globalReaderInstance || ({} as BarcodeReader);
-};
-
-/**
  * Clean up Dynamsoft resources
  */
 export const cleanupDynamsoft = async () => {
-  if (globalReaderInstance) {
-    try {
-      await globalReaderInstance.destroyContext();
-      globalReaderInstance = null;
-    } catch (error) {
-      console.warn("Error cleaning up Dynamsoft resources:", error);
-    }
-  }
-  
   try {
     // Clean frame buffer if available
     const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;

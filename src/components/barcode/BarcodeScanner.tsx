@@ -17,9 +17,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const hasBeenInitializedRef = useRef(false);
-  const [preInitStarted, setPreInitStarted] = useState(false);
-  const scannerContainerRef = useRef<HTMLDivElement>(null);
+  const scannerContainerRef = useRef<HTMLDivElement | null>(null);
   const [initTimeoutOccurred, setInitTimeoutOccurred] = useState(false);
 
   // Check if we're on a mobile device to use Sheet instead of Dialog
@@ -30,6 +28,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
+    
+    // Pre-initialize audio for faster response
+    audioRef.current = new Audio(BEEP_SOUND_URL);
+    audioRef.current.preload = "auto";
     
     return () => {
       window.removeEventListener('resize', checkMobile);
@@ -42,10 +44,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     onDetected(code);
     toast.success(`Scanned: ${format}`, { duration: 1500 });
     
-    // Close the dialog with slight delay
-    setTimeout(() => {
-      setIsOpen(false);
-    }, 300);
+    // Close the dialog immediately
+    setIsOpen(false);
   }, [onDetected]);
 
   const {
@@ -57,7 +57,6 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     startScanner,
     stopScanner,
     toggleTorch,
-    setTorchState,
     cameraPermissions,
     requestCameraPermission,
     cleanupScanner,
@@ -68,26 +67,13 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
 
   // Pre-initialize scanner when component mounts
   useEffect(() => {
-    if (!preInitStarted) {
-      setPreInitStarted(true);
-      // Start pre-initialization immediately
-      preInitialize().catch(() => {
-        // Silently catch errors - we'll handle them during the actual scan
-        console.log("Pre-initialization failed, will retry during scan");
-      });
-    }
-    
-    // Pre-initialize audio
-    audioRef.current = new Audio(BEEP_SOUND_URL);
-    audioRef.current.preload = "auto";
+    // Start pre-initialization immediately when component loads
+    preInitialize().catch(console.error);
     
     return () => {
-      cleanupScanner().catch(() => {
-        // Silent cleanup errors
-        console.log("Cleanup failed, but continuing");
-      });
+      cleanupScanner().catch(console.error);
     };
-  }, [cleanupScanner, preInitialize, preInitStarted]);
+  }, [cleanupScanner, preInitialize]);
 
   const playBeep = () => {
     if (audioRef.current) {
@@ -102,34 +88,16 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   };
 
-  // Wait for DOM to be ready with shorter timeout
-  const waitForScannerContainer = (): Promise<HTMLDivElement | null> => {
-    return new Promise((resolve) => {
-      if (scannerContainerRef.current) {
-        return resolve(scannerContainerRef.current);
-      }
-
-      // Simple polling with very short timeout
-      let attempts = 0;
-      const checkInterval = setInterval(() => {
-        attempts++;
-        // Try finding the container by multiple selectors to be more reliable
-        const container = 
-          document.querySelector('.scanner-container') as HTMLDivElement || 
-          document.querySelector('[data-scanner-container]') as HTMLDivElement;
-        
-        if (container) {
-          clearInterval(checkInterval);
-          scannerContainerRef.current = container;
-          resolve(container);
-        }
-        
-        if (attempts >= 5) { // 5 * 50ms = 250ms max (reduced from 1 second)
-          clearInterval(checkInterval);
-          resolve(null);
-        }
-      }, 50); // Check more frequently
-    });
+  // Find scanner container with multiple fallbacks
+  const findScannerContainer = (): HTMLElement | null => {
+    // Try multiple selectors for maximum reliability
+    return (
+      document.getElementById('dynamsoft-scanner-container') || 
+      document.querySelector('[data-scanner-container]') as HTMLElement || 
+      document.querySelector('.scanner-container') as HTMLElement ||
+      document.querySelector('[data-scanner-view]') as HTMLElement ||
+      null
+    );
   };
 
   const handleOpen = async () => {
@@ -139,57 +107,39 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     // First, set open state to show the dialog/sheet
     setIsOpen(true);
     
-    // Give minimal time for the dialog to render
+    // Minimal timeout for the dialog to render
     setTimeout(async () => {
       try {
-        console.log("Scanner: Starting scanner...");
-        
-        // Connect viewRef to scannerContainer for faster startup
-        const scannerContainer = await waitForScannerContainer();
-        if (!scannerContainer && !viewRef.current) {
-          console.error("Scanner: Scanner container not found in DOM");
-          toast.error("Scanner initialization failed. Please try again.");
-          setIsOpen(false);
-          return;
-        }
-        
+        // Find the scanner container element using multiple fallbacks
+        const scannerContainer = findScannerContainer();
         if (scannerContainer && !viewRef.current) {
-          // Force connect viewRef to the scanner-container
-          viewRef.current = scannerContainer;
+          // Connect viewRef to the scanner container
+          viewRef.current = scannerContainer as HTMLDivElement;
         }
         
-        // Start scanner with strict 900ms timeout to ensure we stay within 1 second
+        // Start scanner with a strict 800ms timeout (reduced from 900ms)
         const startPromise = startScanner();
-        const timeoutPromise = new Promise<boolean>((resolve) => {
+        const timeoutPromise = new Promise<boolean>(resolve => {
           setTimeout(() => {
             setInitTimeoutOccurred(true);
             resolve(false);
-          }, 900); // 900ms timeout to ensure we stay within 1 second
+          }, 800);
         });
         
+        // Race between starting and timeout
         const started = await Promise.race([startPromise, timeoutPromise]);
         
-        if (started === false) {
-          console.error("Scanner: Failed to start scanner within 1 second");
-          
-          if (initTimeoutOccurred) {
-            toast.error("Scanner initialization timed out.");
-          } else {
-            toast.error("Failed to start scanner. Please try again.");
-          }
-          
+        if (!started) {
+          console.error("Scanner: Failed to start scanner within timeout");
+          toast.error("Scanner initialization timed out. Please try again.");
           setIsOpen(false);
-          return;
         }
-        
-        console.log("Scanner: Scanner started successfully");
-        hasBeenInitializedRef.current = true;
       } catch (error) {
         console.error("Failed to start scanner:", error);
         toast.error("Failed to start scanner. Please try again.");
         setIsOpen(false);
       }
-    }, 50); // Reduced from 100ms to 50ms
+    }, 30); // Reduced from 50ms to 30ms
   };
 
   const handleClose = async () => {
@@ -200,25 +150,33 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const handleRetry = async () => {
     console.log("Scanner: Retrying scanner initialization");
     toast.info("Reinitializing camera...");
+    
+    // Full cleanup first
     await cleanupScanner();
     
+    // Minimal delay before retry
     setTimeout(async () => {
+      // Find scanner container again before starting
+      const scannerContainer = findScannerContainer();
+      if (scannerContainer && !viewRef.current) {
+        viewRef.current = scannerContainer as HTMLDivElement;
+      }
+      
       await startScanner();
-    }, 50); // Reduced from 100ms to 50ms
+    }, 30); // Reduced from 50ms to 30ms
   };
 
-  // Improved torch handling that won't close the scanner
+  // Torch handling
   const handleTorch = async () => {
     try {
       await toggleTorch();
     } catch (error) {
       console.error("Torch error:", error);
-      // Just show message but keep scanner open
       toast.error("Torch not available on this device");
     }
   };
 
-  // Same dialog content as before
+  // Dialog content
   const dialogContent = (
     <>
       <div className={useSheet ? "p-4 border-b" : ""}>
@@ -229,7 +187,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
       </div>
       <div 
         className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}
-        data-scanner-container // Add this data attribute as backup selector
+        data-scanner-container
+        id="dynamsoft-scanner-container"
       >
         <BarcodeScannerUI
           isScanning={isScanning}

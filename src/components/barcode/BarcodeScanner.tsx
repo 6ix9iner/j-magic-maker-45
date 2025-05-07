@@ -95,7 +95,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
             if (scannerInstance) {
               try {
                 await scannerInstance.close();
-                await scannerInstance.destroy();
+                // Using destroyContext() instead of destroy() which doesn't exist
+                await scannerInstance.destroyContext();
                 console.log("Scanner instance destroyed");
               } catch (e) {
                 console.error("Error in scanner cleanup:", e);

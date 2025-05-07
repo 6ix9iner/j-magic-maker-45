@@ -32,17 +32,6 @@ const Layout = () => {
     navigate('/auth');
   };
 
-  // Close mobile menu when route changes
-  useEffect(() => {
-  }, [location.pathname]);
-
-  // If user not authenticated and not at auth page, redirect to auth
-  useEffect(() => {
-    if (!user && !location.pathname.includes('/auth') && !location.pathname.includes('/reset-password')) {
-      navigate('/auth');
-    }
-  }, [user, location, navigate]);
-
   // Get user initials for avatar
   const getUserInitials = () => {
     if (!user || !user.email) return '?';
@@ -51,46 +40,70 @@ const Layout = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-blue-50/90 to-indigo-50/40 overflow-hidden">
+    <div className="flex flex-col h-screen overflow-hidden">
       {/* Top Navigation Bar */}
-      <header className="glassmorphism shadow-md border-b z-10">
+      <motion.header 
+        className="glassmorphism shadow-lg border-b z-10"
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
         <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              Insight Inventory
-            </h1>
-          </div>
+          <motion.div 
+            className="flex items-center"
+            initial={{ x: -20, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Link to="/" className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-sm">II</span>
+              </div>
+              <h1 className="text-xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                Insight Inventory
+              </h1>
+            </Link>
+          </motion.div>
           
           {user && (
-            <div className="flex items-center gap-2">
+            <motion.div 
+              className="flex items-center gap-2"
+              initial={{ x: 20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-blue-100/50">
-                    <Avatar className="h-9 w-9 ring-2 ring-white/70 shadow-sm">
+                  <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
+                    <Avatar className="h-9 w-9 ring-2 ring-white/30 shadow-lg">
                       <AvatarImage src="" />
-                      <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium">{getUserInitials()}</AvatarFallback>
+                      <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium">
+                        {getUserInitials()}
+                      </AvatarFallback>
                     </Avatar>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[350px] glassmorphism">
+                <SheetContent side="right" className="w-[280px] sm:w-[350px] glassmorphism border-l border-white/20">
                   <SheetHeader>
-                    <SheetTitle className="text-xl font-medium text-slate-800">Account</SheetTitle>
+                    <SheetTitle className="text-xl font-medium text-white">Account</SheetTitle>
                   </SheetHeader>
                   <div className="py-6">
-                    <div className="flex items-center gap-4 mb-6 bg-blue-50/50 p-3 rounded-lg border border-blue-100/50">
-                      <Avatar className="h-14 w-14 ring-2 ring-white shadow-md">
+                    <div className="flex items-center gap-4 mb-6 bg-white/5 p-3 rounded-lg border border-white/10">
+                      <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium">{getUserInitials()}</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium">
+                          {getUserInitials()}
+                        </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-slate-800">{user.email}</p>
-                        <p className="text-sm text-slate-500">User</p>
+                        <p className="font-medium text-white">{user.email}</p>
+                        <p className="text-sm text-blue-200/70">User</p>
                       </div>
                     </div>
                     <Button 
                       onClick={handleSignOut} 
                       variant="destructive" 
-                      className="w-full shadow-sm"
+                      className="w-full shadow-lg"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
@@ -98,19 +111,24 @@ const Layout = () => {
                   </div>
                 </SheetContent>
               </Sheet>
-            </div>
+            </motion.div>
           )}
         </div>
-      </header>
+      </motion.header>
       
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto bg-gradient-to-b from-blue-50/90 to-indigo-50/40">
+      <main className="flex-1 overflow-y-auto p-4">
         <Outlet />
       </main>
       
       {/* Bottom Tab Navigation for Mobile */}
       {user && (
-        <nav className="glassmorphism shadow-lg border-t">
+        <motion.nav 
+          className="glassmorphism shadow-lg border-t"
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="flex justify-around items-center h-16 max-w-xl mx-auto">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
@@ -122,15 +140,15 @@ const Layout = () => {
                   to={item.path}
                   className={cn(
                     "flex flex-col items-center justify-center w-1/4 py-1",
-                    isActive ? "text-blue-600" : "text-slate-500"
+                    isActive ? "text-white" : "text-white/50"
                   )}
                 >
                   <div className="relative">
-                    <Icon className={cn("h-5 w-5", isActive ? "text-blue-600" : "text-slate-500")} />
+                    <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-white/50")} />
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
-                        className="absolute -bottom-2 w-full h-0.5 bg-blue-600 rounded-full"
+                        className="absolute -bottom-2 w-full h-0.5 bg-white rounded-full"
                         initial={false}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                       />
@@ -144,7 +162,7 @@ const Layout = () => {
               );
             })}
           </div>
-        </nav>
+        </motion.nav>
       )}
     </div>
   );

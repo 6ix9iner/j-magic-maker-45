@@ -90,8 +90,10 @@
   }
 
   body {
-    @apply bg-gradient-to-b from-blue-50 to-indigo-50/30 text-foreground;
+    @apply bg-gradient-to-b from-blue-900 via-indigo-800 to-blue-700 text-foreground;
     min-height: 100vh;
+    background-size: 200% 200%;
+    animation: gradient-animation 15s ease infinite;
   }
 }
 
@@ -132,12 +134,12 @@
 
 /* Enhanced glassmorphism effect */
 .glassmorphism {
-  @apply backdrop-blur-md bg-white/70 border border-white/40 shadow-lg;
+  @apply backdrop-blur-xl bg-white/15 border border-white/20 shadow-xl;
 }
 
 /* Premium card effect */
 .premium-card {
-  @apply bg-gradient-to-br from-white to-blue-50/80 shadow-xl border border-white/40 rounded-xl overflow-hidden;
+  @apply bg-gradient-to-br from-white/10 to-white/5 shadow-2xl border border-white/20 rounded-xl overflow-hidden backdrop-blur-xl;
 }
 
 /* Enhanced fix for barcode scanner video display */
@@ -196,4 +198,78 @@ video.dce-video-player {
   overflow: hidden !important;
   background-color: #000 !important;
   border-radius: 8px !important;
+}
+
+/* Premium UI elements */
+.premium-button {
+  @apply bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5;
+}
+
+.premium-input {
+  @apply bg-white/10 border border-white/30 rounded-lg text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent;
+}
+
+.premium-input::placeholder {
+  @apply text-white/40;
+}
+
+.premium-card-header {
+  @apply bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white font-medium p-4;
+}
+
+.premium-card-content {
+  @apply p-5 backdrop-blur-xl;
+}
+
+/* Glass panel effect */
+.glass-panel {
+  @apply backdrop-blur-xl bg-white/10 border border-white/20 rounded-xl shadow-xl;
+}
+
+/* Glowing effect */
+.glow {
+  @apply relative;
+  box-shadow: 0 0 25px rgba(74, 135, 255, 0.5), 0 0 15px rgba(74, 135, 255, 0.3);
+}
+
+.glow::after {
+  @apply absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 ease-in-out;
+  content: '';
+  background: radial-gradient(circle at center, rgba(74, 135, 255, 0.3) 0%, transparent 70%);
+}
+
+.glow:hover::after {
+  @apply opacity-100;
+}
+
+/* Animated underline for text links */
+.animated-underline {
+  @apply relative inline-block;
+}
+
+.animated-underline::after {
+  @apply absolute bottom-0 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300;
+  content: '';
+}
+
+.animated-underline:hover::after {
+  @apply w-full;
+}
+
+/* Better scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-white/20 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-white/30;
 }

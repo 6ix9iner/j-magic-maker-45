@@ -12,6 +12,7 @@ import { useForm } from 'react-hook-form';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 type LoginFormValues = {
   email: string;
@@ -148,18 +149,46 @@ const Auth = () => {
     }
   };
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 300, damping: 24 }
+    }
+  };
+
   if (isResetMode) {
     return (
-      <div className="flex min-h-[80vh] items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="space-y-1 text-center">
-            <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
-            <CardDescription>Enter your new password below</CardDescription>
+      <motion.div 
+        className="flex min-h-[80vh] items-center justify-center p-4"
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        <Card className="w-full max-w-md glass-panel glow">
+          <CardHeader className="space-y-1 text-center premium-card-header">
+            <motion.div variants={itemVariants}>
+              <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
+              <CardDescription className="text-blue-200">Enter your new password below</CardDescription>
+            </motion.div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
             <form onSubmit={handleResetPassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">New Password</Label>
+              <motion.div className="space-y-2" variants={itemVariants}>
+                <Label htmlFor="newPassword" className="text-white">New Password</Label>
                 <Input 
                   id="newPassword" 
                   type="password" 
@@ -167,41 +196,58 @@ const Auth = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                   minLength={6}
                   required
+                  className="premium-input"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-blue-200/70">
                   Password must be at least 6 characters
                 </p>
-              </div>
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? 'Updating...' : 'Update Password'}
-              </Button>
+              </motion.div>
+              <motion.div variants={itemVariants}>
+                <Button 
+                  type="submit" 
+                  className="w-full premium-button" 
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Updating...' : 'Update Password'}
+                </Button>
+              </motion.div>
             </form>
           </CardContent>
         </Card>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <div className="flex min-h-[80vh] items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <CardTitle className="text-2xl font-bold">Insight Inventory</CardTitle>
-          <CardDescription>Enter your credentials to access your account</CardDescription>
+    <motion.div 
+      className="flex min-h-[80vh] items-center justify-center p-4"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
+      <Card className="w-full max-w-md glass-panel glow">
+        <CardHeader className="space-y-1 text-center premium-card-header">
+          <motion.div variants={itemVariants}>
+            <CardTitle className="text-2xl font-bold">Insight Inventory</CardTitle>
+            <CardDescription className="text-blue-200">Enterprise inventory management</CardDescription>
+          </motion.div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {emailConfirmationError && (
-            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 mb-6">
+            <motion.div 
+              className="bg-amber-900/30 border border-amber-500/30 rounded-md p-4 mb-6"
+              variants={itemVariants}
+            >
               <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-amber-500 mr-2" />
+                <AlertCircle className="h-5 w-5 text-amber-400 mr-2" />
                 <div>
-                  <h3 className="text-sm font-medium text-amber-800">Email not confirmed</h3>
-                  <p className="text-sm text-amber-700 mt-1">
+                  <h3 className="text-sm font-medium text-amber-400">Email not confirmed</h3>
+                  <p className="text-sm text-amber-300/80 mt-1">
                     Please check your email and click the confirmation link.
                   </p>
                   <Button 
                     variant="outline" 
-                    className="mt-2 text-amber-800 hover:text-amber-900 border-amber-300 hover:bg-amber-100"
+                    className="mt-2 text-amber-400 hover:text-amber-300 border-amber-500/30 hover:bg-amber-900/30"
                     onClick={handleResendConfirmation}
                     disabled={isSubmitting}
                   >
@@ -209,32 +255,33 @@ const Auth = () => {
                   </Button>
                 </div>
               </div>
-            </div>
+            </motion.div>
           )}
           
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Login</TabsTrigger>
-              <TabsTrigger value="signup">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10 border border-white/20">
+              <TabsTrigger value="login" className="data-[state=active]:bg-white/20 text-white">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-white/20 text-white">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
               <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="email" className="text-white">Email</Label>
                   <Input 
                     id="email" 
                     type="email" 
                     placeholder="your@email.com" 
                     {...loginForm.register('email', { required: true })}
+                    className="premium-input"
                   />
-                </div>
-                <div className="space-y-2">
+                </motion.div>
+                <motion.div className="space-y-2" variants={itemVariants}>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password">Password</Label>
+                    <Label htmlFor="password" className="text-white">Password</Label>
                     <Link 
                       to="/reset-password" 
-                      className="text-xs text-primary hover:underline"
+                      className="text-xs text-blue-300 hover:text-blue-200 animated-underline"
                     >
                       Forgot password?
                     </Link>
@@ -243,66 +290,83 @@ const Auth = () => {
                     id="password" 
                     type="password" 
                     {...loginForm.register('password', { required: true })}
+                    className="premium-input"
                   />
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Signing in...' : 'Sign In'}
-                </Button>
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <Button 
+                    type="submit" 
+                    className="w-full premium-button" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Signing in...' : 'Sign In'}
+                  </Button>
+                </motion.div>
               </form>
             </TabsContent>
 
             <TabsContent value="signup">
               <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Full Name</Label>
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="fullName" className="text-white">Full Name</Label>
                   <Input 
                     id="fullName" 
                     placeholder="John Doe" 
                     {...signupForm.register('fullName', { required: true })}
+                    className="premium-input"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signupEmail">Email</Label>
+                </motion.div>
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="signupEmail" className="text-white">Email</Label>
                   <Input 
                     id="signupEmail" 
                     type="email" 
                     placeholder="your@email.com" 
                     {...signupForm.register('email', { required: true })}
+                    className="premium-input"
                   />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signupPassword">Password</Label>
+                </motion.div>
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="signupPassword" className="text-white">Password</Label>
                   <Input 
                     id="signupPassword" 
                     type="password" 
                     {...signupForm.register('password', { required: true, minLength: 6 })}
+                    className="premium-input"
                   />
                   {signupForm.formState.errors.password?.type === 'minLength' && (
-                    <p className="text-sm text-red-500">Password must be at least 6 characters</p>
+                    <p className="text-sm text-red-400">Password must be at least 6 characters</p>
                   )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                </motion.div>
+                <motion.div className="space-y-2" variants={itemVariants}>
+                  <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
                   <Input 
                     id="confirmPassword" 
                     type="password" 
                     {...signupForm.register('confirmPassword', { required: true })}
+                    className="premium-input"
                   />
                   {signupForm.formState.errors.confirmPassword?.message && (
-                    <p className="text-sm text-red-500">
+                    <p className="text-sm text-red-400">
                       {signupForm.formState.errors.confirmPassword?.message}
                     </p>
                   )}
-                </div>
-                <Button type="submit" className="w-full" disabled={isSubmitting}>
-                  {isSubmitting ? 'Signing up...' : 'Create Account'}
-                </Button>
+                </motion.div>
+                <motion.div variants={itemVariants}>
+                  <Button 
+                    type="submit" 
+                    className="w-full premium-button" 
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? 'Signing up...' : 'Create Account'}
+                  </Button>
+                </motion.div>
               </form>
             </TabsContent>
           </Tabs>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 };
 

@@ -157,6 +157,9 @@ export const initializeDynamsoft = async () => {
   try {
     console.log("Initializing Dynamsoft SDK with reliability optimizations...");
     
+    // First ensure that any previous instances are properly cleaned up
+    await cleanupDynamsoft();
+    
     // Attempt to load WASM if not already loaded
     if (!hasWasmLoaded) {
       try {
@@ -266,14 +269,45 @@ export const cleanupDynamsoft = async () => {
   }
 };
 
+// Additional function to properly reset the scanner state
+export const resetScannerInstanceState = async () => {
+  try {
+    console.log("Resetting scanner instance state");
+    
+    // Complete cleanup of all scanner instances
+    await cleanupDynamsoft();
+    
+    // Reset all flags to allow fresh initialization
+    hasWasmLoaded = false;
+    isInitializing = false;
+    
+    // Force garbage collection if browser supports it
+    // @ts-ignore - For debugging
+    if (window.gc) {
+      // @ts-ignore - Request garbage collection
+      window.gc();
+    }
+    
+    console.log("Scanner state reset complete");
+  } catch (e) {
+    console.warn("Error during scanner reset:", e);
+  }
+};
+
 // Reset all Dynamsoft resources on page unload
 if (typeof window !== 'undefined') {
   // @ts-ignore - Add unload handler
   window.addEventListener('beforeunload', async () => {
     await cleanupDynamsoft();
   });
+  
+  // Also handle visibility change to clean up when tab is hidden
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      cleanupDynamsoft();
+    }
+  });
 }
 
 // Immediately initialize the license
 ensureLicenseIsSet().catch(console.error);
-

@@ -10,27 +10,14 @@ interface BarcodeDialogProps {
 }
 
 const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
-  // Use state to track dialog open/close to properly trigger scanner reset
-  const [wasOpen, setWasOpen] = useState(false);
+  // Create a unique ID for this instance that changes with each open/close cycle
+  const [instanceId] = useState(`dialog-scanner-${Date.now()}`);
   
   // Create a handler that adapts onDetected to the expected onScan interface
   const handleScan = (code: string, symbology: string) => {
     onDetected(code);
     onClose();
   };
-
-  // Track open state changes
-  React.useEffect(() => {
-    if (isOpen) {
-      setWasOpen(true);
-    } else if (wasOpen) {
-      // Add a small delay before resetting wasOpen to ensure proper cleanup
-      const timer = setTimeout(() => {
-        setWasOpen(false);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, wasOpen]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -44,11 +31,11 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          {/* Only mount the scanner when dialog is open and unmount when closed */}
+          {/* Conditionally mount the scanner with a unique key to force re-mount */}
           {isOpen && (
             <BarcodeScanner 
               onScan={handleScan} 
-              key={`scanner-instance-${Date.now()}`} // Force new instance on each open
+              key={`scanner-instance-${isOpen ? Date.now() : 'closed'}`}
             />
           )}
         </div>

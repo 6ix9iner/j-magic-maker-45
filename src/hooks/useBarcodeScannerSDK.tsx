@@ -2,7 +2,12 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { useToast } from '@/hooks/use-toast';
-import { DYNAMSOFT_LICENSE_KEY, ensureLicenseIsSet, cleanupDynamsoft } from '@/utils/dynamsoftConfig';
+import { 
+  DYNAMSOFT_LICENSE_KEY, 
+  ensureLicenseIsSet, 
+  cleanupDynamsoft, 
+  resetScannerInstanceState 
+} from '@/utils/dynamsoftConfig';
 
 export interface ScanResult {
   code: string;
@@ -27,16 +32,52 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
   const barcodeScannerRef = useRef<BarcodeScanner | null>(null);
   const mountedRef = useRef(true); // Track if component is mounted
   const { toast } = useToast();
+  
+  // Track initialization attempts to prevent too many retries
+  const initAttemptsRef = useRef(0);
+  // Instance ID to ensure uniqueness between mounts
+  const instanceIdRef = useRef(`scanner-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
   // Reset scanner state without toggling - useful before a new scan
   const resetScannerState = useCallback(() => {
-    setForceReset(prev => prev + 1);
+    console.log("Performing complete scanner reset");
+    
+    // First thoroughly clean up all scanner resources
+    cleanupDynamsoft().then(() => {
+      if (mountedRef.current) {
+        // Reset all state
+        setIsScanning(false);
+        setCameraOpen(false);
+        setIsTorchOn(false);
+        setIsInitialized(false);
+        
+        // Generate a new instance ID
+        instanceIdRef.current = `scanner-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        
+        // Force full reset including internal state
+        resetScannerInstanceState().then(() => {
+          // Reset initialization attempts
+          initAttemptsRef.current = 0;
+          
+          // Force re-initialization on next toggle
+          setForceReset(prev => prev + 1);
+          
+          // Small delay before allowing re-initialization
+          setTimeout(() => {
+            if (mountedRef.current) {
+              setIsInitialized(false);
+              setIsError(false);
+            }
+          }, 500);
+        });
+      }
+    });
   }, []);
 
   // Cleanup scanner resources - moved to a reusable callback function
   const cleanupScanner = useCallback(async () => {
     try {
-      console.log("Cleaning up scanner resources");
+      console.log("Cleaning up scanner resources for instance", instanceIdRef.current);
       
       // First stop scanning if active
       if (barcodeScannerRef.current) {
@@ -61,9 +102,6 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
         barcodeScannerRef.current = null;
       }
       
-      // Additional global cleanup
-      await cleanupDynamsoft();
-      
       // Reset states if component is still mounted
       if (mountedRef.current) {
         setIsScanning(false);
@@ -79,11 +117,27 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
   const initializeScanner = useCallback(async () => {
     if (!mountedRef.current) return; // Don't initialize if unmounted
     
+    // Track initialization attempts
+    initAttemptsRef.current++;
+    
+    // Prevent excessive initialization attempts
+    if (initAttemptsRef.current > 3) {
+      console.error("Too many initialization attempts, giving up");
+      setIsError(true);
+      return;
+    }
+    
     try {
-      console.log("Creating barcode scanner instance...");
+      console.log("Creating barcode scanner instance...", instanceIdRef.current);
+      
+      // Make sure license is set
+      await ensureLicenseIsSet();
       
       // Clean up any existing instances first
       await cleanupScanner();
+      
+      // Create a new scanner instance with a delay to ensure proper cleanup
+      await new Promise(resolve => setTimeout(resolve, 300));
       
       // Create a new scanner instance
       const scanner = await BarcodeScanner.createInstance();
@@ -139,16 +193,11 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
   // Initialize the Dynamsoft Barcode SDK
   useEffect(() => {
     mountedRef.current = true;
-    let initializationAttempted = false;
     
     // Set everything up in a self-executing async function
     (async () => {
       try {
         console.log("Setting up Dynamsoft Barcode SDK");
-        
-        // Prevent multiple initialization attempts
-        if (initializationAttempted) return;
-        initializationAttempted = true;
         
         // 1. Configure license first
         await ensureLicenseIsSet();
@@ -175,7 +224,7 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
           return;
         }
 
-        // 4. Initialize scanner
+        // 4. Initialize scanner - but only if we're mounted
         if (mountedRef.current) {
           console.log("Initializing scanner");
           await initializeScanner();
@@ -195,6 +244,7 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
 
     // Cleanup function
     return () => {
+      console.log("Scanner component unmounting, cleaning up resources");
       mountedRef.current = false;
       cleanupScanner();
     };
@@ -282,12 +332,16 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
                   setIsScanning(true);
                   setCameraOpen(true);
                 } else {
-                  // Full reset for other errors
+                  // Full reset and try once more
                   console.log("Critical scanner error, doing full reset");
                   await cleanupScanner();
+                  
+                  // Brief pause to ensure resources are released
+                  await new Promise(resolve => setTimeout(resolve, 500));
+                  
+                  // Try again with fresh instance
                   await initializeScanner();
                   
-                  // Try again with new instance
                   if (barcodeScannerRef.current && viewRef.current && mountedRef.current) {
                     await barcodeScannerRef.current.setUIElement(viewRef.current);
                     await barcodeScannerRef.current.show();
@@ -300,22 +354,14 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
           } catch (error) {
             console.error("Error in scanner setup:", error);
             
-            // Full scanner reset as last resort
-            console.log("Scanner in bad state, doing full reset");
-            await cleanupScanner();
-            
-            // Brief pause to ensure resources are released
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Try again with fresh instance
-            await initializeScanner();
-            
-            if (barcodeScannerRef.current && viewRef.current && mountedRef.current) {
-              await barcodeScannerRef.current.setUIElement(viewRef.current);
-              await barcodeScannerRef.current.show();
-              setIsScanning(true);
-              setCameraOpen(true);
-            }
+            // If all attempts fail, do a complete reset
+            resetScannerState();
+            setIsError(true);
+            toast({
+              title: 'Error',
+              description: 'Failed to start the scanner. Please try again.',
+              variant: 'destructive'
+            });
           }
         }
       }
@@ -330,9 +376,6 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
         });
         
         // Reset state and force recreation on error
-        setIsScanning(false);
-        setCameraOpen(false);
-        setIsTorchOn(false);
         resetScannerState();
       }
     }
@@ -426,3 +469,5 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
     resetScannerState
   };
 };
+
+export default useBarcodeScannerSDK;

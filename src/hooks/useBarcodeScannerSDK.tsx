@@ -8,6 +8,7 @@ import {
   cleanupDynamsoft, 
   resetScannerInstanceState 
 } from '@/utils/dynamsoftConfig';
+import { setupScannerContainer, cleanupScannerDOM } from '@/components/barcode/BarcodeDomUtils';
 
 export interface ScanResult {
   code: string;
@@ -152,6 +153,11 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
         
         console.log("Scanner resources released");
         barcodeScannerRef.current = null;
+      }
+      
+      // Clean up DOM elements
+      if (viewRef.current?.parentElement) {
+        cleanupScannerDOM(viewRef.current.parentElement as HTMLDivElement);
       }
       
       // Reset states if component is still mounted

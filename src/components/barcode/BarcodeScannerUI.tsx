@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { setupScannerOverlayElement } from './BarcodeDomUtils';
 
 interface BarcodeScannerUIProps {
   isScanning: boolean;
@@ -42,14 +43,8 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
   useEffect(() => {
     if (viewRef.current) {
       console.log("BarcodeScannerUI: Setting up scanner view container");
-      viewRef.current.classList.add('dce-video-container-overlay');
-      
-      // Ensure the parent container is properly configured
-      const parentElement = viewRef.current.parentElement;
-      if (parentElement) {
-        parentElement.style.position = 'relative';
-        console.log("BarcodeScannerUI: Parent container configured");
-      }
+      setupScannerOverlayElement(viewRef.current);
+      console.log("BarcodeScannerUI: Overlay container configured");
     }
   }, [viewRef]);
   

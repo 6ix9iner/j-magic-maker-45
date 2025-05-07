@@ -131,12 +131,16 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
       if (!videoContainer) {
         videoContainer = document.createElement('div');
         videoContainer.className = 'dce-video-container';
-        videoContainer.style.position = 'absolute';
-        videoContainer.style.left = '0';
-        videoContainer.style.top = '0';
-        videoContainer.style.width = '100%';
-        videoContainer.style.height = '100%';
-        videoContainer.style.backgroundColor = 'black';
+        
+        // Use proper type casting for HTMLElement to set inline styles
+        const containerElement = videoContainer as HTMLElement;
+        containerElement.style.position = 'absolute';
+        containerElement.style.left = '0';
+        containerElement.style.top = '0';
+        containerElement.style.width = '100%';
+        containerElement.style.height = '100%';
+        containerElement.style.backgroundColor = 'black';
+        
         containerRef.current.appendChild(videoContainer);
         console.log("BarcodeScanner: Created dce-video-container element");
       }
@@ -226,15 +230,18 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
         videoContainer.remove();
       }
       
-      // Create a fresh container
+      // Create a fresh container with proper type casting
       const newContainer = document.createElement('div');
       newContainer.className = 'dce-video-container';
-      newContainer.style.position = 'absolute';
-      newContainer.style.left = '0';
-      newContainer.style.top = '0';
-      newContainer.style.width = '100%';
-      newContainer.style.height = '100%';
-      newContainer.style.backgroundColor = 'black';
+      
+      const containerElement = newContainer as HTMLElement;
+      containerElement.style.position = 'absolute';
+      containerElement.style.left = '0';
+      containerElement.style.top = '0';
+      containerElement.style.width = '100%';
+      containerElement.style.height = '100%';
+      containerElement.style.backgroundColor = 'black';
+      
       containerRef.current.appendChild(newContainer);
       console.log("BarcodeScanner: Recreated dce-video-container element");
     }

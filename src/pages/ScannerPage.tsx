@@ -13,7 +13,7 @@ const ScannerPage = () => {
   const [isScannerActive, setScannerActive] = useState(true);
   const isMobile = useIsMobile();
 
-  const handleScan = (code: string, symbology: string) => {
+  const handleScan = (code: string, symbology: string = "Unknown") => {
     const newItem: ScannedItem = {
       id: uuidv4(),
       code,
@@ -22,7 +22,6 @@ const ScannerPage = () => {
     };
     
     setScannedItems((prevItems) => [newItem, ...prevItems]);
-    
     toast.success(`Barcode Scanned: ${code} (${symbology})`);
   };
 
@@ -57,7 +56,7 @@ const ScannerPage = () => {
           </CardHeader>
           <CardContent>
             {isScannerActive ? (
-              <BarcodeScanner onDetected={code => handleScan(code, "Unknown")} />
+              <BarcodeScanner onDetected={handleScan} />
             ) : (
               <div className="flex justify-center p-12">
                 <Button onClick={toggleScanner}>

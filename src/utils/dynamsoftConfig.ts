@@ -11,6 +11,14 @@ interface BarcodeScannerExtended {
   cleanFrameBuffer?: () => Promise<void>;
 }
 
+// Interface for extended BarcodeReader functionality
+interface BarcodeReaderExtended {
+  loadingStrategy?: {
+    priority: string;
+    lazyLoad: boolean;
+  };
+}
+
 // License key for Dynamsoft Barcode Reader
 export const DYNAMSOFT_LICENSE_KEY = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAzOTU3ODgwLVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTAzOTU3ODgwIiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjotMTgyODIwMDQwNH0=";
 
@@ -57,11 +65,17 @@ export const BARCODE_READER_CONFIG = {
 // Set SDK loading with faster explicit settings
 BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
 BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
-// Fast loading mode
-BarcodeReader.loadingStrategy = {
-  priority: "speed", // Prioritize speed over accuracy
-  lazyLoad: false
-};
+// Fast loading mode - use type assertion to set loading strategy
+try {
+  // Use type assertion to access extended properties
+  const extendedReader = BarcodeReader as unknown as typeof BarcodeReader & BarcodeReaderExtended;
+  extendedReader.loadingStrategy = {
+    priority: "speed", // Prioritize speed over accuracy
+    lazyLoad: false
+  };
+} catch (e) {
+  console.warn("Could not set loading strategy:", e);
+}
 
 // Global instance reference to improve reuse
 let globalReaderInstance: BarcodeReader | null = null;

@@ -41,10 +41,13 @@ export const BARCODE_READER_CONFIG = {
   }
 };
 
-// Safety flag to prevent multiple license initialization
+// Safety flags to prevent multiple license initialization
 let licenseInitialized = false;
 let hasWasmLoaded = false;
 let isInitializing = false;
+
+// Track active scanner instances
+let activeInstances = new Set();
 
 // Initialize with a direct approach that only sets the license once
 export const ensureLicenseIsSet = async () => {
@@ -177,31 +180,48 @@ export const initializeDynamsoft = async () => {
 };
 
 /**
- * Clean up Dynamsoft resources
+ * Clean up Dynamsoft resources - improved with better camera resource management
  */
 export const cleanupDynamsoft = async () => {
   try {
+    console.log("Running comprehensive Dynamsoft cleanup");
+    
     // Clean frame buffer if available
     const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
     if (extendedBarcodeScanner.cleanFrameBuffer) {
       await extendedBarcodeScanner.cleanFrameBuffer();
     }
     
-    // Reset internal scanner instances
-    // This helps with repeated initialization issues
+    // Get access to internal scanners array for thorough cleanup
     try {
       // @ts-ignore - Access internal array of scanners for cleanup
       if (BarcodeScanner._scanners && BarcodeScanner._scanners.length > 0) {
         // @ts-ignore - Clear internal scanner array
         for (const scanner of BarcodeScanner._scanners) {
           try {
-            if (scanner && scanner.destroyContext) {
-              await scanner.destroyContext();
+            if (scanner) {
+              // First try to stop the scanner if it's running
+              try {
+                await scanner.stop();
+                console.log("Scanner stopped during cleanup");
+              } catch (e) {
+                console.warn("Error stopping scanner during cleanup:", e);
+              }
+              
+              // Then destroy its context
+              try {
+                await scanner.destroyContext();
+                console.log("Scanner context destroyed");
+              } catch (e) {
+                console.warn("Error destroying scanner context:", e);
+              }
             }
           } catch (e) {
             console.warn("Error during scanner cleanup:", e);
           }
         }
+        
+        // Reset scanner array when done
         // @ts-ignore - Reset scanner array
         BarcodeScanner._scanners = [];
       }
@@ -209,10 +229,51 @@ export const cleanupDynamsoft = async () => {
       console.warn("Non-critical error during scanner array cleanup:", e);
     }
     
+    // Release any active camera streams
+    try {
+      const videoTracks = document.querySelectorAll('video');
+      videoTracks.forEach(video => {
+        try {
+          if (video.srcObject) {
+            // @ts-ignore - Access media stream
+            const stream = video.srcObject;
+            if (stream && stream.getTracks) {
+              const tracks = stream.getTracks();
+              tracks.forEach(track => {
+                try {
+                  if (track.readyState === 'live') {
+                    track.stop();
+                    console.log("Stopped video track");
+                  }
+                } catch (e) {
+                  console.warn("Error stopping video track:", e);
+                }
+              });
+            }
+            video.srcObject = null;
+          }
+        } catch (e) {
+          console.warn("Error cleaning up video element:", e);
+        }
+      });
+    } catch (e) {
+      console.warn("Error during video cleanup:", e);
+    }
+    
+    console.log("Dynamsoft cleanup complete");
   } catch (e) {
-    console.warn("Error during scanner cleanup:", e);
+    console.warn("Error during full Dynamsoft cleanup:", e);
   }
 };
 
+// Reset all Dynamsoft resources on page unload
+if (typeof window !== 'undefined') {
+  // @ts-ignore - Add unload handler
+  window.addEventListener('beforeunload', async () => {
+    await cleanupDynamsoft();
+  });
+}
+
 // Immediately initialize the license
 ensureLicenseIsSet().catch(console.error);
+

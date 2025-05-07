@@ -1,3 +1,4 @@
+
 import { useEffect, useRef, useState } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { useToast } from '@/hooks/use-toast';
@@ -173,56 +174,46 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarco
     try {
       if (isScanning || cameraOpen) {
         console.log("Stopping scanner...");
-        await barcodeScannerRef.current.stop();
-        setIsScanning(false);
-        setCameraOpen(false);
-        setIsTorchOn(false); // Reset torch state when stopping
+        // FIXED: Close the scanner properly to ensure resources are released
+        await stopScanning();
       } else {
         console.log("Starting scanner...");
         
-        // Make sure any previous scanner session is stopped and cleaned up
-        try {
-          if (barcodeScannerRef.current) {
-            await barcodeScannerRef.current.stop();
-            setCameraOpen(false);
-          }
-        } catch (e) {
-          console.log("No active scanner to stop or error stopping:", e);
-          
-          // If stopping fails with a destroyed error, recreate the scanner
-          if (e instanceof Error && (
-              e.message.includes("destroyed") || 
-              e.message.includes("camera is not open") ||
-              e.message.includes("context")
-            )) {
-            console.log("Scanner context issue detected, reinitializing...");
-            await cleanupScanner();
-            await initializeScanner();
-          }
+        // FIXED: Ensure scanner is properly created before attempting to use it
+        if (!barcodeScannerRef.current) {
+          console.log("Scanner reference lost, reinitializing...");
+          await initializeScanner();
         }
         
-        // Clear the view container and set it up fresh
-        if (viewRef.current && barcodeScannerRef.current) {
-          try {
-            // Set the UI Element before showing
-            console.log("Setting UI element container");
-            
-            // Make sure we don't try to set UI when camera is already open
-            if (!cameraOpen) {
-              await barcodeScannerRef.current.setUIElement(viewRef.current);
+        try {
+          // FIXED: More robust handling of UI element setting
+          console.log("Setting UI element container");
+          if (barcodeScannerRef.current && viewRef.current) {
+            try {
+              // Only try to set UI element if camera is not open
+              if (!cameraOpen) {
+                await barcodeScannerRef.current.setUIElement(viewRef.current);
+              }
+            } catch (e) {
+              // If there's an error about UI element when camera is open
+              if (e instanceof Error && e.message.includes("camera is open")) {
+                console.log("Camera is already open, trying to stop first");
+                await barcodeScannerRef.current.stop();
+                setCameraOpen(false);
+                // Try again after stopping
+                await barcodeScannerRef.current.setUIElement(viewRef.current);
+              } else {
+                throw e; // Rethrow if it's another type of error
+              }
             }
             
             // Set up the scan callback
             barcodeScannerRef.current.onUnduplicatedRead = async (txt, result) => {
               console.log("Barcode detected:", txt, result);
-              
-              // Call the onScan callback
               onScan(txt, result.barcodeFormatString);
               
-              // Automatically stop scanning if stopAfterScan is true
-              if (stopAfterScan && (isScanning || cameraOpen)) {
+              if (stopAfterScan) {
                 try {
-                  console.log("Auto-stopping scanner after successful scan");
                   await stopScanning();
                 } catch (error) {
                   console.error("Error stopping scanner after scan:", error);
@@ -230,78 +221,81 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarco
               }
             };
             
-            // Start the scanner with camera
-            console.log("Showing scanner");
-            await barcodeScannerRef.current.show();
-            setIsScanning(true);
-            setCameraOpen(true);
-          } catch (error) {
-            console.error("Error starting scanner:", error);
-            
-            // If show() fails, check for specific error types and handle accordingly
-            if (error instanceof Error) {
-              // Camera is already open error
-              if (error.message.includes("camera is open")) {
-                console.log("Camera is already open, no need to reopen");
-                setIsScanning(true);
-                setCameraOpen(true);
-                return;
-              }
+            // FIXED: Much more robust scanner starting
+            try {
+              console.log("Starting scanner with show()");
+              await barcodeScannerRef.current.show();
+              setIsScanning(true);
+              setCameraOpen(true);
+            } catch (error) {
+              console.error("Error starting scanner with show():", error);
               
-              // UIElement change error when camera is open
-              if (error.message.includes("change the UIElement when the camera is open")) {
-                console.log("Cannot change UI Element while camera is open, stopping first");
-                try {
-                  await barcodeScannerRef.current.stop();
-                  setCameraOpen(false);
+              // FIXED: Better error handling for common errors
+              if (error instanceof Error) {
+                if (error.message.includes("already open") || 
+                    error.message.includes("camera is open")) {
+                  console.log("Camera already open, setting scanning state");
+                  setIsScanning(true);
+                  setCameraOpen(true);
+                } else {
+                  // For other errors, try a full reset
+                  console.log("Critical scanner error, doing full reset");
+                  await cleanupScanner();
+                  await initializeScanner();
                   
-                  // Try again after stopping
-                  await barcodeScannerRef.current.setUIElement(viewRef.current);
-                  await barcodeScannerRef.current.show();
-                  setIsScanning(true);
-                  setCameraOpen(true);
-                  return;
-                } catch (e) {
-                  console.error("Failed to restart scanner:", e);
-                }
-              }
-              
-              // Other context/destroyed errors
-              if (error.message.includes("destroyed") || 
-                  error.message.includes("context") ||
-                  error.message.includes("camera")) {
-                console.log("Scanner context issue detected, attempting recovery...");
-                
-                // Full cleanup and reinit
-                await cleanupScanner();
-                await initializeScanner();
-                
-                // Try one more time after reinitialization
-                if (barcodeScannerRef.current && viewRef.current) {
-                  await barcodeScannerRef.current.setUIElement(viewRef.current);
-                  await barcodeScannerRef.current.show();
-                  setIsScanning(true);
-                  setCameraOpen(true);
+                  // Try one more time
+                  if (barcodeScannerRef.current && viewRef.current) {
+                    try {
+                      await barcodeScannerRef.current.setUIElement(viewRef.current);
+                      await barcodeScannerRef.current.show();
+                      setIsScanning(true);
+                      setCameraOpen(true);
+                    } catch(e) {
+                      console.error("Couldn't recover scanner after reset:", e);
+                      throw e;
+                    }
+                  }
                 }
               } else {
-                throw error; // Rethrow if we can't handle it
+                throw error;
               }
             }
           }
-        } else {
-          console.error("View reference or scanner is not available");
-          toast({
-            title: 'Error',
-            description: 'Scanner view not ready.',
-            variant: 'destructive'
-          });
+        } catch (error) {
+          console.error("Error in scanner setup:", error);
+          
+          // FIXED: Full scanner reset if all else fails
+          if (error instanceof Error && (
+              error.message.includes("destroyed") || 
+              error.message.includes("UIElement") ||
+              error.message.includes("context"))) {
+            
+            console.log("Scanner in bad state, doing full reset");
+            await cleanupScanner();
+            await initializeScanner();
+            
+            // Try one last time with fresh scanner
+            if (barcodeScannerRef.current && viewRef.current) {
+              await barcodeScannerRef.current.setUIElement(viewRef.current);
+              await barcodeScannerRef.current.show();
+              setIsScanning(true);
+              setCameraOpen(true);
+            }
+          } else {
+            toast({
+              title: 'Scanner Error',
+              description: 'Failed to start scanner. Please reload the page.',
+              variant: 'destructive'
+            });
+            throw error;
+          }
         }
       }
     } catch (error) {
       console.error('Error toggling scan state:', error);
       toast({
         title: 'Error',
-        description: 'Failed to toggle scanning mode.',
+        description: 'Failed to toggle scanning mode. Please reload the page.',
         variant: 'destructive'
       });
       
@@ -313,22 +307,42 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarco
   };
 
   const stopScanning = async () => {
-    if (!isInitialized || !barcodeScannerRef.current || (!isScanning && !cameraOpen)) {
-      console.log("Cannot stop scanning: scanner not ready or not scanning");
+    console.log("Stopping scanner explicitly...");
+    if (!barcodeScannerRef.current) {
+      console.log("No scanner to stop");
+      setIsScanning(false);
+      setCameraOpen(false);
+      setIsTorchOn(false);
       return;
     }
 
     try {
-      console.log("Stopping scanner...");
-      await barcodeScannerRef.current.stop();
+      // FIXED: More robust stop with additional checks
+      if (cameraOpen) {
+        console.log("Stopping camera...");
+        try {
+          await barcodeScannerRef.current.stop();
+          console.log("Camera stopped successfully");
+        } catch (e) {
+          console.error("Error stopping camera:", e);
+          
+          // Handle specific errors
+          if (e instanceof Error && e.message.includes("destroyed")) {
+            console.log("Scanner already destroyed, recreating instance");
+            barcodeScannerRef.current = null;
+            await initializeScanner();
+          }
+        }
+      }
+      
+      // Always reset states regardless of any errors
       setIsScanning(false);
       setCameraOpen(false);
-      setIsTorchOn(false); // Reset torch state when stopping
+      setIsTorchOn(false);
     } catch (error) {
-      console.error('Error stopping scan:', error);
-      // Don't show error toast here to avoid too many notifications
+      console.error('Error in stopScanning:', error);
       
-      // Still reset states even if there was an error
+      // Always reset states even with errors
       setIsScanning(false);
       setCameraOpen(false);
       setIsTorchOn(false);

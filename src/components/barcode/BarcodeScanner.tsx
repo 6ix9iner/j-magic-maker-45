@@ -29,7 +29,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
     isInitialized,
     isError,
     toggleScanning,
-    toggleTorch
+    toggleTorch,
+    stopScanning
   } = useBarcodeScannerSDK({
     onScan: handleScan,
     stopAfterScan: true // Auto-stop scanning after detecting a barcode
@@ -37,10 +38,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
 
   // Reset scan result and restart scanning
   const handleReset = () => {
+    console.log("Resetting scanner and preparing for new scan");
     setLastScan(null);
+    
+    // FIXED: Fixed reset timing issue by introducing a slight delay
     setTimeout(() => {
       toggleScanning();
-    }, 100);
+    }, 300);
   };
 
   // Show error state when scanner fails to initialize
@@ -85,7 +89,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
             <p className="text-gray-500 text-sm mb-1">Format:</p>
             <p className="text-lg font-medium">{lastScan.symbology}</p>
           </div>
-          <Button onClick={handleReset} className="mt-4 flex items-center gap-2">
+          <Button 
+            onClick={handleReset} 
+            className="mt-4 flex items-center gap-2"
+          >
             <ArrowLeft className="w-4 h-4" />
             Scan Another
           </Button>

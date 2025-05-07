@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,25 +16,45 @@ const ScannerPage = () => {
   const [scannedItems, setScannedItems] = useState<ScannedItem[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isScannerReady, setIsScannerReady] = useState(false);
-  const [isScanning, setIsScanning] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const isMobile = useIsMobile();
+  const dialogOpenRef = useRef(false);
 
   // Initialize barcode reader
-  React.useEffect(() => {
-    (async () => {
+  useEffect(() => {
+    let isInitStarted = false;
+    
+    const initBarcodeReader = async () => {
+      if (isInitStarted) return;
+      isInitStarted = true;
+      
+      setIsInitializing(true);
       try {
         // Set license key
         BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
         // Set engine resource path
         BarcodeReader.engineResourcePath = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/';
-        console.log("Barcode scanner initialized");
+        console.log("Barcode scanner initialized in ScannerPage");
         setIsScannerReady(true);
       } catch (e) {
         console.error("Failed to initialize barcode scanner:", e);
         toast.error("Failed to initialize scanner. Please try again.");
+      } finally {
+        setIsInitializing(false);
       }
-    })();
+    };
+    
+    initBarcodeReader();
+    
+    return () => {
+      isInitStarted = false;
+    };
   }, []);
+
+  // Track dialog open state
+  useEffect(() => {
+    dialogOpenRef.current = isDialogOpen;
+  }, [isDialogOpen]);
 
   const openScanner = () => {
     setIsDialogOpen(true);
@@ -86,10 +106,10 @@ const ScannerPage = () => {
             <Button 
               onClick={openScanner}
               className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium"
-              disabled={!isScannerReady}
+              disabled={isInitializing}
             >
               <ScanBarcode className="w-5 h-5 mr-2" />
-              {isScannerReady ? "Scan Barcode" : "Initializing Scanner..."}
+              {isInitializing ? "Initializing Scanner..." : "Scan Barcode"}
             </Button>
           </CardContent>
         </Card>
@@ -143,18 +163,24 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
   const [scanner, setScanner] = React.useState<BarcodeScanner | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const videoContainerCreated = React.useRef<boolean>(false);
+  const scannerInstanceRef = React.useRef<BarcodeScanner | null>(null);
+  const isDestroyingRef = React.useRef<boolean>(false);
   
   React.useEffect(() => {
     let isMounted = true;
-    let scannerInstance: BarcodeScanner | null = null;
+    
+    // Reset the destroying flag when mounting
+    isDestroyingRef.current = false;
     
     const setupScanner = async () => {
       try {
+        console.log("Setting up SimpleBarcodeScanner");
+        
         // Create video container element required by Dynamsoft scanner
         if (containerRef.current && !videoContainerCreated.current) {
           const videoContainer = document.createElement('div');
           videoContainer.className = 'dce-video-container';
-          videoContainer.id = 'dce-video-container';
+          videoContainer.id = 'dce-video-container-simple';
           videoContainer.style.position = 'absolute';
           videoContainer.style.left = '0';
           videoContainer.style.top = '0';
@@ -162,10 +188,13 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           videoContainer.style.height = '100%';
           containerRef.current.appendChild(videoContainer);
           videoContainerCreated.current = true;
+          console.log("Simple scanner video container created");
         }
         
         // Create scanner instance
-        scannerInstance = await BarcodeScanner.createInstance();
+        const scannerInstance = await BarcodeScanner.createInstance();
+        console.log("Simple scanner instance created");
+        scannerInstanceRef.current = scannerInstance;
         
         // Update settings for better performance
         const settings = await scannerInstance.getRuntimeSettings();
@@ -173,12 +202,12 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
         settings.deblurLevel = 2;
         await scannerInstance.updateRuntimeSettings(settings);
         
-        if (isMounted) {
+        if (isMounted && !isDestroyingRef.current) {
           setScanner(scannerInstance);
           
           // Set up callback for barcode detection
           scannerInstance.onUnduplicatedRead = (txt, result) => {
-            console.log("Barcode detected:", txt, result);
+            console.log("Simple scanner barcode detected:", txt, result);
             onDetected(txt, result.barcodeFormatString);
           };
           
@@ -187,15 +216,25 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             try {
               await scannerInstance.setUIElement(containerRef.current);
               await scannerInstance.show();
+              console.log("Simple scanner started");
             } catch (err) {
-              console.error("Failed to start scanner:", err);
-              setError("Camera access required");
+              console.error("Failed to start simple scanner:", err);
+              if (isMounted && !isDestroyingRef.current) {
+                setError("Camera access required");
+              }
             }
+          }
+        } else {
+          console.log("Component unmounted during setup, cleaning up scanner");
+          try {
+            await scannerInstance.destroyContext();
+          } catch (e) {
+            console.error("Error destroying scanner during setup cleanup:", e);
           }
         }
       } catch (err) {
-        console.error("Scanner setup error:", err);
-        if (isMounted) {
+        console.error("Simple scanner setup error:", err);
+        if (isMounted && !isDestroyingRef.current) {
           setError("Please allow camera access");
         }
       }
@@ -205,26 +244,41 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
     
     // Cleanup function with proper Promise handling
     return () => {
+      console.log("SimpleBarcodeScanner unmounting");
       isMounted = false;
+      isDestroyingRef.current = true;
       videoContainerCreated.current = false;
       
       // Clean up the video container
       if (containerRef.current) {
-        const videoContainer = document.getElementById('dce-video-container');
+        const videoContainer = document.getElementById('dce-video-container-simple');
         if (videoContainer && videoContainer.parentNode === containerRef.current) {
           containerRef.current.removeChild(videoContainer);
+          console.log("Simple scanner video container removed");
         }
       }
       
+      const scannerInstance = scannerInstanceRef.current;
       if (scannerInstance) {
         // Use an IIFE async function for cleanup
         (async () => {
           try {
-            await scannerInstance.hide();
-            await scannerInstance.destroyContext();
-            console.log("Scanner destroyed");
+            console.log("Cleaning up simple scanner");
+            try {
+              await scannerInstance.hide();
+              console.log("Simple scanner hidden");
+            } catch (e) {
+              console.error("Error hiding simple scanner:", e);
+            }
+            
+            try {
+              await scannerInstance.destroyContext();
+              console.log("Simple scanner destroyed");
+            } catch (e) {
+              console.error("Error destroying simple scanner:", e);
+            }
           } catch (e) {
-            console.error("Error in cleanup:", e);
+            console.error("Error in simple scanner cleanup:", e);
           }
         })();
       }

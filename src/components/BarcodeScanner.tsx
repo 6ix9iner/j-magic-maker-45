@@ -1,7 +1,7 @@
 
 // This component now serves as a compatibility layer for existing imports
 // It simply re-exports the scanner functionality from ScannerPage
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -19,22 +19,51 @@ interface BarcodeScannerProps {
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScannerReady, setIsScannerReady] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   const isMobile = useIsMobile();
+  // Track dialog open state for proper scanner initialization
+  const dialogOpenRef = React.useRef(false);
 
   // Initialize barcode reader
-  React.useEffect(() => {
-    (async () => {
+  useEffect(() => {
+    let isInitStarted = false;
+    
+    const initBarcodeReader = async () => {
+      if (isInitStarted) return;
+      isInitStarted = true;
+      
+      setIsInitializing(true);
       try {
         // Set license key
         BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
         // Set engine resource path
         BarcodeReader.engineResourcePath = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/';
+        
+        console.log("Barcode reader initialized");
         setIsScannerReady(true);
       } catch (e) {
         console.error("Failed to initialize barcode scanner:", e);
+      } finally {
+        setIsInitializing(false);
       }
-    })();
+    };
+    
+    initBarcodeReader();
+    
+    return () => {
+      isInitStarted = false;
+    };
   }, []);
+
+  const handleDialogOpen = () => {
+    setIsOpen(true);
+    dialogOpenRef.current = true;
+  };
+
+  const handleDialogClose = () => {
+    setIsOpen(false);
+    dialogOpenRef.current = false;
+  };
 
   const handleScan = (code: string, symbology: string = "Unknown") => {
     // Call both callback types for backward compatibility
@@ -42,7 +71,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
     if (onScan) {
       onScan(code, symbology);
     }
-    setIsOpen(false);
+    handleDialogClose();
   };
 
   const SimpleBarcodeScanner = ({ onClose }: { onClose: () => void }) => {
@@ -52,8 +81,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
     const videoContainerCreated = React.useRef<boolean>(false);
     
     React.useEffect(() => {
+      if (!dialogOpenRef.current) return;
+      
       let isMounted = true;
       let scannerInstance: DynamsoftScanner | null = null;
+      console.log("SimpleBarcodeScanner component mounted, dialog open:", dialogOpenRef.current);
       
       // Create the video container element required by Dynamsoft
       const createVideoContainer = () => {
@@ -61,7 +93,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
         
         const videoContainer = document.createElement('div');
         videoContainer.className = 'dce-video-container';
-        videoContainer.id = 'dce-video-container';
+        videoContainer.id = 'dce-video-container-dialog';
         videoContainer.style.position = 'absolute';
         videoContainer.style.left = '0';
         videoContainer.style.top = '0';
@@ -69,15 +101,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
         videoContainer.style.height = '100%';
         containerRef.current.appendChild(videoContainer);
         videoContainerCreated.current = true;
+        console.log("Dialog video container created");
       };
       
       const setupScanner = async () => {
         try {
+          console.log("Setting up dialog scanner");
           // Create the video container first
           createVideoContainer();
           
           // Create scanner instance
           scannerInstance = await DynamsoftScanner.createInstance();
+          console.log("Dialog scanner instance created");
           
           // Update settings for better performance
           const settings = await scannerInstance.getRuntimeSettings();
@@ -85,12 +120,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
           settings.deblurLevel = 2;
           await scannerInstance.updateRuntimeSettings(settings);
           
-          if (isMounted) {
+          if (isMounted && dialogOpenRef.current) {
             setScanner(scannerInstance);
             
             // Set up callback for barcode detection
             scannerInstance.onUnduplicatedRead = (txt, result) => {
-              console.log("Barcode detected:", txt, result);
+              console.log("Dialog barcode detected:", txt, result);
               handleScan(txt, result.barcodeFormatString);
             };
             
@@ -99,14 +134,24 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
               try {
                 await scannerInstance.setUIElement(containerRef.current);
                 await scannerInstance.show();
+                console.log("Dialog scanner started");
               } catch (err) {
-                console.error("Failed to start scanner:", err);
+                console.error("Failed to start dialog scanner:", err);
                 setError("Camera access required");
+              }
+            }
+          } else {
+            console.log("Component unmounted during scanner setup, cleaning up");
+            if (scannerInstance) {
+              try {
+                await scannerInstance.destroyContext();
+              } catch (e) {
+                console.error("Error destroying scanner during setup cleanup:", e);
               }
             }
           }
         } catch (err) {
-          console.error("Scanner setup error:", err);
+          console.error("Dialog scanner setup error:", err);
           if (isMounted) {
             setError("Please allow camera access to scan");
           }
@@ -117,25 +162,38 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
       
       // Cleanup function
       return () => {
+        console.log("SimpleBarcodeScanner component unmounting");
         isMounted = false;
         videoContainerCreated.current = false;
         
         // Remove the video container
         if (containerRef.current) {
-          const videoContainer = document.getElementById('dce-video-container');
+          const videoContainer = document.getElementById('dce-video-container-dialog');
           if (videoContainer && videoContainer.parentNode === containerRef.current) {
             containerRef.current.removeChild(videoContainer);
+            console.log("Dialog video container removed");
           }
         }
         
         if (scannerInstance) {
           (async () => {
             try {
-              await scannerInstance.hide();
-              await scannerInstance.destroyContext();
-              console.log("Scanner destroyed");
+              console.log("Cleaning up dialog scanner");
+              try {
+                await scannerInstance.hide();
+                console.log("Dialog scanner hidden");
+              } catch (e) {
+                console.error("Error hiding dialog scanner:", e);
+              }
+              
+              try {
+                await scannerInstance.destroyContext();
+                console.log("Dialog scanner destroyed");
+              } catch (e) {
+                console.error("Error destroying dialog scanner:", e);
+              }
             } catch (e) {
-              console.error("Error in cleanup:", e);
+              console.error("Error in dialog scanner cleanup:", e);
             }
           })();
         }
@@ -180,12 +238,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
   return (
     <>
       <Button 
-        onClick={() => setIsOpen(true)}
+        onClick={handleDialogOpen}
         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
-        disabled={!isScannerReady}
+        disabled={isInitializing}
       >
         <ScanBarcode className="w-5 h-5 mr-2" />
-        {isScannerReady ? "Scan Barcode" : "Initializing Scanner..."}
+        {isInitializing ? "Initializing Scanner..." : "Scan Barcode"}
       </Button>
 
       {isMobile ? (
@@ -198,7 +256,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
               </p>
             </div>
             
-            {isOpen && <SimpleBarcodeScanner onClose={() => setIsOpen(false)} />}
+            {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
           </SheetContent>
         </Sheet>
       ) : (
@@ -208,7 +266,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
               <DialogTitle>Scan Barcode</DialogTitle>
             </DialogHeader>
             
-            {isOpen && <SimpleBarcodeScanner onClose={() => setIsOpen(false)} />}
+            {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
           </DialogContent>
         </Dialog>
       )}

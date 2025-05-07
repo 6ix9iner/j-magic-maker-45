@@ -13,6 +13,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const videoContainerCreated = useRef<boolean>(false);
+  const isDestroyingRef = useRef<boolean>(false);
 
   // Sound effect for successful scan
   const playBeep = () => {
@@ -27,6 +28,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
   useEffect(() => {
     let isMounted = true;
     let scannerInstance: DynamsoftScanner | null = null;
+    console.log("BarcodeScanner component mounted");
 
     // Create the required dce-video-container element
     const ensureVideoContainer = () => {
@@ -43,10 +45,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
       videoContainer.style.height = '100%';
       containerRef.current.appendChild(videoContainer);
       videoContainerCreated.current = true;
+      console.log("Video container created");
     };
+
+    // Reset the destroying flag when mounting
+    isDestroyingRef.current = false;
 
     const initScanner = async () => {
       try {
+        console.log("Initializing scanner...");
         // Ensure video container is created before scanner initialization
         ensureVideoContainer();
         
@@ -57,6 +64,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
         
         // Create scanner instance
         scannerInstance = await DynamsoftScanner.createInstance();
+        console.log("Scanner instance created");
         
         // Apply configuration
         const config = createBarcodeReaderConfig();
@@ -72,7 +80,17 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
         
         await scannerInstance.updateRuntimeSettings(settings);
         
-        if (!isMounted) return;
+        if (!isMounted || isDestroyingRef.current) {
+          console.log("Component unmounted during initialization, cleaning up scanner");
+          if (scannerInstance) {
+            try {
+              await scannerInstance.destroyContext();
+            } catch (e) {
+              console.error("Error destroying scanner during cleanup:", e);
+            }
+          }
+          return;
+        }
 
         // Set result callback
         scannerInstance.onUnduplicatedRead = (txt, result) => {
@@ -89,16 +107,17 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
           try {
             await scannerInstance.setUIElement(containerRef.current);
             await scannerInstance.open();
+            console.log("Scanner opened successfully");
           } catch (err) {
             console.error("Failed to start scanner:", err);
-            if (isMounted) {
+            if (isMounted && !isDestroyingRef.current) {
               setError("Failed to start camera. Please check camera permissions.");
             }
           }
         }
       } catch (err) {
         console.error("Scanner initialization error:", err);
-        if (isMounted) {
+        if (isMounted && !isDestroyingRef.current) {
           setError("Failed to initialize scanner. Please try again.");
           setIsLoading(false);
         }
@@ -108,7 +127,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
     initScanner();
 
     return () => {
+      console.log("BarcodeScanner component unmounting, cleaning up resources");
       isMounted = false;
+      isDestroyingRef.current = true;
       videoContainerCreated.current = false;
       
       // Clean up any created video containers
@@ -116,6 +137,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
         const videoContainer = document.getElementById('dce-video-container');
         if (videoContainer && videoContainer.parentNode === containerRef.current) {
           containerRef.current.removeChild(videoContainer);
+          console.log("Video container removed");
         }
       }
       
@@ -123,15 +145,20 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
         // Make sure to properly close and destroy the scanner
         (async () => {
           try {
-            if (scannerInstance) {
-              try {
-                await scannerInstance.close();
-                // Using destroyContext() instead of destroy() which doesn't exist
-                await scannerInstance.destroyContext();
-                console.log("Scanner instance destroyed");
-              } catch (e) {
-                console.error("Error in scanner cleanup:", e);
-              }
+            console.log("Closing and destroying scanner instance");
+            try {
+              await scannerInstance.close();
+              console.log("Scanner closed");
+            } catch (e) {
+              console.error("Error closing scanner:", e);
+            }
+            
+            try {
+              // Using destroyContext() instead of destroy() which doesn't exist
+              await scannerInstance.destroyContext();
+              console.log("Scanner instance destroyed");
+            } catch (e) {
+              console.error("Error destroying scanner context:", e);
             }
           } catch (e) {
             console.error("Error in scanner cleanup:", e);

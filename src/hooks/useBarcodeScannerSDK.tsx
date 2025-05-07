@@ -1,15 +1,8 @@
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
-import { toast } from 'sonner';
-import { 
-  DYNAMSOFT_LICENSE_KEY, 
-  BARCODE_READER_CONFIG, 
-  initializeDynamsoft, 
-  getReaderInstance, 
-  cleanupDynamsoft,
-  ensureLicenseIsSet
-} from '@/utils/dynamsoftConfig';
+import { useToast } from '@/hooks/use-toast';
+import { DYNAMSOFT_LICENSE_KEY, BARCODE_READER_CONFIG } from '@/utils/dynamsoftConfig';
 
 export interface ScanResult {
   code: string;
@@ -18,618 +11,310 @@ export interface ScanResult {
 
 interface UseBarcodeScannerSDKProps {
   onScan: (code: string, symbology: string) => void;
+  stopAfterScan?: boolean; // Whether to automatically stop scanning after detecting a barcode
 }
 
-// Extend MediaTrackCapabilities to include torch property
-interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
-  torch?: boolean;
-}
-
-// Define types for missing methods in BarcodeScanner
-interface BarcodeScannerExtended {
-  isWorkerLoaded?: boolean;
-  cleanFrameBuffer?: () => Promise<void>;
-  getInstanceCount?: () => Promise<number>;
-  preloadModule?: () => Promise<void>;
-  isDesktopBrowser?: () => boolean;
-}
-
-// Track SDK initialization state globally
-const globalState = {
-  isInitializing: false,
-  isInitialized: false,
-  initPromise: null as Promise<boolean> | null,
-  wasPreInitialized: false,
-  permissionInProgress: false
-};
-
-export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
+export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarcodeScannerSDKProps) => {
   const viewRef = useRef<HTMLDivElement | null>(null);
   const [isScanning, setIsScanning] = useState(false);
   const [isTorchOn, setIsTorchOn] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isError, setIsError] = useState(false);
-  const [cameraPermissions, setCameraPermissions] = useState<boolean | null>(null);
-  
-  // References to track SDK state
-  const scannerRef = useRef<BarcodeScanner | null>(null);
-  const isMountedRef = useRef(true);
-  const requestInProgressRef = useRef(false);
-  const initAttempts = useRef(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Pre-initialize the SDK but don't wait for completion
-  const preInitialize = useCallback(async (): Promise<boolean> => {
-    console.log('SDK: Pre-initializing...');
+  const barcodeScannerRef = useRef<BarcodeScanner | null>(null);
+  const { toast } = useToast();
+
+  // Initialize the Dynamsoft Barcode SDK
+  useEffect(() => {
+    let isMounted = true;
     
-    // First, ensure license is set properly
-    ensureLicenseIsSet();
-    
-    // If already initialized or initializing, just return
-    if (globalState.isInitialized) {
-      console.log('SDK: Already pre-initialized');
-      return true;
-    }
-    
-    if (globalState.isInitializing && globalState.initPromise) {
-      console.log('SDK: Pre-initialization already in progress');
-      return globalState.initPromise;
-    }
-    
-    globalState.isInitializing = true;
-    
-    // Store promise so other components can await it
-    globalState.initPromise = (async () => {
+    // Set everything up in a self-executing async function
+    (async () => {
       try {
-        // Set an extremely short timeout for speed
-        const timeoutPromise = new Promise<boolean>((resolve) => {
-          setTimeout(() => {
-            console.log('SDK: Pre-init timeout - continuing anyway');
-            globalState.isInitialized = true;
-            return resolve(true); // Continue anyway
-          }, 500); // 500ms (reduced from 1000ms)
-        });
+        console.log("Setting up Dynamsoft Barcode SDK");
         
-        // Race between initialization and timeout
-        const result = await Promise.race([
-          initializeDynamsoft(),
-          timeoutPromise
-        ]);
+        // 1. Configure license first
+        console.log("Setting license key");
+        BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
         
-        console.log('SDK: Pre-initialization complete');
-        globalState.isInitialized = true;
-        globalState.wasPreInitialized = true;
-        return result;
-      } catch (e) {
-        console.warn('SDK: Pre-initialization failed but continuing:', e);
-        globalState.isInitialized = true; // Consider it initialized to avoid retries
-        return true; // Continue anyway
-      } finally {
-        globalState.isInitializing = false;
+        // 2. Set engine resource path without version in path
+        console.log("Setting resource path");
+        BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode/dist/";
+        
+        // 3. Verify product key
+        try {
+          console.log("Verifying license");
+          await BarcodeReader.loadWasm();
+          console.log("License verified successfully");
+        } catch (err) {
+          console.error("License verification failed:", err);
+          if (isMounted) {
+            setIsError(true);
+            toast({
+              title: 'License Error',
+              description: 'Failed to verify the barcode scanner license.',
+              variant: 'destructive'
+            });
+          }
+          return;
+        }
+
+        // 4. Create a scanner instance and initialize
+        if (isMounted) {
+          console.log("Initializing scanner");
+          await initializeScanner();
+          console.log("Scanner initialized successfully");
+        }
+      } catch (error) {
+        console.error('Setup failed:', error);
+        if (isMounted) {
+          setIsError(true);
+          toast({
+            title: 'Error',
+            description: 'Failed to initialize barcode scanner.',
+            variant: 'destructive'
+          });
+        }
       }
     })();
-    
-    return globalState.initPromise;
-  }, []);
-  
-  // Component lifecycle
-  useEffect(() => {
-    // Make sure license is set first thing
-    ensureLicenseIsSet();
-    
-    // Start pre-initialization immediately
-    preInitialize().catch(e => console.warn("Pre-init warning:", e));
-    
+
     return () => {
-      isMountedRef.current = false;
-      // Clear any pending timeouts
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      cleanupScanner().catch(err => console.warn("Cleanup warning:", err));
+      isMounted = false;
+      cleanupScanner();
     };
-  }, [preInitialize]);
+  }, [toast]);
 
-  // Explicitly request camera permission
-  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
-    if (globalState.permissionInProgress) {
-      console.log('Camera permission request already in progress');
-      return false;
-    }
-    
-    globalState.permissionInProgress = true;
-    
+  // Separate cleanup function to ensure proper resource release
+  const cleanupScanner = async () => {
     try {
-      console.log('SDK: Requesting camera permission explicitly...');
-      
-      // Force permission prompt with simpler constraints for speed
-      const constraints = {
-        video: { 
-          width: { ideal: 480 }, // Reduced size even further
-          height: { ideal: 360 }
-        },
-        audio: false
-      };
-      
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (barcodeScannerRef.current) {
+        console.log("Cleaning up scanner resources");
         
-        if (stream) {
-          // Release the stream immediately
-          stream.getTracks().forEach(track => track.stop());
-          console.log('SDK: Camera permission granted');
-          
-          if (isMountedRef.current) {
-            setCameraPermissions(true);
-            setIsError(false);
+        // First stop scanning if active
+        if (isScanning) {
+          try {
+            await barcodeScannerRef.current.stop();
+          } catch (e) {
+            console.log("Error stopping scanner during cleanup:", e);
           }
-          return true;
-        } else {
-          console.error('SDK: Stream is null after permission grant');
-          if (isMountedRef.current) {
-            setCameraPermissions(false);
-          }
-          return false;
         }
-      } catch (err: any) {
-        console.error('SDK: Failed to get camera permission:', err.name, err.message);
-        // Log more specific error information but don't show toast during pre-init
-        if (isMountedRef.current) {
-          setCameraPermissions(false);
+        
+        // Then destroy the context completely
+        try {
+          await barcodeScannerRef.current.destroyContext();
+        } catch (e) {
+          console.log("Error destroying scanner context:", e);
         }
-        return false;
+        
+        console.log("Scanner resources released");
+        barcodeScannerRef.current = null;
       }
-    } finally {
-      globalState.permissionInProgress = false;
+    } catch (error) {
+      console.error("Cleanup error:", error);
     }
-  }, []);
+  };
 
-  // Start the scanner with improved initialization (enforcing 1 sec total timeout)
-  const startScanner = useCallback(async (): Promise<boolean> => {
-    if (requestInProgressRef.current) {
-      console.log('SDK: Scanner request already in progress');
-      return false;
-    }
-    
-    // Set master timeout for the entire operation
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-    
-    const masterTimeout = setTimeout(() => {
-      console.log('SDK: Global scanner timeout reached');
-      requestInProgressRef.current = false;
-      if (isMountedRef.current) {
-        setIsError(true);
-      }
-    }, 1000); // Strict 1 second total timeout
-    
-    timeoutRef.current = masterTimeout as unknown as NodeJS.Timeout;
-    requestInProgressRef.current = true;
-    
+  const initializeScanner = async () => {
     try {
-      console.log('SDK: Initializing scanner...');
+      console.log("Creating barcode scanner instance...");
       
-      // Parallel operations for speed
-      const permissionPromise = requestCameraPermission();
-      const initPromise = preInitialize();
+      // Create a scanner instance
+      const scanner = await BarcodeScanner.createInstance();
+      barcodeScannerRef.current = scanner;
       
-      // Run permission check and initialization in parallel with short timeouts
-      const permissionTimeoutPromise = new Promise<boolean>(resolve => {
-        setTimeout(() => {
-          console.log('SDK: Permission check timed out');
-          resolve(false);
-        }, 200); // 200ms for permission check
+      console.log("Scanner instance created successfully");
+      console.log("Configuring scanner settings...");
+      
+      // Configure runtime settings
+      const settings = await scanner.getRuntimeSettings();
+      console.log("Current settings:", settings);
+      
+      // Update barcode formats
+      settings.barcodeFormatIds = BARCODE_READER_CONFIG.barcodeFormats.reduce(
+        (acc, cur) => acc | cur,
+        0
+      );
+      
+      // Update deblur level
+      settings.deblurLevel = 2;
+      
+      // Apply the updated settings
+      await scanner.updateRuntimeSettings(settings);
+
+      // Configure scanner UI settings
+      scanner.singleFrameMode = false;
+      
+      // Set static properties on the BarcodeScanner class, not the instance
+      try {
+        // Set the UI Element URL on the class, not the instance
+        BarcodeScanner.defaultUIElementURL = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode/dist/dbr.ui.html";
+        
+        // Note: createCameraElements is not a method of BarcodeScanner
+        // Instead, we'll prepare the DOM for the scanner
+        console.log("Preparing DOM for scanner UI");
+      } catch (e) {
+        console.log("Warning while configuring UI elements:", e);
+      }
+
+      console.log("Barcode SDK initialized successfully");
+      setIsInitialized(true);
+    } catch (error) {
+      console.error('Failed to initialize scanner:', error);
+      throw error; // Rethrow to be caught by the parent try-catch
+    }
+  };
+
+  const toggleScanning = async () => {
+    if (!isInitialized || !barcodeScannerRef.current || !viewRef.current) {
+      console.log("Cannot toggle scanning: scanner not ready");
+      return;
+    }
+
+    try {
+      if (isScanning) {
+        console.log("Stopping scanner...");
+        await barcodeScannerRef.current.stop();
+        setIsScanning(false);
+        setIsTorchOn(false); // Reset torch state when stopping
+      } else {
+        console.log("Starting scanner...");
+        
+        // Make sure any previous scanner session is stopped and cleaned up
+        try {
+          if (barcodeScannerRef.current) {
+            await barcodeScannerRef.current.stop();
+          }
+        } catch (e) {
+          console.log("No active scanner to stop or error stopping:", e);
+          // If stopping fails, try to recreate the scanner
+          if (e instanceof Error && e.message.includes("destroyed")) {
+            console.log("Scanner context was destroyed, reinitializing...");
+            await cleanupScanner();
+            await initializeScanner();
+          }
+        }
+        
+        // Clear the view container and set it up fresh
+        if (viewRef.current && barcodeScannerRef.current) {
+          try {
+            // Set the UI Element before showing
+            console.log("Setting UI element container");
+            await barcodeScannerRef.current.setUIElement(viewRef.current);
+            
+            // Set up the scan callback
+            barcodeScannerRef.current.onUnduplicatedRead = async (txt, result) => {
+              console.log("Barcode detected:", txt, result);
+              
+              // Call the onScan callback
+              onScan(txt, result.barcodeFormatString);
+              
+              // Automatically stop scanning if stopAfterScan is true
+              if (stopAfterScan && isScanning) {
+                try {
+                  console.log("Auto-stopping scanner after successful scan");
+                  await stopScanning();
+                } catch (error) {
+                  console.error("Error stopping scanner after scan:", error);
+                }
+              }
+            };
+            
+            // Start the scanner with camera
+            console.log("Showing scanner");
+            await barcodeScannerRef.current.show();
+            setIsScanning(true);
+          } catch (error) {
+            console.error("Error starting scanner:", error);
+            
+            // If show() fails, try to reinitialize the scanner
+            if (error instanceof Error && (
+                error.message.includes("destroyed") || 
+                error.message.includes("context") ||
+                error.message.includes("camera")
+              )) {
+              console.log("Scanner context issue detected, attempting recovery...");
+              await cleanupScanner();
+              await initializeScanner();
+              
+              // Try one more time after reinitialization
+              if (barcodeScannerRef.current && viewRef.current) {
+                await barcodeScannerRef.current.setUIElement(viewRef.current);
+                await barcodeScannerRef.current.show();
+                setIsScanning(true);
+              }
+            } else {
+              throw error; // Rethrow if we can't handle it
+            }
+          }
+        } else {
+          console.error("View reference or scanner is not available");
+          toast({
+            title: 'Error',
+            description: 'Scanner view not ready.',
+            variant: 'destructive'
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling scan state:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to toggle scanning mode.',
+        variant: 'destructive'
       });
       
-      // Run both operations in parallel
-      const [hasPermission] = await Promise.all([
-        Promise.race([permissionPromise, permissionTimeoutPromise]),
-        Promise.race([initPromise, new Promise<boolean>(r => setTimeout(() => r(true), 300))])
-      ]);
-      
-      if (!hasPermission) {
-        console.error("SDK: Camera permission denied or timed out");
-        if (isMountedRef.current) {
-          setIsError(true);
-        }
-        return false;
-      }
-      
-      // Check if viewRef is available - fail fast
-      if (!viewRef.current) {
-        console.error('SDK: View reference not available');
-        if (isMountedRef.current) {
-          setIsError(true);
-        }
-        return false;
-      }
-      
-      // Create scanner if needed
-      if (!scannerRef.current) {
-        try {
-          console.log('SDK: Creating scanner instance...');
-          
-          // Create fresh instance with timeout
-          const createPromise = BarcodeScanner.createInstance();
-          const createTimeoutPromise = new Promise<BarcodeScanner>((_, reject) => {
-            setTimeout(() => reject(new Error("Create scanner timed out")), 300);
-          });
-          
-          try {
-            scannerRef.current = await Promise.race([createPromise, createTimeoutPromise]);
-          } catch (e) {
-            console.error('SDK: Scanner creation timed out or failed:', e);
-            if (isMountedRef.current) {
-              setIsError(true);
-            }
-            return false;
-          }
-          
-          console.log('SDK: Scanner instance created');
-          
-          // Configure scanner with minimal settings for speed
-          const barcodeFormatIds = BARCODE_READER_CONFIG.barcodeFormats.reduce(
-            (acc, cur) => acc | cur, 0
-          );
-          
-          try {
-            // Minimal settings update with timeout
-            const settingsPromise = (async () => {
-              let settings = await scannerRef.current!.getRuntimeSettings();
-              settings.barcodeFormatIds = barcodeFormatIds;
-              settings.deblurLevel = BARCODE_READER_CONFIG.deblurLevel;
-              settings.timeout = BARCODE_READER_CONFIG.timeout;
-              await scannerRef.current!.updateRuntimeSettings(settings);
-            })();
-            
-            await Promise.race([
-              settingsPromise,
-              new Promise(r => setTimeout(r, 100))
-            ]);
-          } catch (settingErr) {
-            console.warn('SDK: Error updating runtime settings, continuing:', settingErr);
-          }
-          
-          // Configure basic scanner options for speed
-          scannerRef.current.singleFrameMode = false;
-          scannerRef.current.ifShowScanRegionMask = false;
-          
-          // Set minimal video settings for faster startup
-          try {
-            await Promise.race([
-              scannerRef.current.updateVideoSettings({
-                video: {
-                  width: { ideal: 480 },
-                  height: { ideal: 360 },
-                  facingMode: { ideal: 'environment' }
-                }
-              }),
-              new Promise(r => setTimeout(r, 100))
-            ]);
-          } catch (e) {
-            console.warn('SDK: Error setting video settings, continuing:', e);
-          }
-        } catch (error) {
-          console.error('SDK: Failed to create scanner instance:', error);
-          if (isMountedRef.current) {
-            setIsError(true);
-          }
-          return false;
-        }
-      }
-      
-      // Start the scanner
-      try {
-        console.log('SDK: Starting scanner...');
-        
-        // Check view container again
-        if (!viewRef.current) {
-          console.error('SDK: View container lost during initialization');
-          if (isMountedRef.current) {
-            setIsError(true);
-          }
-          return false;
-        }
-        
-        // Clear the view container first to avoid duplicate elements
-        while (viewRef.current.firstChild) {
-          viewRef.current.removeChild(viewRef.current.firstChild);
-        }
-        
-        // Create video container
-        const container = document.createElement('div');
-        container.className = 'dce-video-container';
-        container.style.width = '100%';
-        container.style.height = '100%';
-        container.style.overflow = 'hidden';
-        container.style.position = 'relative';
-        viewRef.current.appendChild(container);
-        
-        // Set up scan callback to avoid duplicates
-        const scanResults = new Set();
-        scannerRef.current.onFrameRead = (results) => {
-          if (results.length > 0) {
-            const firstResult = results[0];
-            const resultText = firstResult.barcodeText;
-            
-            // Only call once per unique code
-            if (!scanResults.has(resultText) && resultText) {
-              scanResults.add(resultText);
-              console.log('SDK: Barcode detected:', resultText);
-              if (onScan && isMountedRef.current) {
-                onScan(resultText, firstResult.barcodeFormatString);
-                setTimeout(() => scanResults.clear(), 3000);
-              }
-            }
-          }
-        };
-        
-        // Set UI element with faster timeout
-        await Promise.race([
-          scannerRef.current.setUIElement(container),
-          new Promise(r => setTimeout(r, 100))
-        ]);
-        
-        // Faster scan settings
-        try {
-          await Promise.race([
-            scannerRef.current.updateScanSettings({
-              intervalTime: 40,
-              duplicateForgetTime: 1000
-            }),
-            new Promise(r => setTimeout(r, 100))
-          ]);
-        } catch (e) {
-          console.warn('SDK: Error setting scan settings, continuing:', e);
-        }
-        
-        // Open camera immediately with strict timeout
-        console.log('SDK: Opening camera...');
-        try {
-          await Promise.race([
-            scannerRef.current.open(),
-            new Promise((_, reject) => setTimeout(() => reject(new Error("Camera open timeout")), 300))
-          ]);
-        } catch (e) {
-          console.warn('SDK: Camera opening warning, continuing:', e);
-        }
-        
-        // Style video elements
-        setTimeout(() => {
-          try {
-            const videoElements = document.querySelectorAll('.dce-video-container video');
-            videoElements.forEach((video) => {
-              const videoElement = video as HTMLVideoElement;
-              videoElement.style.cssText = 'object-fit: cover !important; width: 100% !important; height: 100% !important; display: block !important;';
-            });
-          } catch (e) {
-            console.warn('SDK: Video styling error, continuing:', e);
-          }
-        }, 50);
-        
-        // Show scanner - continue even if still loading
-        console.log('SDK: Showing scanner UI...');
-        
-        try {
-          await Promise.race([
-            scannerRef.current.show(),
-            new Promise(r => setTimeout(r, 100))
-          ]);
-        } catch (e) {
-          console.warn('SDK: Show scanner UI warning, continuing:', e);
-        }
-        
-        // Mark as initialized and scanning
-        if (isMountedRef.current) {
-          setIsInitialized(true);
-          setIsScanning(true);
-          setIsError(false);
-        }
-        
-        console.log('SDK: Scanner started successfully');
-        
-        // Clear the master timeout as we've succeeded
-        if (timeoutRef.current === masterTimeout) {
-          clearTimeout(masterTimeout);
-          timeoutRef.current = null;
-        }
-        
-        return true;
-      } catch (error) {
-        console.error('SDK: Failed to start scanner:', error);
-        if (isMountedRef.current) {
-          setIsError(true);
-        }
-        return false;
-      }
-    } catch (e) {
-      console.error('SDK: Scanner error:', e);
-      if (isMountedRef.current) {
-        setIsError(true);
-      }
-      return false;
-    } finally {
-      // Clear timeout and reset flag
-      if (timeoutRef.current === masterTimeout) {
-        clearTimeout(masterTimeout);
-        timeoutRef.current = null;
-      }
-      requestInProgressRef.current = false;
-    }
-  }, [onScan, requestCameraPermission, preInitialize]);
-
-  // Stop the scanner
-  const stopScanner = useCallback(async (): Promise<boolean> => {
-    if (requestInProgressRef.current) {
-      console.log('SDK: Stop request already in progress');
-      return false;
-    }
-    
-    requestInProgressRef.current = true;
-    
-    try {
-      if (scannerRef.current) {
-        console.log('SDK: Stopping scanner...');
-        
-        // Turn off torch if it's on
-        if (isTorchOn) {
-          try {
-            await scannerRef.current.turnOffTorch().catch(() => {});
-            setIsTorchOn(false);
-          } catch (e) {
-            console.warn('SDK: Failed to turn off torch:', e);
-          }
-        }
-        
-        // Stop scanner if it's open with timeout
-        try {
-          if (scannerRef.current.isOpen) {
-            console.log('SDK: Closing scanner...');
-            // Remove callback first
-            scannerRef.current.onFrameRead = undefined;
-            scannerRef.current.onUnduplicatedRead = undefined;
-            
-            // Use Promise.all with short timeouts to avoid hanging
-            await Promise.race([
-              (async () => {
-                await scannerRef.current!.stop();
-                await scannerRef.current!.hide();
-                await scannerRef.current!.close();
-              })(),
-              new Promise(r => setTimeout(r, 500))
-            ]);
-            
-            console.log('SDK: Scanner closed successfully');
-          }
-        } catch (e) {
-          console.warn('SDK: Error stopping scanner:', e);
-        }
-      }
-      
-      setIsScanning(false);
-      return true;
-    } catch (error) {
-      console.error('SDK: Failed to stop scanner:', error);
-      return false;
-    } finally {
-      requestInProgressRef.current = false;
-    }
-  }, [isTorchOn]);
-
-  // Clean up scanner resources
-  const cleanupScanner = useCallback(async () => {
-    try {
-      await stopScanner();
-      
-      if (scannerRef.current) {
-        console.log('SDK: Cleaning up scanner resources...');
-        try {
-          await scannerRef.current.destroyContext();
-          scannerRef.current = null;
-        } catch (e) {
-          console.warn('SDK: Failed to destroy scanner context:', e);
-        }
-      }
-      
-      // Try global cleanup
-      try {
-        const extendedBarcodeScanner = BarcodeScanner as unknown as BarcodeScannerExtended;
-        if (extendedBarcodeScanner.cleanFrameBuffer) {
-          await extendedBarcodeScanner.cleanFrameBuffer();
-        }
-      } catch (e) {
-        console.warn('SDK: Error cleaning frame buffer:', e);
-      }
-      
+      // Reset state on error
       setIsScanning(false);
       setIsTorchOn(false);
-      setIsInitialized(false);
-    } catch (error) {
-      console.error('SDK: Failed to clean up scanner:', error);
     }
-  }, [stopScanner]);
+  };
 
-  // Toggle torch without closing scanner
-  const toggleTorch = useCallback(async (): Promise<boolean | undefined> => {
-    if (!scannerRef.current || !isScanning) {
-      console.log('SDK: Cannot toggle torch when scanner is not active');
-      return false;
+  const stopScanning = async () => {
+    if (!isInitialized || !barcodeScannerRef.current || !isScanning) {
+      console.log("Cannot stop scanning: scanner not ready or not scanning");
+      return;
     }
-    
+
     try {
-      console.log(`SDK: Toggling torch to ${!isTorchOn ? 'ON' : 'OFF'}`);
-      
-      if (!isTorchOn) {
-        try {
-          await Promise.race([
-            scannerRef.current.turnOnTorch(),
-            new Promise(r => setTimeout(r, 300))
-          ]);
-          setIsTorchOn(true);
-          return true;
-        } catch (err) {
-          console.warn('SDK: Torch not supported or error:', err);
-          return undefined;
-        }
+      console.log("Stopping scanner...");
+      await barcodeScannerRef.current.stop();
+      setIsScanning(false);
+      setIsTorchOn(false); // Reset torch state when stopping
+    } catch (error) {
+      console.error('Error stopping scan:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to stop scanning mode.',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const toggleTorch = async () => {
+    if (!isInitialized || !barcodeScannerRef.current || !isScanning) {
+      toast({
+        description: 'Please start scanning first before using the torch.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    try {
+      const newTorchState = !isTorchOn;
+      if (newTorchState) {
+        await barcodeScannerRef.current.turnOnTorch();
       } else {
-        try {
-          await Promise.race([
-            scannerRef.current.turnOffTorch(),
-            new Promise(r => setTimeout(r, 300))
-          ]);
-          setIsTorchOn(false);
-          return false;
-        } catch (err) {
-          console.warn('SDK: Error turning torch off:', err);
-          setIsTorchOn(false);
-          return false;
-        }
+        await barcodeScannerRef.current.turnOffTorch();
       }
+      setIsTorchOn(newTorchState);
     } catch (error) {
-      console.error('SDK: Failed to toggle torch:', error);
-      return undefined;
+      console.error('Error toggling torch:', error);
+      toast({
+        description: 'Failed to toggle torch. Your device may not support this feature.',
+        variant: 'destructive'
+      });
     }
-  }, [isScanning, isTorchOn]);
-
-  // Set torch state directly
-  const setTorchState = useCallback(async (state: boolean): Promise<boolean> => {
-    if (!scannerRef.current || !isScanning) {
-      console.log('SDK: Cannot set torch state when scanner is not active');
-      return false;
-    }
-    
-    try {
-      console.log(`SDK: Setting torch state to ${state ? 'ON' : 'OFF'}`);
-      
-      try {
-        if (state) {
-          await Promise.race([
-            scannerRef.current.turnOnTorch(),
-            new Promise(r => setTimeout(r, 300))
-          ]);
-        } else {
-          await Promise.race([
-            scannerRef.current.turnOffTorch(),
-            new Promise(r => setTimeout(r, 300))
-          ]);
-        }
-        
-        setIsTorchOn(state);
-        return true;
-      } catch (error) {
-        console.error(`SDK: Failed to set torch state to ${state}:`, error);
-        
-        if (!state) {
-          setIsTorchOn(false);
-        }
-        return false;
-      }
-    } catch (error) {
-      console.error(`SDK: Failed to set torch state but not stopping scanner:`, error);
-      return false;
-    }
-  }, [isScanning]);
+  };
 
   return {
     viewRef,
@@ -637,13 +322,8 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     isTorchOn,
     isInitialized,
     isError,
-    cameraPermissions,
-    startScanner,
-    stopScanner,
+    toggleScanning,
     toggleTorch,
-    setTorchState,
-    requestCameraPermission,
-    cleanupScanner,
-    preInitialize
+    stopScanning
   };
 };

@@ -1,241 +1,136 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ScanBarcode } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { toast } from "sonner";
+import React, { useRef, useEffect, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScannerSDK } from '@/hooks/useBarcodeScannerSDK';
-import BarcodeScannerUI from './BarcodeScannerUI';
-import { BEEP_SOUND_URL } from '@/utils/dynamsoftConfig';
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { AlertCircle, ScanBarcode, ArrowLeft } from 'lucide-react';
 
 interface BarcodeScannerProps {
-  onDetected: (result: string) => void;
+  onScan: (code: string, symbology: string) => void;
 }
 
-const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [useSheet, setUseSheet] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-  const scannerContainerRef = useRef<HTMLDivElement | null>(null);
-  const [initTimeoutOccurred, setInitTimeoutOccurred] = useState(false);
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
+  const { toast } = useToast();
+  const beepSoundRef = useRef(new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAyMjIyMjIyMjIyMjIyMjIyMjI8PDw8PDw8PDw8PDw8PDw8PDw8P////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAeAAAAAAAAAAbAyfj2eAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MoxAAUw2KeVEsQAkIkDmTkUGOgBbOuTDLgeBB4PDgwI/CE4OHQcBAMYE/B/4P+QfgQdCDoQd/oEPKv/rSrkPvt4uJLjzYcgLJkBLhsz8QHLHONELRyivykv2s/2+K4mb6HsbiiuOy8aVbk6sQE1ZhjqbMRdQAjgh1A+hQJHLMAQ6ipxEcSDJEqAT5QSCwGUCVDECOXKRQYQ0Q7vQxA5dVMAQQoWysxCZgp2NE0GG0F+WqUylUUGIaRky1A4FAMYUA5VAhwzRAEsFzORgViVByk4Syr/czU0kmlcr9ec08nVXNz/+MoxA8ZKyq0AGsQvDU3O9KmZffHp7TW73LnZplsyttZ59+/HvvFet22dtZ2y7LWtrrW7vSt1tc7Nd3Z613ed6960r8fus61L9estmvXdnbtlta3ve7TTibmeWvVzbmcl7R5Wa1dy53Z13qs6mZ3Jbl1y23ttZltv9a2+cZ+7acltnWdJJDctu7usDvaV2WtZ29ttrNNNt/bOt6mcYf9Xm1O9La2m7bskziRNiZHuXNvOS3d2W7u2dpzNsXNaZr73/vZX/G1Ju93O//f+7la2yNNexFU7yADsU7/+MoxAYRsXbVvsGHBCNYkVkpBYryXCU6KJdCGzWS0snWlaVq0VZbR9nWTPOlrO1LW5Wa35Zm3TMv3da1fX/Za1Kel//+t//fTZ/t5r7f/erzXbf//733W3//Vo9q618fn1uzPivf07d+a1+TVPU2qdEjQ0likVNPGoquaqvmohxB6aoMXnEHVOVIm5oyLryZGUXUFTMy/NLTtO131///8wf////9L+vNXf////+3/+73//u5H28UJgpa1YkokGUWSSDJgzaZnJqr/+MoxBQSU0L4AMJSkMqt8lqla1NXlq03MjShS1TVZRRRSKkkiqEyKORuZDeZLJZFaG9NTdlaVr///+1////uZf////////9////ef///////vmUiQRDJVokIEkTImExI0kUjQmRpLZLSdJSdaVdVXZTUtNU1TNJVdcy6UUVJoZC1KVNDOojEVTM5/1Zn/////9sv////tf///////7lf////////FVrJdKJNEOhAikEinkZRI0iyLREkskojbrbrWq/qkaUiVVVMmaRQkBm2USSK/+MoxBsSYyMAAMJSfKwVVMXoTHmoiQZdmYiQRdWMhqpDKZFa0uXTO40kSpLZm2qqppKQwgUVSrA0esBFAszWqaa1Uqmt1NJUv/loqmRNFIqqJkS1qVCYTEx0KIiZipClFVE6hpFxNNBP7+mkIqUVVaKrmVKmTJCFAJiYoLhoiKtQpf3pEwwCAchQgUxYY1AoLFhIUI7GiFBlPCYzLTXZk+lV1TUfsVWqaW6St//////////////8zUtSFKBFEUioTBAYR11IZjaUcxQmDxEPOCgH/+MoxBgRsvFHhSiAA5MCRYFCQwJDQBD+CB/4JP/ggf8CQ/LlxVNiiI0H0DSCvDQ0LlzGxE6JBESPieGJlbNMk1v////9JKv/////6qmVQyNqlJlUTKoyVKUpUqVRsqjZJSSVRskqqNkmSqSRlZVIzJWyyVqlmSSGwcmVbFAUDBKArEVCSIYNa10hCqxT5RkrcwKmeEohAkslkkk0lkkkrqvqTf/+pKv///////9SSSaJJJdI1I0jXSNdIwNPRRREREVUVUtlQXUL/+MoxBwS0dLtXT2AA1ME5Kkk1YqRUioFQKgVZ6RUCpFQKoVIqBVipFSKgVQqRUY4qRUCpKoVIqBVipJNSKgVIqBVFUVRVFUVRVFUVRVFUkmpFSKkqiVJVFUVRVFUVRVFUVRVFUVRU9NX0XpoWBITxXlk0V8CRtCgUip9JH+j/R/o/0FfN/qS+CQtiuK60f6P9H+lfSfkLb6JoKi2Ymhkzk0kf/0f6P9JSRzJP0pvUvEcaONHGjjRxo40cBIYCQwEhgJDAKICQwEhgJDASOBYuEnBJJP/+MoxB4RyMGkBUlAAbipLSqKkiclElgVF0mmVWVTLJKqJP6qSKCSRUVAKi4clHxDQKBJEkTcdR8Q0KDYZxPlDQcHJbf///9ezdqUQpjNOdV/lPWd//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+MoxB8QEKkUA0tAAA=="));
+  const [lastScan, setLastScan] = useState<{code: string, symbology: string} | null>(null);
+  
+  // Custom handler that plays sound, saves the scan result locally, and calls the onScan prop
+  const handleScan = (code: string, symbology: string) => {
+    beepSoundRef.current.play().catch(e => console.log("Beep error:", e));
+    setLastScan({ code, symbology });
+    onScan(code, symbology);
+  };
 
-  // Check if we're on a mobile device to use Sheet instead of Dialog
-  useEffect(() => {
-    const checkMobile = () => {
-      setUseSheet(window.innerWidth <= 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    
-    // Pre-initialize audio for faster response
-    audioRef.current = new Audio(BEEP_SOUND_URL);
-    audioRef.current.preload = "auto";
-    
-    return () => {
-      window.removeEventListener('resize', checkMobile);
-    };
-  }, []);
-
-  const handleScanSuccess = useCallback((code: string, format: string) => {
-    playBeep();
-    vibrate();
-    onDetected(code);
-    toast.success(`Scanned: ${format}`, { duration: 1500 });
-    
-    // Close the dialog immediately
-    setIsOpen(false);
-  }, [onDetected]);
-
+  // Use our custom scanner hook with Dynamsoft implementation
   const {
     viewRef,
-    isInitialized,
-    isError,
     isScanning,
     isTorchOn,
-    startScanner,
-    stopScanner,
+    isInitialized,
+    isError,
+    toggleScanning,
     toggleTorch,
-    cameraPermissions,
-    requestCameraPermission,
-    cleanupScanner,
-    preInitialize
+    stopScanning
   } = useBarcodeScannerSDK({
-    onScan: handleScanSuccess
+    onScan: handleScan,
+    stopAfterScan: true // Auto-stop scanning after detecting a barcode
   });
 
-  // Pre-initialize scanner when component mounts
-  useEffect(() => {
-    // Start pre-initialization immediately when component loads
-    preInitialize().catch(console.error);
-    
-    return () => {
-      cleanupScanner().catch(console.error);
-    };
-  }, [cleanupScanner, preInitialize]);
-
-  const playBeep = () => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = 0;
-      audioRef.current.play().catch(() => {});
-    }
+  // Reset scan result and restart scanning
+  const handleReset = () => {
+    setLastScan(null);
+    toggleScanning();
   };
 
-  const vibrate = () => {
-    if (navigator.vibrate) {
-      navigator.vibrate(200);
-    }
-  };
-
-  // Find scanner container with multiple fallbacks
-  const findScannerContainer = (): HTMLElement | null => {
-    // Try multiple selectors for maximum reliability
+  // Show error state when scanner fails to initialize
+  if (isError) {
     return (
-      document.getElementById('dynamsoft-scanner-container') || 
-      document.querySelector('[data-scanner-container]') as HTMLElement || 
-      document.querySelector('.scanner-container') as HTMLElement ||
-      document.querySelector('[data-scanner-view]') as HTMLElement ||
-      null
+      <div className="flex flex-col items-center justify-center gap-4 p-12 bg-gray-100 rounded-lg">
+        <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
+          <AlertCircle className="w-8 h-8 text-red-600" />
+        </div>
+        <div className="text-center">
+          <h3 className="text-lg font-medium">Scanner Initialization Failed</h3>
+          <p className="text-gray-500 mt-2">
+            The barcode scanner couldn't initialize. This could be due to camera permissions or browser compatibility.
+          </p>
+        </div>
+        <Button 
+          onClick={() => window.location.reload()} 
+          variant="outline"
+          className="mt-4"
+        >
+          Try Again
+        </Button>
+      </div>
     );
-  };
+  }
 
-  const handleOpen = async () => {
-    // Reset error states
-    setInitTimeoutOccurred(false);
-    
-    // First, set open state to show the dialog/sheet
-    setIsOpen(true);
-    
-    // Minimal timeout for the dialog to render
-    setTimeout(async () => {
-      try {
-        // Find the scanner container element using multiple fallbacks
-        const scannerContainer = findScannerContainer();
-        if (scannerContainer && !viewRef.current) {
-          // Connect viewRef to the scanner container
-          viewRef.current = scannerContainer as HTMLDivElement;
-        }
-        
-        // Start scanner with a strict 800ms timeout (reduced from 900ms)
-        const startPromise = startScanner();
-        const timeoutPromise = new Promise<boolean>(resolve => {
-          setTimeout(() => {
-            setInitTimeoutOccurred(true);
-            resolve(false);
-          }, 800);
-        });
-        
-        // Race between starting and timeout
-        const started = await Promise.race([startPromise, timeoutPromise]);
-        
-        if (!started) {
-          console.error("Scanner: Failed to start scanner within timeout");
-          toast.error("Scanner initialization timed out. Please try again.");
-          setIsOpen(false);
-        }
-      } catch (error) {
-        console.error("Failed to start scanner:", error);
-        toast.error("Failed to start scanner. Please try again.");
-        setIsOpen(false);
-      }
-    }, 30); // Reduced from 50ms to 30ms
-  };
-
-  const handleClose = async () => {
-    await stopScanner();
-    setIsOpen(false);
-  };
-
-  const handleRetry = async () => {
-    console.log("Scanner: Retrying scanner initialization");
-    toast.info("Reinitializing camera...");
-    
-    // Full cleanup first
-    await cleanupScanner();
-    
-    // Minimal delay before retry
-    setTimeout(async () => {
-      // Find scanner container again before starting
-      const scannerContainer = findScannerContainer();
-      if (scannerContainer && !viewRef.current) {
-        viewRef.current = scannerContainer as HTMLDivElement;
-      }
-      
-      await startScanner();
-    }, 30); // Reduced from 50ms to 30ms
-  };
-
-  // Torch handling
-  const handleTorch = async () => {
-    try {
-      await toggleTorch();
-    } catch (error) {
-      console.error("Torch error:", error);
-      toast.error("Torch not available on this device");
-    }
-  };
-
-  // Dialog content
-  const dialogContent = (
-    <>
-      <div className={useSheet ? "p-4 border-b" : ""}>
-        <h2 className={useSheet ? "text-xl font-semibold" : "hidden"}>Scan Barcode</h2>
-        <p className={useSheet ? "text-sm text-gray-500 mt-1" : "hidden"}>
-          Point your camera at a barcode to scan.
-        </p>
+  // Display the scan result when available
+  if (lastScan && !isScanning) {
+    return (
+      <div className="flex flex-col w-full h-full">
+        <div 
+          className="flex-1 flex flex-col items-center justify-center p-8 bg-gray-50 rounded-lg"
+          style={{ minHeight: '60vh' }}
+        >
+          <div className="flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-6">
+            <ScanBarcode className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-2xl font-bold mb-2">Barcode Detected</h2>
+          <div className="bg-white p-6 rounded-lg shadow-sm w-full max-w-md mb-6">
+            <p className="text-gray-500 text-sm mb-1">Code:</p>
+            <p className="text-lg font-medium break-all mb-4">{lastScan.code}</p>
+            <p className="text-gray-500 text-sm mb-1">Format:</p>
+            <p className="text-lg font-medium">{lastScan.symbology}</p>
+          </div>
+          <Button onClick={handleReset} className="mt-4 flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            Scan Another
+          </Button>
+        </div>
       </div>
-      <div 
-        className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}
-        data-scanner-container
-        id="dynamsoft-scanner-container"
-      >
-        <BarcodeScannerUI
-          isScanning={isScanning}
-          isInitialized={isInitialized}
-          isError={isError || initTimeoutOccurred}
-          isTorchOn={isTorchOn}
-          viewRef={viewRef}
-          cameraPermissions={cameraPermissions}
-          onToggleTorch={handleTorch}
-          onCancel={handleClose}
-          onRequestPermission={requestCameraPermission}
-          onRetry={handleRetry}
-        />
-      </div>
-    </>
-  );
+    );
+  }
 
   return (
-    <>
-      <Button
-        onClick={handleOpen}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+    <div className="flex flex-col w-full h-full">
+      <div 
+        className="flex-1 relative w-full rounded-md overflow-hidden bg-black"
+        style={{ minHeight: '70vh' }}
       >
-        <ScanBarcode className="w-5 h-5 mr-2" />
-        Scan Barcode
-      </Button>
-
-      {useSheet ? (
-        <Sheet open={isOpen} onOpenChange={handleClose}>
-          <SheetContent side="bottom" className="h-[85vh] sm:max-w-md flex flex-col p-0">
-            {dialogContent}
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <Dialog open={isOpen} onOpenChange={handleClose}>
-          <DialogContent className="sm:max-w-md p-0">
-            <DialogHeader className="p-4 border-b">
-              <DialogTitle>Scan Barcode</DialogTitle>
-              <DialogDescription>
-                Point your camera at a barcode to scan.
-              </DialogDescription>
-            </DialogHeader>
-            {dialogContent}
-          </DialogContent>
-        </Dialog>
-      )}
-    </>
+        {/* Add the dce-video-container class that Dynamsoft is looking for */}
+        <div 
+          ref={viewRef}
+          className="w-full h-full dce-video-container"
+        ></div>
+        
+        {!isScanning && isInitialized && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+            <ScanBarcode className="w-16 h-16 mb-4 opacity-60" />
+            <p className="text-lg opacity-60">Click 'Start Scanning' to begin</p>
+          </div>
+        )}
+      </div>
+      <div className="flex justify-center gap-4 p-4">
+        <Button 
+          onClick={toggleScanning} 
+          variant={isScanning ? "destructive" : "default"}
+          disabled={!isInitialized || isError}
+        >
+          {isScanning ? 'Stop Scanning' : 'Start Scanning'}
+        </Button>
+        {isInitialized && (
+          <Button 
+            onClick={toggleTorch} 
+            variant={isTorchOn ? "secondary" : "outline"}
+            disabled={!isScanning || isError}
+          >
+            {isTorchOn ? 'Torch Off' : 'Torch On'}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 };
 

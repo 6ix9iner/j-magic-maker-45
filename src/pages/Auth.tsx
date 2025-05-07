@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -178,14 +177,14 @@ const Auth = () => {
         animate="visible"
         variants={containerVariants}
       >
-        <Card className="w-full max-w-md premium-card">
-          <CardHeader className="space-y-1 text-center premium-card-header">
+        <Card className="w-full max-w-md premium-card shadow-2xl overflow-hidden">
+          <CardHeader className="space-y-1 text-center bg-gradient-to-r from-blue-800 to-indigo-900 text-white pb-6 pt-8">
             <motion.div variants={itemVariants}>
               <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
               <CardDescription className="text-blue-200">Enter your new password below</CardDescription>
             </motion.div>
           </CardHeader>
-          <CardContent className="p-6">
+          <CardContent className="p-6 bg-gradient-to-br from-blue-950/90 to-indigo-950/90 backdrop-blur-lg text-white">
             <form onSubmit={handleResetPassword} className="space-y-4">
               <motion.div className="space-y-2" variants={itemVariants}>
                 <Label htmlFor="newPassword" className="text-white">New Password</Label>
@@ -196,7 +195,7 @@ const Auth = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                   minLength={6}
                   required
-                  className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                  className="premium-input"
                 />
                 <p className="text-xs text-blue-200/70">
                   Password must be at least 6 characters
@@ -225,14 +224,14 @@ const Auth = () => {
       animate="visible"
       variants={containerVariants}
     >
-      <Card className="w-full max-w-md premium-card">
-        <CardHeader className="space-y-1 text-center premium-card-header">
+      <Card className="w-full max-w-md shadow-2xl overflow-hidden border-0 rounded-xl">
+        <CardHeader className="space-y-1 text-center bg-gradient-to-r from-blue-800 to-indigo-900 text-white pb-6 pt-8">
           <motion.div variants={itemVariants}>
-            <CardTitle className="text-2xl font-bold">Insight Inventory</CardTitle>
-            <CardDescription className="text-blue-200">Enterprise inventory management</CardDescription>
+            <CardTitle className="text-3xl font-bold tracking-tight">Insight Inventory</CardTitle>
+            <CardDescription className="text-blue-200 text-lg">Enterprise inventory management</CardDescription>
           </motion.div>
         </CardHeader>
-        <CardContent className="p-6">
+        <CardContent className="p-6 bg-gradient-to-br from-blue-950/90 to-indigo-950/90 backdrop-blur-lg text-white">
           {emailConfirmationError && (
             <motion.div 
               className="bg-amber-900/30 border border-amber-500/30 rounded-md p-4 mb-6"
@@ -259,9 +258,9 @@ const Auth = () => {
           )}
           
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10 border border-white/20">
-              <TabsTrigger value="login" className="data-[state=active]:bg-white/20 text-white">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-white/20 text-white">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10 border-0">
+              <TabsTrigger value="login" className="data-[state=active]:bg-blue-600/80 data-[state=active]:text-white text-white">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-blue-600/80 data-[state=active]:text-white text-white">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
@@ -273,7 +272,7 @@ const Auth = () => {
                     type="email" 
                     placeholder="your@email.com" 
                     {...loginForm.register('email', { required: true })}
-                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                    className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
@@ -290,13 +289,13 @@ const Auth = () => {
                     id="password" 
                     type="password" 
                     {...loginForm.register('password', { required: true })}
-                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                    className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div variants={itemVariants}>
                   <Button 
                     type="submit" 
-                    className="w-full premium-button" 
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Signing in...' : 'Sign In'}
@@ -313,7 +312,7 @@ const Auth = () => {
                     id="fullName" 
                     placeholder="John Doe" 
                     {...signupForm.register('fullName', { required: true })}
-                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                    className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
@@ -323,7 +322,7 @@ const Auth = () => {
                     type="email" 
                     placeholder="your@email.com" 
                     {...signupForm.register('email', { required: true })}
-                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                    className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
@@ -332,7 +331,7 @@ const Auth = () => {
                     id="signupPassword" 
                     type="password" 
                     {...signupForm.register('password', { required: true, minLength: 6 })}
-                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                    className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                   {signupForm.formState.errors.password?.type === 'minLength' && (
                     <p className="text-sm text-red-400">Password must be at least 6 characters</p>
@@ -344,7 +343,7 @@ const Auth = () => {
                     id="confirmPassword" 
                     type="password" 
                     {...signupForm.register('confirmPassword', { required: true })}
-                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
+                    className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                   {signupForm.formState.errors.confirmPassword?.message && (
                     <p className="text-sm text-red-400">
@@ -355,7 +354,7 @@ const Auth = () => {
                 <motion.div variants={itemVariants}>
                   <Button 
                     type="submit" 
-                    className="w-full premium-button" 
+                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white font-medium py-2 px-4 rounded-lg shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5" 
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? 'Signing up...' : 'Create Account'}

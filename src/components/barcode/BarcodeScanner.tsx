@@ -58,7 +58,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
         
         // Set up scan callback
         scanner.onUnduplicatedRead = (txt, result) => {
-          beepSoundRef.current.play().catch(e => console.log("Beep error:", e));
+          // Fixed: Don't chain .catch() on void-returning functions
+          try {
+            beepSoundRef.current.play();
+          } catch (e) {
+            console.log("Beep error:", e);
+          }
           setLastScan({ code: txt, symbology: result.barcodeFormatString });
           setIsScanning(false);
           onScan(txt, result.barcodeFormatString);

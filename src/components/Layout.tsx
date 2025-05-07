@@ -2,10 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { Home, BarChart3, Package, Settings, Menu, X, LogOut } from 'lucide-react';
+import { Home, BarChart3, Package, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Sheet,
   SheetContent,
@@ -18,7 +18,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
   
   const navItems = [
@@ -35,7 +34,6 @@ const Layout = () => {
 
   // Close mobile menu when route changes
   useEffect(() => {
-    setMobileMenuOpen(false);
   }, [location.pathname]);
 
   // If user not authenticated and not at auth page, redirect to auth
@@ -53,9 +51,9 @@ const Layout = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-50 overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-slate-50 to-slate-100 overflow-hidden">
       {/* Top Navigation Bar */}
-      <header className="bg-white shadow-sm border-b z-10">
+      <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b z-10">
         <div className="px-4 h-14 flex items-center justify-between">
           <div className="flex items-center">
             <h1 className="text-lg font-bold bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
@@ -74,7 +72,7 @@ const Layout = () => {
                     </Avatar>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[350px]">
+                <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-white/90 backdrop-blur-md">
                   <SheetHeader>
                     <SheetTitle>Account</SheetTitle>
                   </SheetHeader>
@@ -112,7 +110,7 @@ const Layout = () => {
       
       {/* Bottom Tab Navigation for Mobile */}
       {user && (
-        <nav className="bg-white border-t shadow-md">
+        <nav className="bg-white/80 backdrop-blur-md border-t shadow-md">
           <div className="flex justify-around items-center h-16">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;

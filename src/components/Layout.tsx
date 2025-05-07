@@ -26,6 +26,7 @@ const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const navItems = [
     { name: "Home", path: "/scanner", icon: Home },
@@ -135,14 +136,15 @@ const Layout = () => {
                 </DropdownMenu>
               </div>
               
-              {/* Mobile sheet */}
+              {/* Mobile sheet - IMPROVED for better mobile display */}
               <div className="sm:hidden">
-                <Sheet>
+                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
                   <SheetTrigger asChild>
                     <Button 
                       variant="outline" 
                       size="sm"
                       className="rounded-full px-2 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 hover:bg-white/10"
+                      onClick={() => setIsMobileMenuOpen(true)}
                     >
                       <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
                         <AvatarImage src="" />
@@ -152,11 +154,14 @@ const Layout = () => {
                       </Avatar>
                     </Button>
                   </SheetTrigger>
-                  <SheetContent side="right" className="w-[280px] sm:w-[350px] glassmorphism border-l border-white/20">
-                    <SheetHeader>
+                  <SheetContent 
+                    side="bottom" 
+                    className="h-auto max-h-[85vh] pb-6 rounded-t-xl glassmorphism border-t border-white/20"
+                  >
+                    <SheetHeader className="pt-2 pb-4 border-b border-white/10">
                       <SheetTitle className="text-xl font-medium text-white">Account</SheetTitle>
                     </SheetHeader>
-                    <div className="py-6">
+                    <div className="py-4">
                       <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-lg border border-white/10">
                         <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
                           <AvatarImage src="" />
@@ -172,7 +177,10 @@ const Layout = () => {
                       
                       <div className="space-y-3 mb-6">
                         <Button 
-                          onClick={() => navigate('/settings')} 
+                          onClick={() => {
+                            navigate('/settings');
+                            setIsMobileMenuOpen(false);
+                          }} 
                           variant="outline" 
                           className="w-full justify-start text-left border-white/10 bg-white/5 hover:bg-white/10"
                         >

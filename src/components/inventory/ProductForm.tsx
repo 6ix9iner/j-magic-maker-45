@@ -4,7 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Barcode } from "lucide-react";
-import BarcodeDialog from "./BarcodeDialog";
+import { Sheet, SheetContent } from "@/components/ui/sheet"; 
+import { useIsMobile } from '@/hooks/use-mobile';
+import BarcodeScanner from "@/components/barcode/BarcodeScanner";
 
 interface Product {
   id?: string;
@@ -35,6 +37,7 @@ const ProductForm = ({
   onCancel,
 }: ProductFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleBarcodeDetected = (result: string) => {
     // Create a synthetic change event to update the barcode field
@@ -46,6 +49,7 @@ const ProductForm = ({
     } as React.ChangeEvent<HTMLInputElement>;
     
     onInputChange(syntheticEvent);
+    setIsScannerOpen(false);
   };
 
   return (
@@ -154,12 +158,51 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Barcode Scanner Dialog */}
-      <BarcodeDialog 
-        isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
-        onDetected={handleBarcodeDetected}
-      />
+      {/* Integrated Barcode Scanner - uses main scanner component directly */}
+      {isMobile ? (
+        <Sheet open={isScannerOpen} onOpenChange={setIsScannerOpen}>
+          <SheetContent side="bottom" className="h-[85vh] p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700">
+            <div className="p-4 border-b border-slate-700">
+              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                Scan Product Barcode
+              </h2>
+              <p className="text-sm text-slate-300 mt-1">
+                Position barcode within view for automatic scanning
+              </p>
+            </div>
+            <div className="p-2">
+              {isScannerOpen && (
+                <BarcodeScanner onDetected={handleBarcodeDetected} />
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      ) : (
+        <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${isScannerOpen ? 'block' : 'hidden'}`}>
+          <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl w-[90%] max-w-md overflow-hidden">
+            <div className="p-4 border-b border-slate-700">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                  Scan Product Barcode
+                </h2>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsScannerOpen(false)}
+                  className="text-white hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+            <div className="p-4">
+              {isScannerOpen && (
+                <BarcodeScanner onDetected={handleBarcodeDetected} />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

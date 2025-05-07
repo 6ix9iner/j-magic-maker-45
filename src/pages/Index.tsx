@@ -37,7 +37,7 @@ const Index = () => {
   return (
     <div className="flex flex-col min-h-full pb-16">
       <Tabs defaultValue="scan" className="w-full">
-        <TabsList className="grid grid-cols-2 w-full rounded-none border-b bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <TabsList className="grid grid-cols-2 w-full rounded-none border-b bg-white/90 backdrop-blur-md sticky top-0 z-10">
           <TabsTrigger value="scan" className="py-3">Scan & Lookup</TabsTrigger>
           <TabsTrigger value="sale" className="py-3">Current Sale</TabsTrigger>
         </TabsList>

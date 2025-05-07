@@ -51,7 +51,7 @@ const Layout = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-b from-slate-50 to-slate-100 overflow-hidden">
+    <div className="flex flex-col h-screen bg-gradient-to-b from-blue-50 to-slate-100 overflow-hidden">
       {/* Top Navigation Bar */}
       <header className="bg-white/80 backdrop-blur-sm shadow-sm border-b z-10">
         <div className="px-4 h-14 flex items-center justify-between">
@@ -68,11 +68,11 @@ const Layout = () => {
                   <Button variant="ghost" size="icon" className="rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src="" />
-                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                      <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">{getUserInitials()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-white/90 backdrop-blur-md">
+                <SheetContent side="right" className="w-[280px] sm:w-[350px] bg-white/95 backdrop-blur-md">
                   <SheetHeader>
                     <SheetTitle>Account</SheetTitle>
                   </SheetHeader>
@@ -80,7 +80,7 @@ const Layout = () => {
                     <div className="flex items-center gap-3 mb-6">
                       <Avatar className="h-12 w-12">
                         <AvatarImage src="" />
-                        <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                        <AvatarFallback className="bg-gradient-to-r from-blue-500 to-purple-500 text-white">{getUserInitials()}</AvatarFallback>
                       </Avatar>
                       <div>
                         <p className="font-medium">{user.email}</p>
@@ -104,13 +104,13 @@ const Layout = () => {
       </header>
       
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto bg-gradient-to-b from-blue-50 to-slate-100">
         <Outlet />
       </main>
       
       {/* Bottom Tab Navigation for Mobile */}
       {user && (
-        <nav className="bg-white/80 backdrop-blur-md border-t shadow-md">
+        <nav className="bg-white/90 backdrop-blur-md border-t shadow-md">
           <div className="flex justify-around items-center h-16">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;

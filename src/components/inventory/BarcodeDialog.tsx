@@ -36,6 +36,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   // Create a handler that adapts onDetected to the expected interface
   const handleDetection = (code: string) => {
     onDetected(code);
+    // Close the dialog after detection to ensure scanner is properly cleaned up
     onClose();
   };
 

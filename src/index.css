@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -135,6 +134,49 @@
 /* Enhanced glassmorphism effect */
 .glassmorphism {
   @apply backdrop-blur-xl bg-white/15 border border-white/20 shadow-xl;
+}
+
+/* Premium card effect - Updated for better interactivity */
+.premium-card {
+  @apply bg-gradient-to-br from-white/10 to-white/5 shadow-2xl border border-white/20 rounded-xl overflow-hidden;
+  position: relative; /* Ensure proper stacking context */
+  z-index: 1; /* Ensure card is above background elements */
+}
+
+/* Form fields need to be interactive */
+input, button, textarea, select {
+  position: relative; /* Establish stacking context */
+  z-index: 5 !important; /* Ensure inputs are above overlays */
+}
+
+/* Fix for premium input styling to ensure it's interactive */
+.premium-input {
+  @apply bg-white/20 border border-white/30 rounded-lg text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent;
+  position: relative;
+  z-index: 5;
+}
+
+/* Fix glassmorphism effect to ensure it doesn't block interaction */
+.glassmorphism {
+  @apply backdrop-blur-xl bg-white/15 border border-white/20 shadow-xl;
+  position: relative;
+}
+
+/* Ensure glassmorphism doesn't block interaction */
+.glassmorphism::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(10px);
+  background: transparent;
+  z-index: -1;
+}
+
+/* Premium card header with fixed z-index */
+.premium-card-header {
+  @apply bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white font-medium p-4;
+  position: relative;
+  z-index: 2;
 }
 
 /* Premium card effect */

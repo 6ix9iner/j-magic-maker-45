@@ -43,16 +43,16 @@ const AppRoutes = () => {
   const [initialLoading, setInitialLoading] = useState(true);
   
   useEffect(() => {
-    // Simulate initial loading time
+    // Simulate initial loading time - reduced for better user experience
     const timer = setTimeout(() => {
       setInitialLoading(false);
-    }, 2500);
+    }, 1500);
     
     return () => clearTimeout(timer);
   }, []);
   
   if (initialLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen duration={1500} />;
   }
 
   return (

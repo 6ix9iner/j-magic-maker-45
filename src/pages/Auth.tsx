@@ -178,7 +178,7 @@ const Auth = () => {
         animate="visible"
         variants={containerVariants}
       >
-        <Card className="w-full max-w-md glass-panel glow">
+        <Card className="w-full max-w-md premium-card">
           <CardHeader className="space-y-1 text-center premium-card-header">
             <motion.div variants={itemVariants}>
               <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
@@ -196,7 +196,7 @@ const Auth = () => {
                   onChange={(e) => setNewPassword(e.target.value)}
                   minLength={6}
                   required
-                  className="premium-input"
+                  className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                 />
                 <p className="text-xs text-blue-200/70">
                   Password must be at least 6 characters
@@ -225,7 +225,7 @@ const Auth = () => {
       animate="visible"
       variants={containerVariants}
     >
-      <Card className="w-full max-w-md glass-panel glow">
+      <Card className="w-full max-w-md premium-card">
         <CardHeader className="space-y-1 text-center premium-card-header">
           <motion.div variants={itemVariants}>
             <CardTitle className="text-2xl font-bold">Insight Inventory</CardTitle>
@@ -273,7 +273,7 @@ const Auth = () => {
                     type="email" 
                     placeholder="your@email.com" 
                     {...loginForm.register('email', { required: true })}
-                    className="premium-input"
+                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
@@ -290,7 +290,7 @@ const Auth = () => {
                     id="password" 
                     type="password" 
                     {...loginForm.register('password', { required: true })}
-                    className="premium-input"
+                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div variants={itemVariants}>
@@ -313,7 +313,7 @@ const Auth = () => {
                     id="fullName" 
                     placeholder="John Doe" 
                     {...signupForm.register('fullName', { required: true })}
-                    className="premium-input"
+                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
@@ -323,7 +323,7 @@ const Auth = () => {
                     type="email" 
                     placeholder="your@email.com" 
                     {...signupForm.register('email', { required: true })}
-                    className="premium-input"
+                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
@@ -332,7 +332,7 @@ const Auth = () => {
                     id="signupPassword" 
                     type="password" 
                     {...signupForm.register('password', { required: true, minLength: 6 })}
-                    className="premium-input"
+                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                   {signupForm.formState.errors.password?.type === 'minLength' && (
                     <p className="text-sm text-red-400">Password must be at least 6 characters</p>
@@ -344,7 +344,7 @@ const Auth = () => {
                     id="confirmPassword" 
                     type="password" 
                     {...signupForm.register('confirmPassword', { required: true })}
-                    className="premium-input"
+                    className="bg-white/20 border border-white/30 text-white placeholder-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent"
                   />
                   {signupForm.formState.errors.confirmPassword?.message && (
                     <p className="text-sm text-red-400">

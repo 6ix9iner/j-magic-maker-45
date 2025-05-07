@@ -16,6 +16,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     onClose();
   };
 
+  // Only render the BarcodeScanner when dialog is open to avoid camera issues
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) onClose();
@@ -28,7 +29,9 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <BarcodeScanner onScan={handleScan} />
+          {isOpen && (
+            <BarcodeScanner onScan={handleScan} />
+          )}
         </div>
       </DialogContent>
     </Dialog>

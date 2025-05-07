@@ -22,19 +22,19 @@ export const BARCODE_READER_CONFIG = {
   ],
   // Scanning settings - extremely optimized for faster scanning
   scanSettings: {
-    intervalTime: 30, // Even faster scanning interval (reduced from 40ms)
+    intervalTime: 100, // Increased interval for more reliable operation
     maxNumberOfResults: 1
   },
-  // Performance settings - extreme optimization for speed
-  timeout: 400, // Reduced timeout to 400ms for faster initialization (reduced from 500ms)
+  // Performance settings - optimized for reliable operation
+  timeout: 1000, // Increased timeout for more reliable initialization
   deblurLevel: 0, // Lowest deblur level for maximum speed
   maxAlgorithmThreadCount: 1, // Single thread for faster startup
-  // Video settings - lowest resolution for speed
+  // Video settings - balanced resolution for reliability
   videoSettings: {
     video: {
       facingMode: { ideal: 'environment' },
-      width: { ideal: 320 }, // Reduced from 480 to 320 for faster initialization
-      height: { ideal: 240 }, // Reduced from 360 to 240
+      width: { ideal: 640 }, // Increased from 320 to 640 for better recognition
+      height: { ideal: 480 }, // Increased from 240 to 480
       fill: true,
       objectFit: 'cover' 
     }
@@ -51,12 +51,16 @@ export const ensureLicenseIsSet = async () => {
   if (typeof window === 'undefined') return; // Server-side safety check
   
   // Skip if already initialized
-  if (licenseInitialized) return;
+  if (licenseInitialized) {
+    console.log("License already initialized, skipping");
+    return;
+  }
 
   // Use global window flag to ensure license is only set once across hot reloads
   // @ts-ignore - Access window as global storage
   if (window._dynamsoft_license_initialized) {
     licenseInitialized = true;
+    console.log("License already initialized via window flag");
     return;
   }
   
@@ -66,13 +70,34 @@ export const ensureLicenseIsSet = async () => {
     // Set license key only if it hasn't been set before
     BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
     
-    // Set CDN path with specific version to prevent redirects
+    // Make sure to use consistent CDN version to avoid issues
     BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+    
+    // Set up more reliable initialization
+    try {
+      // Reset all global Dynamsoft configuration settings for a clean start
+      // @ts-ignore - Need to access internal properties for reset
+      if (BarcodeScanner._onReadyEventEmitter) {
+        // @ts-ignore - Reset internal event system
+        BarcodeScanner._onReadyEventEmitter = null;
+      }
+      
+      // Ensure consistent UI element URL
+      BarcodeScanner.defaultUIElementURL = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/dbr.ui.html";
+      
+      // Enable more detailed logging for debugging
+      // @ts-ignore - Debug property may not be in types
+      BarcodeScanner._bUseFullFeature = true;
+    } catch (e) {
+      console.warn("Non-critical error during scanner configuration:", e);
+    }
     
     // Mark as initialized globally to prevent duplicate initialization attempts
     licenseInitialized = true;
     // @ts-ignore - Access window as global storage
     window._dynamsoft_license_initialized = true;
+    
+    console.log("License initialized successfully");
   } catch (e) {
     // If error contains "license is not allowed to change", it means the license was already set
     if (e instanceof Error && e.message && e.message.includes('not allowed to change')) {
@@ -83,6 +108,7 @@ export const ensureLicenseIsSet = async () => {
       console.log("License already initialized");
     } else {
       console.error("License initialization error:", e);
+      throw e; // Rethrow to be handled higher up
     }
   }
 };
@@ -113,25 +139,33 @@ export const initializeDynamsoft = async () => {
           return;
         }
         
-        waited += 10; // Reduced from 20ms to 10ms check interval
-        if (waited >= 300) { // 300ms maximum wait (reduced from 500ms)
+        waited += 50; // Check every 50ms for better responsiveness
+        if (waited >= 3000) { // 3s maximum wait for initialization
           clearInterval(interval);
           console.log("Waited too long for initialization, continuing anyway");
           resolve(true);
         }
-      }, 10); // Check very frequently (reduced from 20ms to 10ms)
+      }, 50);
     });
   }
   
   isInitializing = true;
   
   try {
-    console.log("Initializing Dynamsoft SDK with extreme speed optimizations...");
+    console.log("Initializing Dynamsoft SDK with reliability optimizations...");
     
-    // Mark as initialization in progress
-    hasWasmLoaded = true;
+    // Attempt to load WASM if not already loaded
+    if (!hasWasmLoaded) {
+      try {
+        await BarcodeReader.loadWasm();
+        hasWasmLoaded = true;
+      } catch (e) {
+        console.error("Failed to load Dynamsoft WASM:", e);
+        // Continue despite error, browser might recover
+      }
+    }
     
-    return true;
+    return hasWasmLoaded;
   } catch (error) {
     console.error("Failed to initialize Dynamsoft SDK:", error);
     // Continue anyway
@@ -152,6 +186,29 @@ export const cleanupDynamsoft = async () => {
     if (extendedBarcodeScanner.cleanFrameBuffer) {
       await extendedBarcodeScanner.cleanFrameBuffer();
     }
+    
+    // Reset internal scanner instances
+    // This helps with repeated initialization issues
+    try {
+      // @ts-ignore - Access internal array of scanners for cleanup
+      if (BarcodeScanner._scanners && BarcodeScanner._scanners.length > 0) {
+        // @ts-ignore - Clear internal scanner array
+        for (const scanner of BarcodeScanner._scanners) {
+          try {
+            if (scanner && scanner.destroyContext) {
+              await scanner.destroyContext();
+            }
+          } catch (e) {
+            console.warn("Error during scanner cleanup:", e);
+          }
+        }
+        // @ts-ignore - Reset scanner array
+        BarcodeScanner._scanners = [];
+      }
+    } catch (e) {
+      console.warn("Non-critical error during scanner array cleanup:", e);
+    }
+    
   } catch (e) {
     console.warn("Error during scanner cleanup:", e);
   }

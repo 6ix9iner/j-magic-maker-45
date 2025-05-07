@@ -38,33 +38,20 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
 }) => {
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
   
-  // Ensure the container has the class that Dynamsoft needs
+  // Ensure the viewRef has the proper classes for Dynamsoft
   useEffect(() => {
-    // Add the required Dynamsoft video container if needed
     if (viewRef.current) {
-      console.log("Setting up scanner view container");
-      
-      // Make sure the viewRef has the proper class Dynamsoft looks for
+      console.log("BarcodeScannerUI: Setting up scanner view container");
       viewRef.current.classList.add('dce-video-container-overlay');
       
-      // Check if we need to create a container for Dynamsoft
-      if (!document.querySelector('.dce-video-container')) {
-        const videoContainer = document.createElement('div');
-        videoContainer.className = 'dce-video-container';
-        videoContainer.style.position = 'absolute';
-        videoContainer.style.left = '0';
-        videoContainer.style.top = '0';
-        videoContainer.style.width = '100%';
-        videoContainer.style.height = '100%';
-        
-        // Insert it as a sibling to viewRef if possible
-        if (viewRef.current.parentElement) {
-          viewRef.current.parentElement.insertBefore(videoContainer, viewRef.current);
-        }
-        console.log("Created dce-video-container element");
+      // Ensure the parent container is properly configured
+      const parentElement = viewRef.current.parentElement;
+      if (parentElement) {
+        parentElement.style.position = 'relative';
+        console.log("BarcodeScannerUI: Parent container configured");
       }
     }
-  }, [viewRef, isInitialized]);
+  }, [viewRef]);
   
   // Function to handle requesting camera permissions
   const requestCameraPermission = async () => {
@@ -78,7 +65,7 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
       if (onRetry) {
         setTimeout(() => {
           onRetry();
-        }, 100); // Reduced from 200ms to 100ms for faster retry
+        }, 100);
       }
     } catch (error) {
       console.error("Permission request failed:", error);
@@ -162,20 +149,14 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
             </div>
           )}
           
-          {/* Scanner container - make sure it has the right structure */}
+          {/* Scanner container */}
           <div 
             className="scanner-container relative bg-black w-full h-full"
-            data-scanner-container
           >
-            {/* Container for Dynamsoft scanner */}
-            <div className="dce-video-container absolute inset-0" style={{ backgroundColor: 'black' }}></div>
-            
-            {/* Video container for Dynamsoft */}
+            {/* Video container overlay for Dynamsoft */}
             <div 
               ref={viewRef} 
               className="absolute inset-0 flex items-center justify-center overflow-hidden dce-video-container-overlay"
-              data-scanner-view
-              id="dynamsoft-scanner-container"
               style={{ backgroundColor: 'transparent', zIndex: 1 }}
             />
             

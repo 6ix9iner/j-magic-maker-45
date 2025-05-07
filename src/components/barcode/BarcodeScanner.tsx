@@ -19,6 +19,7 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [useSheet, setUseSheet] = useState(false);
   const [scanReady, setScanReady] = useState(false);
+  const [domReady, setDomReady] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const retryCountRef = useRef<number>(0);
   const torchStateRef = useRef<boolean>(false);
@@ -120,21 +121,50 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
     }
   }, [preInitialize]);
 
-  // Add a div with required classes for Dynamsoft scanner
+  // Ensure the DOM is ready and prepared for Dynamsoft SDK
   useEffect(() => {
-    if (containerRef.current && !containerRef.current.querySelector('.dce-video-container')) {
-      const videoContainer = document.createElement('div');
-      videoContainer.className = 'dce-video-container';
-      videoContainer.style.position = 'absolute';
-      videoContainer.style.left = '0';
-      videoContainer.style.top = '0';
-      videoContainer.style.width = '100%';
-      videoContainer.style.height = '100%';
-      containerRef.current.appendChild(videoContainer);
+    if (scanReady && containerRef.current) {
+      console.log("BarcodeScanner: Ensuring DOM structure for scanner");
       
-      console.log("Created dce-video-container element for Dynamsoft scanner");
+      // 1. Create dce-video-container if needed
+      let videoContainer = containerRef.current.querySelector('.dce-video-container');
+      if (!videoContainer) {
+        videoContainer = document.createElement('div');
+        videoContainer.className = 'dce-video-container';
+        videoContainer.style.position = 'absolute';
+        videoContainer.style.left = '0';
+        videoContainer.style.top = '0';
+        videoContainer.style.width = '100%';
+        videoContainer.style.height = '100%';
+        videoContainer.style.backgroundColor = 'black';
+        containerRef.current.appendChild(videoContainer);
+        console.log("BarcodeScanner: Created dce-video-container element");
+      }
+      
+      // 2. Short delay to ensure DOM is ready before signaling
+      setTimeout(() => {
+        setDomReady(true);
+        console.log("BarcodeScanner: DOM ready for scanner");
+      }, 200);
     }
-  }, [isOpen, scanReady]);
+    
+    return () => {
+      if (scanReady) {
+        setDomReady(false);
+      }
+    };
+  }, [scanReady, isOpen]);
+
+  // Start scanning when DOM is ready
+  useEffect(() => {
+    if (domReady && scanReady && !isScanning && isInitialized) {
+      console.log("BarcodeScanner: DOM is ready, starting scanner");
+      const timer = setTimeout(() => {
+        toggleScanning();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [domReady, scanReady, isScanning, isInitialized, toggleScanning]);
 
   const handleOpenScanner = async () => {
     retryCountRef.current = 0;
@@ -143,9 +173,6 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
       await requestCameraPermission();
       setScanReady(true);
       setIsOpen(true);
-      setTimeout(() => {
-        toggleScanning();
-      }, 600); // Increased delay to ensure DOM is ready
     } catch (err) {
       console.error("Permission error:", err);
     }
@@ -162,6 +189,7 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
     }
     await cleanupScanner();
     setScanReady(false);
+    setDomReady(false);
     setIsOpen(false);
   };
 
@@ -189,12 +217,35 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
     retryCountRef.current++;
     toast.info("Restarting scanner...");
     await cleanupScanner();
+    setDomReady(false);
+    
+    // Ensure we have a clean start
+    if (containerRef.current) {
+      const videoContainer = containerRef.current.querySelector('.dce-video-container');
+      if (videoContainer) {
+        videoContainer.remove();
+      }
+      
+      // Create a fresh container
+      const newContainer = document.createElement('div');
+      newContainer.className = 'dce-video-container';
+      newContainer.style.position = 'absolute';
+      newContainer.style.left = '0';
+      newContainer.style.top = '0';
+      newContainer.style.width = '100%';
+      newContainer.style.height = '100%';
+      newContainer.style.backgroundColor = 'black';
+      containerRef.current.appendChild(newContainer);
+      console.log("BarcodeScanner: Recreated dce-video-container element");
+    }
+    
+    // Reset and restart
     const success = await resetScanner();
     if (success) {
       torchStateRef.current = false;
       setTimeout(() => {
-        toggleScanning();
-      }, 600); // Increased delay for reliability
+        setDomReady(true);
+      }, 600);
     } else {
       toast.error("Failed to restart scanner. Please try again.");
     }

@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BarcodeScanner from "@/components/barcode/BarcodeScanner";
 
@@ -12,6 +12,7 @@ interface BarcodeDialogProps {
 const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   // Track whether to render the scanner to ensure clean mounting/unmounting
   const [shouldRenderScanner, setShouldRenderScanner] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
   
   // Handle scanner mounting with a slight delay to ensure dialog is fully open
   useEffect(() => {
@@ -31,12 +32,35 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
       clearTimeout(timer);
     };
   }, [isOpen]);
-  
+
   // Create a handler that adapts onDetected to the expected interface
   const handleDetection = (code: string) => {
     onDetected(code);
     onClose();
   };
+
+  // Setup the required DOM container for Dynamsoft scanner
+  useEffect(() => {
+    if (shouldRenderScanner && containerRef.current) {
+      console.log("BarcodeDialog: Setting up scanner container");
+      
+      // Check if the dce-video-container already exists
+      if (!containerRef.current.querySelector('.dce-video-container')) {
+        // Create the required container element
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'dce-video-container';
+        videoContainer.style.position = 'absolute';
+        videoContainer.style.left = '0';
+        videoContainer.style.top = '0';
+        videoContainer.style.width = '100%';
+        videoContainer.style.height = '100%';
+        videoContainer.style.backgroundColor = 'black';
+        containerRef.current.appendChild(videoContainer);
+        
+        console.log("BarcodeDialog: Created dce-video-container element");
+      }
+    }
+  }, [shouldRenderScanner]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
@@ -51,7 +75,11 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
         </DialogHeader>
         <div className="py-4">
           {shouldRenderScanner && (
-            <div className="barcode-container" style={{ minHeight: "300px" }}>
+            <div 
+              ref={containerRef} 
+              className="barcode-container relative" 
+              style={{ minHeight: "300px" }}
+            >
               <BarcodeScanner 
                 onDetected={handleDetection} 
                 key={`scanner-instance-${Date.now()}`}

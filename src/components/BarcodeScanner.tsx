@@ -9,6 +9,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
 import { DYNAMSOFT_LICENSE_KEY } from '@/components/barcode/BarcodeConfigUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import BarcodeReaderComponent from '@/components/barcode/BarcodeScanner';
 
 interface BarcodeScannerProps {
   onDetected: (code: string) => void;
@@ -51,23 +52,24 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
     
     React.useEffect(() => {
       let isMounted = true;
+      let scannerInstance: DynamsoftScanner | null = null;
       
       const setupScanner = async () => {
         try {
           // Create scanner instance
-          const newScanner = await DynamsoftScanner.createInstance();
+          scannerInstance = await DynamsoftScanner.createInstance();
           
           // Update settings for better performance
-          const settings = await newScanner.getRuntimeSettings();
+          const settings = await scannerInstance.getRuntimeSettings();
           settings.barcodeFormatIds = 0x3FF | 0x1000000 | 0x2000000; // Common 1D, QR, DataMatrix
           settings.deblurLevel = 2;
-          await newScanner.updateRuntimeSettings(settings);
+          await scannerInstance.updateRuntimeSettings(settings);
           
           if (isMounted) {
-            setScanner(newScanner);
+            setScanner(scannerInstance);
             
             // Set up callback for barcode detection
-            newScanner.onUnduplicatedRead = (txt, result) => {
+            scannerInstance.onUnduplicatedRead = (txt, result) => {
               console.log("Barcode detected:", txt, result);
               handleScan(txt, result.barcodeFormatString);
             };
@@ -75,8 +77,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
             // Start scanning if container is ready
             if (containerRef.current) {
               try {
-                await newScanner.setUIElement(containerRef.current);
-                await newScanner.show();
+                await scannerInstance.setUIElement(containerRef.current);
+                await scannerInstance.show();
               } catch (err) {
                 console.error("Failed to start scanner:", err);
                 setError("Failed to start camera. Please check camera permissions.");
@@ -96,9 +98,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
       // Cleanup function
       return () => {
         isMounted = false;
-        if (scanner) {
-          scanner.hide().catch(console.error);
-          scanner.destroyContext().catch(console.error);
+        if (scannerInstance) {
+          try {
+            scannerInstance.hide().then(() => {
+              scannerInstance!.destroyContext().then(() => {
+                console.log("Scanner destroyed");
+              }).catch(e => console.error("Error destroying scanner:", e));
+            }).catch(e => console.error("Error hiding scanner:", e));
+          } catch (e) {
+            console.error("Error in cleanup:", e);
+          }
         }
       };
     }, []);

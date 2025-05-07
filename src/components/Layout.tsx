@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import MobilePopover from '@/components/ui/mobile-popover';
 
 const Layout = () => {
   const location = useLocation();
@@ -136,70 +137,65 @@ const Layout = () => {
                 </DropdownMenu>
               </div>
               
-              {/* Mobile sheet - IMPROVED for better mobile display */}
+              {/* Mobile sheet - Now using MobilePopover instead */}
               <div className="sm:hidden">
-                <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                  <SheetTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="rounded-full px-2 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 hover:bg-white/10"
-                      onClick={() => setIsMobileMenuOpen(true)}
-                    >
-                      <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="rounded-full px-2 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 hover:bg-white/10"
+                  onClick={() => setIsMobileMenuOpen(true)}
+                >
+                  <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-xs">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+
+                <MobilePopover 
+                  isOpen={isMobileMenuOpen}
+                  onClose={() => setIsMobileMenuOpen(false)}
+                  title="Account"
+                >
+                  <div className="py-4">
+                    <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-lg border border-white/10">
+                      <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-xs">
+                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
-                    </Button>
-                  </SheetTrigger>
-                  <SheetContent 
-                    side="bottom" 
-                    className="h-auto max-h-[85vh] pb-6 rounded-t-xl glassmorphism border-t border-white/20"
-                  >
-                    <SheetHeader className="pt-2 pb-4 border-b border-white/10">
-                      <SheetTitle className="text-xl font-medium text-white">Account</SheetTitle>
-                    </SheetHeader>
-                    <div className="py-4">
-                      <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-lg border border-white/10">
-                        <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
-                          <AvatarImage src="" />
-                          <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium">
-                            {getUserInitials()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="font-medium text-white text-lg">{user?.email?.split('@')[0]}</p>
-                          <p className="text-sm text-blue-200/70">{user?.email}</p>
-                        </div>
+                      <div>
+                        <p className="font-medium text-white text-lg">{user?.email?.split('@')[0]}</p>
+                        <p className="text-sm text-blue-200/70">{user?.email}</p>
                       </div>
-                      
-                      <div className="space-y-3 mb-6">
-                        <Button 
-                          onClick={() => {
-                            navigate('/settings');
-                            setIsMobileMenuOpen(false);
-                          }} 
-                          variant="outline" 
-                          className="w-full justify-start text-left border-white/10 bg-white/5 hover:bg-white/10"
-                        >
-                          <Settings className="w-4 h-4 mr-2" />
-                          Account Settings
-                        </Button>
-                      </div>
-                      
+                    </div>
+                    
+                    <div className="space-y-3 mb-6">
                       <Button 
-                        onClick={handleSignOut} 
-                        variant="destructive" 
-                        className="w-full shadow-lg"
+                        onClick={() => {
+                          navigate('/settings');
+                          setIsMobileMenuOpen(false);
+                        }} 
+                        variant="outline" 
+                        className="w-full justify-start text-left border-white/10 bg-white/5 hover:bg-white/10"
                       >
-                        <LogOut className="w-4 h-4 mr-2" />
-                        Sign Out
+                        <Settings className="w-4 h-4 mr-2" />
+                        Account Settings
                       </Button>
                     </div>
-                  </SheetContent>
-                </Sheet>
+                    
+                    <Button 
+                      onClick={handleSignOut} 
+                      variant="destructive" 
+                      className="w-full shadow-lg"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </MobilePopover>
               </div>
             </motion.div>
           )}

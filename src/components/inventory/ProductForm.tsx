@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Barcode } from "lucide-react";
-import { Sheet, SheetContent } from "@/components/ui/sheet"; 
 import { useIsMobile } from '@/hooks/use-mobile';
 import BarcodeScanner from "@/components/barcode/BarcodeScanner";
+import MobilePopover from '@/components/ui/mobile-popover';
 
 interface Product {
   id?: string;
@@ -158,25 +158,22 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Integrated Barcode Scanner - uses main scanner component directly */}
+      {/* Integrated Barcode Scanner using MobilePopover for mobile */}
       {isMobile ? (
-        <Sheet open={isScannerOpen} onOpenChange={setIsScannerOpen}>
-          <SheetContent side="bottom" className="h-[85vh] p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                Scan Product Barcode
-              </h2>
-              <p className="text-sm text-slate-300 mt-1">
-                Position barcode within view for automatic scanning
-              </p>
-            </div>
-            <div className="p-2">
-              {isScannerOpen && (
-                <BarcodeScanner onDetected={handleBarcodeDetected} />
-              )}
-            </div>
-          </SheetContent>
-        </Sheet>
+        <MobilePopover
+          isOpen={isScannerOpen}
+          onClose={() => setIsScannerOpen(false)}
+          title="Scan Product Barcode"
+        >
+          <div className="p-2">
+            {isScannerOpen && (
+              <BarcodeScanner onDetected={handleBarcodeDetected} />
+            )}
+            <p className="text-sm text-center mt-3 text-gray-300">
+              Position barcode within view for automatic scanning
+            </p>
+          </div>
+        </MobilePopover>
       ) : (
         <div className={`fixed inset-0 bg-black/50 flex items-center justify-center z-50 ${isScannerOpen ? 'block' : 'hidden'}`}>
           <div className="bg-gradient-to-b from-slate-900 to-slate-800 rounded-xl w-[90%] max-w-md overflow-hidden">

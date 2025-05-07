@@ -17,7 +17,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
       {isOpen && (
         <>
           <motion.div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -25,13 +25,13 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
           />
           
           <motion.div
-            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-2xl z-50 max-h-[90vh] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-2xl z-50 max-h-[90vh] overflow-auto"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 20, stiffness: 300 }}
           >
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-3 flex justify-between items-center">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-4 flex justify-between items-center">
               <h3 className="font-semibold text-white text-lg">{title}</h3>
               <Button 
                 size="icon" 
@@ -43,7 +43,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
               </Button>
             </div>
             
-            <div className="p-4 overflow-y-auto max-h-[70vh]">
+            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
               {children}
             </div>
             

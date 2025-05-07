@@ -10,8 +10,9 @@ interface BarcodeDialogProps {
 }
 
 const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
-  const handleBarcodeDetected = (result: string) => {
-    onDetected(result);
+  // Create a handler that adapts onDetected to the expected onScan interface
+  const handleScan = (code: string, symbology: string) => {
+    onDetected(code);
     onClose();
   };
 
@@ -27,7 +28,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
-          <BarcodeScanner onDetected={handleBarcodeDetected} />
+          <BarcodeScanner onScan={handleScan} />
         </div>
       </DialogContent>
     </Dialog>

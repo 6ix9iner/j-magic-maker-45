@@ -28,6 +28,7 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
   const [isError, setIsError] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [forceReset, setForceReset] = useState(0);
+  const [cameraPermissions, setCameraPermissions] = useState<boolean | null>(null);
 
   const barcodeScannerRef = useRef<BarcodeScanner | null>(null);
   const mountedRef = useRef(true); // Track if component is mounted
@@ -37,6 +38,43 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
   const initAttemptsRef = useRef(0);
   // Instance ID to ensure uniqueness between mounts
   const instanceIdRef = useRef(`scanner-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+
+  // Pre-initialize the scanner without opening the camera
+  const preInitialize = useCallback(async () => {
+    try {
+      console.log("Pre-initializing Dynamsoft barcode scanner");
+      // Set license key
+      await ensureLicenseIsSet();
+      
+      // Load WASM modules but don't create scanner yet
+      await BarcodeReader.loadWasm();
+      
+      console.log("Pre-initialization complete");
+      return true;
+    } catch (error) {
+      console.error("Pre-initialization failed:", error);
+      return false;
+    }
+  }, []);
+  
+  // Request camera permissions explicitly
+  const requestCameraPermission = useCallback(async (): Promise<boolean> => {
+    try {
+      console.log("Requesting camera permission");
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      
+      // Stop tracks immediately after getting permission
+      stream.getTracks().forEach(track => track.stop());
+      
+      setCameraPermissions(true);
+      console.log("Camera permission granted");
+      return true;
+    } catch (error) {
+      console.error("Camera permission denied:", error);
+      setCameraPermissions(false);
+      return false;
+    }
+  }, []);
 
   // Reset scanner state without toggling - useful before a new scan
   const resetScannerState = useCallback(() => {
@@ -72,6 +110,20 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
         });
       }
     });
+  }, []);
+
+  // Reset the scanner - returns a promise to indicate success or failure
+  const resetScanner = useCallback(async (): Promise<boolean> => {
+    try {
+      await cleanupScanner();
+      resetScannerState();
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await initializeScanner();
+      return true;
+    } catch (error) {
+      console.error("Reset scanner error:", error);
+      return false;
+    }
   }, []);
 
   // Cleanup scanner resources - moved to a reusable callback function
@@ -430,6 +482,27 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
     }
   };
 
+  // Set torch state (true = on, false = off)
+  const setTorchState = async (state: boolean): Promise<boolean> => {
+    if (!barcodeScannerRef.current || !isScanning || !cameraOpen) {
+      console.log("Cannot toggle torch: scanner not active");
+      return false;
+    }
+
+    try {
+      if (state) {
+        await barcodeScannerRef.current.turnOnTorch();
+      } else {
+        await barcodeScannerRef.current.turnOffTorch();
+      }
+      setIsTorchOn(state);
+      return true;
+    } catch (error) {
+      console.error("Error setting torch state:", error);
+      return false;
+    }
+  };
+
   // Toggle torch function
   const toggleTorch = async () => {
     if (!isInitialized || !barcodeScannerRef.current || !isScanning) {
@@ -463,10 +536,16 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false, key = 0 }:
     isTorchOn,
     isInitialized,
     isError,
+    cameraPermissions,
     toggleScanning,
     toggleTorch,
     stopScanning,
-    resetScannerState
+    resetScannerState,
+    cleanupScanner,
+    resetScanner,
+    requestCameraPermission,
+    setTorchState,
+    preInitialize
   };
 };
 

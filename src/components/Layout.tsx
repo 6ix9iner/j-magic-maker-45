@@ -18,6 +18,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -82,29 +83,49 @@ const Layout = () => {
               <div className="hidden sm:block">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
-                      <Avatar className="h-9 w-9 ring-2 ring-white/30 shadow-lg">
+                    <Button 
+                      variant="outline" 
+                      className="rounded-full flex items-center gap-2 px-4 h-10 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 text-white hover:bg-white/10 hover:text-white transition-colors"
+                    >
+                      <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium">
+                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-xs">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
+                      <span className="text-sm font-medium">
+                        {user.email ? user.email.split('@')[0] : 'User'}
+                      </span>
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-white/20">
-                    <div className="flex items-center gap-2 p-2 border-b border-gray-200 dark:border-gray-800">
-                      <Avatar className="h-8 w-8">
+                  <DropdownMenuContent 
+                    align="end" 
+                    className="w-64 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-white/20 shadow-xl rounded-xl"
+                  >
+                    <div className="flex items-center gap-3 p-2 mb-2">
+                      <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
                         <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
-                        <p className="text-sm font-medium">{user.email}</p>
-                        <p className="text-xs text-muted-foreground">User</p>
+                        <p className="text-sm font-semibold">{user.email?.split('@')[0]}</p>
+                        <p className="text-xs text-muted-foreground">{user.email}</p>
                       </div>
                     </div>
+                    
+                    <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700/50 my-2" />
+                    
                     <DropdownMenuItem 
-                      className="cursor-pointer flex items-center gap-2 text-destructive focus:text-destructive"
+                      className="cursor-pointer flex items-center gap-2 my-1 p-2 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      onClick={() => navigate('/settings')}
+                    >
+                      <Settings className="w-4 h-4 text-slate-500" />
+                      <span>Account Settings</span>
+                    </DropdownMenuItem>
+                    
+                    <DropdownMenuItem 
+                      className="cursor-pointer flex items-center gap-2 my-1 p-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-500 transition-colors"
                       onClick={handleSignOut}
                     >
                       <LogOut className="w-4 h-4" />
@@ -118,10 +139,14 @@ const Layout = () => {
               <div className="sm:hidden">
                 <Sheet>
                   <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10">
-                      <Avatar className="h-9 w-9 ring-2 ring-white/30 shadow-lg">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      className="rounded-full px-2 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 hover:bg-white/10"
+                    >
+                      <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium">
+                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-xs">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
@@ -132,7 +157,7 @@ const Layout = () => {
                       <SheetTitle className="text-xl font-medium text-white">Account</SheetTitle>
                     </SheetHeader>
                     <div className="py-6">
-                      <div className="flex items-center gap-4 mb-6 bg-white/5 p-3 rounded-lg border border-white/10">
+                      <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-lg border border-white/10">
                         <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
                           <AvatarImage src="" />
                           <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium">
@@ -140,10 +165,22 @@ const Layout = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <p className="font-medium text-white">{user.email}</p>
-                          <p className="text-sm text-blue-200/70">User</p>
+                          <p className="font-medium text-white text-lg">{user?.email?.split('@')[0]}</p>
+                          <p className="text-sm text-blue-200/70">{user?.email}</p>
                         </div>
                       </div>
+                      
+                      <div className="space-y-3 mb-6">
+                        <Button 
+                          onClick={() => navigate('/settings')} 
+                          variant="outline" 
+                          className="w-full justify-start text-left border-white/10 bg-white/5 hover:bg-white/10"
+                        >
+                          <Settings className="w-4 h-4 mr-2" />
+                          Account Settings
+                        </Button>
+                      </div>
+                      
                       <Button 
                         onClick={handleSignOut} 
                         variant="destructive" 

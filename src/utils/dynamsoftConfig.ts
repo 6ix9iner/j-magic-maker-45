@@ -235,9 +235,9 @@ export const cleanupDynamsoft = async () => {
       videoTracks.forEach(video => {
         try {
           if (video.srcObject) {
-            // @ts-ignore - Access media stream
-            const stream = video.srcObject;
-            if (stream && stream.getTracks) {
+            // TypeScript fix: Cast srcObject to MediaStream type
+            const stream = video.srcObject as MediaStream;
+            if (stream && typeof stream.getTracks === 'function') {
               const tracks = stream.getTracks();
               tracks.forEach(track => {
                 try {

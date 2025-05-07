@@ -76,12 +76,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     globalState.initPromise = (async () => {
       try {
         // Set a shorter timeout for speed
-        const timeoutPromise = new Promise<boolean>((_, reject) => {
+        const timeoutPromise = new Promise<boolean>((resolve) => {
           setTimeout(() => {
             console.log('SDK: Pre-init timeout - continuing anyway');
             globalState.isInitialized = true;
-            return true; // Continue anyway
-          }, 2500);
+            return resolve(true); // Continue anyway
+          }, 1000); // Reduced to 1 second
         });
         
         // Race between initialization and timeout
@@ -129,7 +129,7 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       // Force permission prompt with simpler constraints
       const constraints = {
         video: { 
-          width: { ideal: 640 },
+          width: { ideal: 640 }, // Reduced size
           height: { ideal: 480 }
         },
         audio: false
@@ -173,11 +173,6 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
 
   // Start the scanner with improved initialization
   const startScanner = useCallback(async (): Promise<boolean> => {
-    if (!viewRef.current) {
-      console.log('SDK: View reference not available');
-      return false;
-    }
-    
     if (requestInProgressRef.current) {
       console.log('SDK: Scanner request already in progress');
       return false;
@@ -187,6 +182,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
     
     try {
       console.log('SDK: Initializing scanner...');
+      
+      // First, check if viewRef.current exists
+      if (!viewRef.current) {
+        console.log('SDK: View reference not available');
+        return false;
+      }
       
       // First, make sure we have camera permissions
       const hasPermission = await requestCameraPermission();
@@ -199,19 +200,16 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
       // If SDK was already pre-initialized, use it - otherwise initialize now
       if (!globalState.wasPreInitialized) {
         try {
-          // Use a shorter timeout for initialization (2s)
+          // Use a shorter timeout for initialization (1s)
           const initPromise = initializeDynamsoft();
-          const timeoutPromise = new Promise((_, reject) => {
+          const timeoutPromise = new Promise((resolve) => {
             setTimeout(() => {
               console.log("SDK: Init timed out, continuing anyway");
-            }, 2000);
+              resolve(true);
+            }, 1000); // Reduced to 1 second 
           });
           
-          await Promise.race([initPromise, timeoutPromise])
-            .catch(() => {
-              console.log('SDK: Continuing after initialization timeout');
-            });
-            
+          await Promise.race([initPromise, timeoutPromise]);            
         } catch (error) {
           console.warn('SDK: Init error, will continue anyway:', error);
         }
@@ -247,12 +245,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           scanner.singleFrameMode = false;
           scanner.ifShowScanRegionMask = false;
           
-          // Set video settings - optimized for faster startup
+          // Set video settings - optimized for faster startup with lower resolution
           try {
             await scanner.updateVideoSettings({
               video: {
-                width: { ideal: 1280 },
-                height: { ideal: 720 },
+                width: { ideal: 640 }, // Reduced from 1280
+                height: { ideal: 480 }, // Reduced from 720
                 facingMode: { ideal: 'environment' }
               }
             });
@@ -314,14 +312,14 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
         // Set UI element with faster timeout
         await Promise.race([
           scannerRef.current.setUIElement(container),
-          new Promise(r => setTimeout(r, 1000)) // Continue after 1s regardless
+          new Promise(r => setTimeout(r, 500)) // Continue after 500ms regardless
         ]);
         
         // Try to set scan settings
         try {
           await scannerRef.current.updateScanSettings({
-            intervalTime: 100,
-            duplicateForgetTime: 3000
+            intervalTime: 50, // Reduced for faster scanning
+            duplicateForgetTime: 1500 // Reduced for faster scanning
           });
         } catch (e) {
           console.warn('SDK: Error setting scan settings, continuing:', e);
@@ -345,12 +343,12 @@ export const useBarcodeScannerSDK = ({ onScan }: UseBarcodeScannerSDKProps) => {
           }
         }, 100);
         
-        // Use a timeout for camera opening
+        // Use a timeout for camera opening - reduced to 1 second
         const timeoutPromise = new Promise((resolve) => {
           setTimeout(() => {
             console.log('SDK: Camera opening timed out, continuing...');
             resolve(true);
-          }, 3000); // 3 seconds timeout
+          }, 1000); // 1 second timeout as requested
         });
         
         await Promise.race([cameraPromise, timeoutPromise]);

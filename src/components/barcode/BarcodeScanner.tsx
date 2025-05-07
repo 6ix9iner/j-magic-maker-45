@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasBeenInitializedRef = useRef(false);
   const [preInitStarted, setPreInitStarted] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -67,10 +69,8 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   useEffect(() => {
     if (!preInitStarted) {
       setPreInitStarted(true);
-      // Start pre-initialization after a very short delay
-      setTimeout(() => {
-        preInitialize().catch(console.error);
-      }, 50);
+      // Start pre-initialization immediately
+      preInitialize().catch(console.error);
     }
     
     // Pre-initialize audio
@@ -96,26 +96,46 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   };
 
   const handleOpen = async () => {
+    // First, set open state to show the dialog/sheet
     setIsOpen(true);
     
-    try {
-      console.log("Scanner: Starting scanner directly...");
-      const started = await startScanner();
-      
-      if (!started) {
-        console.error("Scanner: Failed to start scanner");
+    // Give time for the dialog to render before starting the scanner
+    setTimeout(async () => {
+      try {
+        console.log("Scanner: Starting scanner directly...");
+        // Ensure viewRef is properly connected to the DOM element
+        if (!viewRef.current && dialogRef.current) {
+          const scannerContainer = dialogRef.current.querySelector('.scanner-container');
+          if (scannerContainer) {
+            // Force connect viewRef to the rendered scanner-container
+            viewRef.current = scannerContainer as HTMLDivElement;
+          }
+        }
+        
+        if (!viewRef.current) {
+          console.error("Scanner: View container not found in DOM");
+          toast.error("Failed to initialize scanner. Please try again.");
+          setIsOpen(false);
+          return;
+        }
+        
+        const started = await startScanner();
+        
+        if (!started) {
+          console.error("Scanner: Failed to start scanner");
+          toast.error("Failed to start scanner. Please try again.");
+          setIsOpen(false);
+          return;
+        }
+        
+        console.log("Scanner: Scanner started successfully");
+        hasBeenInitializedRef.current = true;
+      } catch (error) {
+        console.error("Failed to start scanner:", error);
         toast.error("Failed to start scanner. Please try again.");
         setIsOpen(false);
-        return;
       }
-      
-      console.log("Scanner: Scanner started successfully");
-      hasBeenInitializedRef.current = true;
-    } catch (error) {
-      console.error("Failed to start scanner:", error);
-      toast.error("Failed to start scanner. Please try again.");
-      setIsOpen(false);
-    }
+    }, 50); // Very short delay to ensure DOM is ready
   };
 
   const handleClose = async () => {
@@ -130,7 +150,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     
     setTimeout(async () => {
       await startScanner();
-    }, 300);
+    }, 100);
   };
 
   // Improved torch handling that won't close the scanner
@@ -153,7 +173,10 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           Point your camera at a barcode to scan.
         </p>
       </div>
-      <div className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}>
+      <div 
+        ref={dialogRef}
+        className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}
+      >
         <BarcodeScannerUI
           isScanning={isScanning}
           isInitialized={isInitialized}

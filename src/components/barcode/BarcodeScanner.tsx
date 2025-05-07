@@ -12,6 +12,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
   const [scanner, setScanner] = useState<DynamsoftScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const videoContainerCreated = useRef<boolean>(false);
 
   // Sound effect for successful scan
   const playBeep = () => {
@@ -27,8 +28,28 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
     let isMounted = true;
     let scannerInstance: DynamsoftScanner | null = null;
 
+    // Create the required dce-video-container element
+    const ensureVideoContainer = () => {
+      if (!containerRef.current || videoContainerCreated.current) return;
+      
+      // Create the container element needed by Dynamsoft
+      const videoContainer = document.createElement('div');
+      videoContainer.id = 'dce-video-container';
+      videoContainer.className = 'dce-video-container';
+      videoContainer.style.position = 'absolute';
+      videoContainer.style.left = '0';
+      videoContainer.style.top = '0';
+      videoContainer.style.width = '100%';
+      videoContainer.style.height = '100%';
+      containerRef.current.appendChild(videoContainer);
+      videoContainerCreated.current = true;
+    };
+
     const initScanner = async () => {
       try {
+        // Ensure video container is created before scanner initialization
+        ensureVideoContainer();
+        
         // Set license
         BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
         // Set engine resource path
@@ -88,6 +109,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
 
     return () => {
       isMounted = false;
+      videoContainerCreated.current = false;
+      
+      // Clean up any created video containers
+      if (containerRef.current) {
+        const videoContainer = document.getElementById('dce-video-container');
+        if (videoContainer && videoContainer.parentNode === containerRef.current) {
+          containerRef.current.removeChild(videoContainer);
+        }
+      }
+      
       if (scannerInstance) {
         // Make sure to properly close and destroy the scanner
         (async () => {
@@ -114,9 +145,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
     <div className="w-full">
       {error ? (
         <div className="bg-red-50 p-4 rounded-md text-center">
-          <p className="text-red-600 font-medium mb-2">{error}</p>
+          <p className="text-red-600 font-medium mb-2">Camera access required</p>
           <p className="text-sm text-gray-600">
-            Please check that your camera is working and permissions are granted.
+            Please allow camera access when prompted
           </p>
         </div>
       ) : (
@@ -131,7 +162,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
             </div>
           )}
           
-          <div className="absolute inset-0 w-full h-full" id="dce-video-container"></div>
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
             <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
             <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-70">

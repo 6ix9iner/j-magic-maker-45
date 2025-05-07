@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -141,6 +142,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [scanner, setScanner] = React.useState<BarcodeScanner | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const videoContainerCreated = React.useRef<boolean>(false);
   
   React.useEffect(() => {
     let isMounted = true;
@@ -148,6 +150,20 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
     
     const setupScanner = async () => {
       try {
+        // Create video container element required by Dynamsoft scanner
+        if (containerRef.current && !videoContainerCreated.current) {
+          const videoContainer = document.createElement('div');
+          videoContainer.className = 'dce-video-container';
+          videoContainer.id = 'dce-video-container';
+          videoContainer.style.position = 'absolute';
+          videoContainer.style.left = '0';
+          videoContainer.style.top = '0';
+          videoContainer.style.width = '100%';
+          videoContainer.style.height = '100%';
+          containerRef.current.appendChild(videoContainer);
+          videoContainerCreated.current = true;
+        }
+        
         // Create scanner instance
         scannerInstance = await BarcodeScanner.createInstance();
         
@@ -173,14 +189,14 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
               await scannerInstance.show();
             } catch (err) {
               console.error("Failed to start scanner:", err);
-              setError("Failed to start camera. Please check camera permissions.");
+              setError("Camera access required");
             }
           }
         }
       } catch (err) {
         console.error("Scanner setup error:", err);
         if (isMounted) {
-          setError("Failed to initialize scanner. Please try again.");
+          setError("Please allow camera access");
         }
       }
     };
@@ -190,6 +206,16 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
     // Cleanup function with proper Promise handling
     return () => {
       isMounted = false;
+      videoContainerCreated.current = false;
+      
+      // Clean up the video container
+      if (containerRef.current) {
+        const videoContainer = document.getElementById('dce-video-container');
+        if (videoContainer && videoContainer.parentNode === containerRef.current) {
+          containerRef.current.removeChild(videoContainer);
+        }
+      }
+      
       if (scannerInstance) {
         // Use an IIFE async function for cleanup
         (async () => {
@@ -209,12 +235,12 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
     <div className="flex flex-col items-center p-4">
       {error ? (
         <div className="text-center py-8">
-          <div className="bg-red-100 p-3 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
-            <Camera className="w-8 h-8 text-red-500" />
+          <div className="bg-amber-100 p-3 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
+            <Camera className="w-8 h-8 text-amber-500" />
           </div>
-          <p className="text-red-500 font-medium">{error}</p>
+          <p className="text-amber-500 font-medium">Camera access required</p>
           <p className="text-sm text-gray-500 mt-2">
-            Please check that your camera is working and permissions are granted.
+            Please allow camera access to scan barcodes
           </p>
           <div className="flex gap-3 justify-center mt-6">
             <Button onClick={onClose} variant="outline">
@@ -229,7 +255,6 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             className="relative w-full aspect-[4/3] bg-black rounded-md overflow-hidden"
             style={{ minHeight: '300px' }}
           >
-            <div className="absolute inset-0 w-full h-full" id="dce-video-container"></div>
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
               <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-90">

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BarcodeScanner from "@/components/barcode/BarcodeScanner";
@@ -37,29 +38,6 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     onDetected(code);
     onClose();
   };
-
-  // Setup the required DOM container for Dynamsoft scanner
-  useEffect(() => {
-    if (shouldRenderScanner && containerRef.current) {
-      console.log("BarcodeDialog: Setting up scanner container");
-      
-      // Check if the dce-video-container already exists
-      if (!containerRef.current.querySelector('.dce-video-container')) {
-        // Create the required container element
-        const videoContainer = document.createElement('div');
-        videoContainer.className = 'dce-video-container';
-        videoContainer.style.position = 'absolute';
-        videoContainer.style.left = '0';
-        videoContainer.style.top = '0';
-        videoContainer.style.width = '100%';
-        videoContainer.style.height = '100%';
-        videoContainer.style.backgroundColor = 'black';
-        containerRef.current.appendChild(videoContainer);
-        
-        console.log("BarcodeDialog: Created dce-video-container element");
-      }
-    }
-  }, [shouldRenderScanner]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {

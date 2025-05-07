@@ -49,13 +49,33 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [scanner, setScanner] = React.useState<DynamsoftScanner | null>(null);
     const [error, setError] = React.useState<string | null>(null);
+    const videoContainerCreated = React.useRef<boolean>(false);
     
     React.useEffect(() => {
       let isMounted = true;
       let scannerInstance: DynamsoftScanner | null = null;
       
+      // Create the video container element required by Dynamsoft
+      const createVideoContainer = () => {
+        if (!containerRef.current || videoContainerCreated.current) return;
+        
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'dce-video-container';
+        videoContainer.id = 'dce-video-container';
+        videoContainer.style.position = 'absolute';
+        videoContainer.style.left = '0';
+        videoContainer.style.top = '0';
+        videoContainer.style.width = '100%';
+        videoContainer.style.height = '100%';
+        containerRef.current.appendChild(videoContainer);
+        videoContainerCreated.current = true;
+      };
+      
       const setupScanner = async () => {
         try {
+          // Create the video container first
+          createVideoContainer();
+          
           // Create scanner instance
           scannerInstance = await DynamsoftScanner.createInstance();
           
@@ -81,14 +101,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
                 await scannerInstance.show();
               } catch (err) {
                 console.error("Failed to start scanner:", err);
-                setError("Failed to start camera. Please check camera permissions.");
+                setError("Camera access required");
               }
             }
           }
         } catch (err) {
           console.error("Scanner setup error:", err);
           if (isMounted) {
-            setError("Failed to initialize scanner. Please try again.");
+            setError("Please allow camera access to scan");
           }
         }
       };
@@ -98,6 +118,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
       // Cleanup function
       return () => {
         isMounted = false;
+        videoContainerCreated.current = false;
+        
+        // Remove the video container
+        if (containerRef.current) {
+          const videoContainer = document.getElementById('dce-video-container');
+          if (videoContainer && videoContainer.parentNode === containerRef.current) {
+            containerRef.current.removeChild(videoContainer);
+          }
+        }
+        
         if (scannerInstance) {
           (async () => {
             try {
@@ -116,9 +146,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
       <div className="flex flex-col items-center p-4">
         {error ? (
           <div className="text-center py-8">
-            <p className="text-red-500 font-medium">{error}</p>
+            <p className="text-amber-500 font-medium">{error}</p>
             <p className="text-sm text-gray-500 mt-2">
-              Please check that your camera is working and permissions are granted.
+              This application requires camera access to scan barcodes
             </p>
             <Button onClick={onClose} variant="outline" className="mt-4">
               Close
@@ -131,7 +161,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
               className="relative w-full aspect-[4/3] bg-black rounded-md overflow-hidden"
               style={{ minHeight: '300px' }}
             >
-              <div className="absolute inset-0 w-full h-full" id="dce-video-container"></div>
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                 <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
               </div>

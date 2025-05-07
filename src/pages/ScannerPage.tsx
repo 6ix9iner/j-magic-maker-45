@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { DYNAMSOFT_LICENSE_KEY } from '@/components/barcode/BarcodeConfigUtils';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from 'date-fns';
+import ProductLookup from '@/components/ProductLookup';
+import SaleManager from '@/components/SaleManager';
 
 // Type definition for a scanned item
 export interface ScannedItem {
@@ -28,9 +28,10 @@ const ScannerPage = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isScannerReady, setIsScannerReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
-  const [activeTab, setActiveTab] = useState("scan");
+  const [activeScannedBarcode, setActiveScannedBarcode] = useState<string | null>(null);
   const isMobile = useIsMobile();
   const dialogOpenRef = useRef(false);
+  const saleManagerRef = useRef<any>(null);
 
   // Initialize barcode reader
   useEffect(() => {
@@ -85,6 +86,7 @@ const ScannerPage = () => {
     };
     
     setScannedItems((prevItems) => [newItem, ...prevItems]);
+    setActiveScannedBarcode(code);
     toast.success(`Barcode Scanned: ${code}`, {
       description: symbology,
       icon: <ScanBarcode className="h-4 w-4" />,
@@ -102,6 +104,12 @@ const ScannerPage = () => {
     toast.info("Item removed from history");
   };
 
+  const handleAddToSale = (product: any, quantity: number) => {
+    if (saleManagerRef.current) {
+      saleManagerRef.current.addItem(product, quantity);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
       <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800">
@@ -112,40 +120,17 @@ const ScannerPage = () => {
             </h1>
           </div>
         </header>
-        
-        <Tabs 
-          defaultValue="scan"
-          value={activeTab} 
-          onValueChange={setActiveTab}
-          className="w-full container mx-auto"
-        >
-          <TabsList className="grid grid-cols-3 mb-2">
-            <TabsTrigger value="scan" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
-              <ScanBarcode className="mr-2 h-4 w-4" />
-              Scan
-            </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
-              <History className="mr-2 h-4 w-4" />
-              History
-            </TabsTrigger>
-            <TabsTrigger value="stats" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-purple-500 data-[state=active]:text-white">
-              <BarChart3 className="mr-2 h-4 w-4" />
-              Stats
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
       </div>
       
-      <main className="flex-1 container mx-auto p-4 flex flex-col gap-6">
-        <AnimatePresence mode="wait">
-          {activeTab === "scan" && (
+      <main className="flex-1 container mx-auto p-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Left Column - Scanner and Product Lookup */}
+          <div className="flex flex-col gap-6">
+            {/* Scanner Card */}
             <motion.div
-              key="scan-tab"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
-              className="flex flex-col gap-6"
             >
               <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
                 <CardContent className="p-0">
@@ -185,211 +170,171 @@ const ScannerPage = () => {
                   </div>
                 </CardContent>
               </Card>
-              
-              {scannedItems.length > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.2 }}
-                >
-                  <Card className="overflow-hidden border-0 shadow-lg">
-                    <CardHeader className="bg-slate-50 dark:bg-slate-800 border-b">
-                      <div className="flex justify-between items-center">
-                        <CardTitle className="text-lg font-semibold">Recent Scans</CardTitle>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          onClick={clearScannedItems}
-                          className="h-8 text-xs"
-                        >
-                          <Trash2 className="h-3 w-3 mr-1" />
-                          Clear All
-                        </Button>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="p-0">
-                      <ScrollArea className="max-h-[300px]">
-                        <div className="divide-y">
-                          {scannedItems.slice(0, 5).map((item) => (
-                            <motion.div
-                              key={item.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/70 flex justify-between"
-                            >
-                              <div>
-                                <p className="font-mono text-sm font-medium">{item.code}</p>
-                                <div className="flex items-center mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                  <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full mr-2">{item.symbology}</span>
-                                  <span>{format(item.timestamp, 'HH:mm:ss')}</span>
-                                </div>
-                              </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => deleteScannedItem(item.id)}
-                                className="h-7 w-7"
-                              >
-                                <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
-                              </Button>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </ScrollArea>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
             </motion.div>
-          )}
-          
-          {activeTab === "history" && (
-            <motion.div
-              key="history-tab"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card className="shadow-lg border-0">
-                <CardHeader className="border-b bg-slate-50 dark:bg-slate-800">
-                  <div className="flex justify-between items-center">
-                    <CardTitle>Scan History</CardTitle>
-                    {scannedItems.length > 0 && (
+
+            {/* Product Lookup */}
+            {activeScannedBarcode && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <Card className="shadow-lg border-0">
+                  <CardHeader>
+                    <CardTitle>Product Lookup</CardTitle>
+                    <CardDescription>Barcode: {activeScannedBarcode}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ProductLookup
+                      barcodeValue={activeScannedBarcode}
+                      onAddToSale={handleAddToSale}
+                    />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+            
+            {/* Recent Scans */}
+            {scannedItems.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+              >
+                <Card className="overflow-hidden border-0 shadow-lg">
+                  <CardHeader className="bg-slate-50 dark:bg-slate-800 border-b">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="text-lg font-semibold">Recent Scans</CardTitle>
                       <Button 
-                        variant="outline" 
-                        size="sm"
+                        variant="ghost" 
+                        size="sm" 
                         onClick={clearScannedItems}
+                        className="h-8 text-xs"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
+                        <Trash2 className="h-3 w-3 mr-1" />
                         Clear All
                       </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {scannedItems.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-center">
-                      <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center mb-4">
-                        <ClipboardList className="h-8 w-8 text-slate-400" />
-                      </div>
-                      <h3 className="font-medium mb-1">No scan history</h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs">
-                        Start scanning barcodes to build your history
-                      </p>
                     </div>
-                  ) : (
-                    <ScrollArea className="max-h-[500px]">
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <ScrollArea className="max-h-[300px]">
                       <div className="divide-y">
-                        {scannedItems.map((item, index) => (
+                        {scannedItems.map((item) => (
                           <motion.div
                             key={item.id}
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            transition={{ duration: 0.3, delay: index * 0.05 }}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.3 }}
                             className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/70 flex justify-between"
                           >
-                            <div>
+                            <div className="cursor-pointer" onClick={() => setActiveScannedBarcode(item.code)}>
                               <p className="font-mono text-sm font-medium">{item.code}</p>
                               <div className="flex items-center mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full mr-2">{item.symbology}</span>
-                                <span>{format(item.timestamp, 'MMM d, yyyy HH:mm:ss')}</span>
+                                <span>{format(item.timestamp, 'HH:mm:ss')}</span>
                               </div>
                             </div>
                             <Button
                               variant="ghost"
                               size="icon"
                               onClick={() => deleteScannedItem(item.id)}
-                              className="h-8 w-8"
+                              className="h-7 w-7"
                             >
-                              <Trash2 className="h-4 w-4 text-slate-400 hover:text-red-500" />
+                              <Trash2 className="h-3 w-3 text-slate-400 hover:text-red-500" />
                             </Button>
                           </motion.div>
                         ))}
                       </div>
                     </ScrollArea>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            )}
+          </div>
           
-          {activeTab === "stats" && (
+          {/* Right Column - Current Sale */}
+          <div>
             <motion.div
-              key="stats-tab"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="flex flex-col gap-6"
+              transition={{ duration: 0.3, delay: 0.2 }}
             >
-              <Card className="shadow-lg border-0">
-                <CardHeader className="border-b bg-slate-50 dark:bg-slate-800">
-                  <CardTitle>Scan Statistics</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl text-center">
-                      <p className="text-xs uppercase font-semibold opacity-80">Total Scans</p>
-                      <p className="text-3xl font-bold mt-1">{scannedItems.length}</p>
-                    </div>
-                    <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 rounded-xl text-center">
-                      <p className="text-xs uppercase font-semibold opacity-80">Unique Codes</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {new Set(scannedItems.map(item => item.code)).size}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 rounded-xl text-center">
-                      <p className="text-xs uppercase font-semibold opacity-80">Code Types</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {new Set(scannedItems.map(item => item.symbology)).size}
-                      </p>
-                    </div>
-                    <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 rounded-xl text-center">
-                      <p className="text-xs uppercase font-semibold opacity-80">Today's Scans</p>
-                      <p className="text-3xl font-bold mt-1">
-                        {scannedItems.filter(item => {
-                          const today = new Date();
-                          return item.timestamp.toDateString() === today.toDateString();
-                        }).length}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Most common barcode types */}
-                  {scannedItems.length > 0 && (
-                    <div className="mt-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
-                      <h3 className="text-sm font-medium mb-3">Most Common Barcode Types</h3>
-                      {Array.from(
-                        scannedItems.reduce((acc, item) => {
-                          acc.set(item.symbology, (acc.get(item.symbology) || 0) + 1);
-                          return acc;
-                        }, new Map<string, number>())
-                      )
-                        .sort((a, b) => b[1] - a[1])
-                        .slice(0, 3)
-                        .map(([symbology, count], index) => (
-                          <div key={symbology} className="mb-2 last:mb-0">
-                            <div className="flex justify-between text-sm mb-1">
-                              <span>{symbology}</span>
-                              <span className="font-medium">{count}</span>
-                            </div>
-                            <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
-                              <div 
-                                className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
-                                style={{ width: `${(count / scannedItems.length) * 100}%` }}
-                              ></div>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+              <SaleManager ref={saleManagerRef} />
             </motion.div>
-          )}
-        </AnimatePresence>
+          </div>
+        </div>
+        
+        {/* Stats - Moved to bottom section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.4 }}
+          className="mt-8"
+        >
+          <Card className="shadow-lg border-0">
+            <CardHeader className="border-b bg-slate-50 dark:bg-slate-800">
+              <CardTitle>Scan Statistics</CardTitle>
+            </CardHeader>
+            <CardContent className="pt-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl text-center">
+                  <p className="text-xs uppercase font-semibold opacity-80">Total Scans</p>
+                  <p className="text-3xl font-bold mt-1">{scannedItems.length}</p>
+                </div>
+                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 rounded-xl text-center">
+                  <p className="text-xs uppercase font-semibold opacity-80">Unique Codes</p>
+                  <p className="text-3xl font-bold mt-1">
+                    {new Set(scannedItems.map(item => item.code)).size}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 rounded-xl text-center">
+                  <p className="text-xs uppercase font-semibold opacity-80">Code Types</p>
+                  <p className="text-3xl font-bold mt-1">
+                    {new Set(scannedItems.map(item => item.symbology)).size}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 rounded-xl text-center">
+                  <p className="text-xs uppercase font-semibold opacity-80">Today's Scans</p>
+                  <p className="text-3xl font-bold mt-1">
+                    {scannedItems.filter(item => {
+                      const today = new Date();
+                      return item.timestamp.toDateString() === today.toDateString();
+                    }).length}
+                  </p>
+                </div>
+              </div>
+              
+              {/* Most common barcode types */}
+              {scannedItems.length > 0 && (
+                <div className="mt-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
+                  <h3 className="text-sm font-medium mb-3">Most Common Barcode Types</h3>
+                  {Array.from(
+                    scannedItems.reduce((acc, item) => {
+                      acc.set(item.symbology, (acc.get(item.symbology) || 0) + 1);
+                      return acc;
+                    }, new Map<string, number>())
+                  )
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 3)
+                    .map(([symbology, count], index) => (
+                      <div key={symbology} className="mb-2 last:mb-0">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span>{symbology}</span>
+                          <span className="font-medium">{count}</span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
+                          <div 
+                            className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                            style={{ width: `${(count / scannedItems.length) * 100}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
       </main>
       
       <footer className="p-4 border-t border-slate-200 dark:border-slate-800 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70">

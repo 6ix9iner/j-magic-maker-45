@@ -62,22 +62,8 @@ export const BARCODE_READER_CONFIG = {
   }
 };
 
-// Set SDK loading with faster explicit settings
-BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
-// Fast loading mode - use type assertion to set loading strategy
-try {
-  // Use type assertion to access extended properties
-  const extendedReader = BarcodeReader as unknown as typeof BarcodeReader & BarcodeReaderExtended;
-  extendedReader.loadingStrategy = {
-    priority: "speed", // Prioritize speed over accuracy
-    lazyLoad: false
-  };
-} catch (e) {
-  console.warn("Could not set loading strategy:", e);
-}
-
-// Global instance reference to improve reuse
+// Track initialization state
+let hasSetLicense = false;
 let globalReaderInstance: BarcodeReader | null = null;
 let isInitializing = false;
 let hasWasmLoaded = false;
@@ -87,9 +73,37 @@ let initializationAttempts = 0;
 const MAX_INIT_ATTEMPTS = 2;
 
 /**
+ * Set the license only once to avoid errors after hot reloads
+ */
+export const ensureLicenseIsSet = () => {
+  if (!hasSetLicense) {
+    console.log("Setting Dynamsoft license");
+    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+    BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
+    
+    // Fast loading mode - use type assertion to set loading strategy
+    try {
+      // Use type assertion to access extended properties
+      const extendedReader = BarcodeReader as unknown as typeof BarcodeReader & BarcodeReaderExtended;
+      extendedReader.loadingStrategy = {
+        priority: "speed", // Prioritize speed over accuracy
+        lazyLoad: false
+      };
+    } catch (e) {
+      console.warn("Could not set loading strategy:", e);
+    }
+    
+    hasSetLicense = true;
+  }
+};
+
+/**
  * Initialize the Dynamsoft BarcodeReader SDK with speed optimization
  */
 export const initializeDynamsoft = async () => {
+  // Set license once before initializing
+  ensureLicenseIsSet();
+  
   // Return immediately if already initialized
   if (hasWasmLoaded) {
     console.log("SDK already initialized, returning immediately");
@@ -101,7 +115,7 @@ export const initializeDynamsoft = async () => {
     console.log("Initialization already in progress, waiting...");
     // Wait for current initialization but with shorter timeout
     let waitTime = 0;
-    const maxWaitTime = 1000; // Reduced to 1 second maximum wait (as requested)
+    const maxWaitTime = 1000; // 1 second maximum wait
     
     return new Promise<boolean>((resolve) => {
       const checkInterval = setInterval(() => {
@@ -165,7 +179,7 @@ export const initializeDynamsoft = async () => {
     // Use a much shorter timeout for WASM loading - reduced to 1 second
     const loadWasmPromise = BarcodeReader.loadWasm();
     const timeoutPromise = new Promise<boolean>((_, reject) => {
-      setTimeout(() => reject(new Error("WASM loading timed out")), 1000); // Reduced to 1 second
+      setTimeout(() => reject(new Error("WASM loading timed out")), 1000); // 1 second
     });
     
     try {
@@ -179,7 +193,6 @@ export const initializeDynamsoft = async () => {
       hasWasmLoaded = true;
     }
     
-    // Pre-initialize scanner components for faster camera opening - skip for faster startup
     console.log("Dynamsoft SDK initialized successfully");
     return hasWasmLoaded;
   } catch (error) {
@@ -198,13 +211,16 @@ export const initializeDynamsoft = async () => {
 export const getReaderInstance = async (): Promise<BarcodeReader> => {
   if (!globalReaderInstance) {
     try {
+      // Ensure license is set first
+      ensureLicenseIsSet();
+      
       // Don't wait for full initialization
       initializeDynamsoft();
       
       // Create instance with timeout to prevent hanging
       const createPromise = BarcodeReader.createInstance();
       const timeoutPromise = new Promise<BarcodeReader>((_, reject) => {
-        setTimeout(() => reject(new Error("Create instance timed out")), 1000); // Reduced to 1 second
+        setTimeout(() => reject(new Error("Create instance timed out")), 1000); // 1 second
       });
       
       globalReaderInstance = await Promise.race([createPromise, timeoutPromise])
@@ -247,3 +263,6 @@ export const cleanupDynamsoft = async () => {
     console.warn("Error during scanner cleanup:", e);
   }
 };
+
+// Initialize license immediately when this file is imported
+ensureLicenseIsSet();

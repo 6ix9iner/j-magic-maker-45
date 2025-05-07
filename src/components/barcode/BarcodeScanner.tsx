@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const hasBeenInitializedRef = useRef(false);
   const [preInitStarted, setPreInitStarted] = useState(false);
-  const dialogRef = useRef<HTMLDivElement>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
 
   // Check if we're on a mobile device to use Sheet instead of Dialog
   useEffect(() => {
@@ -95,6 +94,33 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     }
   };
 
+  // Wait for DOM to be ready with shorter timeout
+  const waitForScannerContainer = (): Promise<HTMLDivElement | null> => {
+    return new Promise((resolve) => {
+      if (scannerContainerRef.current) {
+        return resolve(scannerContainerRef.current);
+      }
+
+      // Simple polling with very short timeout
+      let attempts = 0;
+      const checkInterval = setInterval(() => {
+        attempts++;
+        const container = document.querySelector('.scanner-container') as HTMLDivElement;
+        
+        if (container) {
+          clearInterval(checkInterval);
+          scannerContainerRef.current = container;
+          resolve(container);
+        }
+        
+        if (attempts >= 10) { // 10 * 100ms = 1 second max
+          clearInterval(checkInterval);
+          resolve(null);
+        }
+      }, 100);
+    });
+  };
+
   const handleOpen = async () => {
     // First, set open state to show the dialog/sheet
     setIsOpen(true);
@@ -102,28 +128,30 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
     // Give time for the dialog to render before starting the scanner
     setTimeout(async () => {
       try {
-        console.log("Scanner: Starting scanner directly...");
-        // Ensure viewRef is properly connected to the DOM element
-        if (!viewRef.current && dialogRef.current) {
-          const scannerContainer = dialogRef.current.querySelector('.scanner-container');
-          if (scannerContainer) {
-            // Force connect viewRef to the rendered scanner-container
-            viewRef.current = scannerContainer as HTMLDivElement;
-          }
-        }
+        console.log("Scanner: Starting scanner...");
         
-        if (!viewRef.current) {
-          console.error("Scanner: View container not found in DOM");
+        // Connect viewRef to scannerContainer for faster startup
+        const scannerContainer = await waitForScannerContainer();
+        if (!scannerContainer && !viewRef.current) {
+          console.error("Scanner: Scanner container not found after 1 second");
           toast.error("Failed to initialize scanner. Please try again.");
           setIsOpen(false);
           return;
         }
         
-        const started = await startScanner();
+        if (scannerContainer && !viewRef.current) {
+          // Force connect viewRef to the scanner-container
+          viewRef.current = scannerContainer;
+        }
         
-        if (!started) {
-          console.error("Scanner: Failed to start scanner");
-          toast.error("Failed to start scanner. Please try again.");
+        const started = await Promise.race([
+          startScanner(),
+          new Promise<boolean>(resolve => setTimeout(() => resolve(false), 1000)) // 1 second timeout
+        ]);
+        
+        if (started === false) {
+          console.error("Scanner: Failed to start scanner within 1 second");
+          toast.error("Scanner initialization timed out. Please try again.");
           setIsOpen(false);
           return;
         }
@@ -135,7 +163,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
         toast.error("Failed to start scanner. Please try again.");
         setIsOpen(false);
       }
-    }, 50); // Very short delay to ensure DOM is ready
+    }, 100);
   };
 
   const handleClose = async () => {
@@ -173,10 +201,7 @@ const BarcodeScanner = ({ onDetected }: BarcodeScannerProps) => {
           Point your camera at a barcode to scan.
         </p>
       </div>
-      <div 
-        ref={dialogRef}
-        className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}
-      >
+      <div className={useSheet ? "flex-1 flex items-center justify-center p-4" : "p-4"}>
         <BarcodeScannerUI
           isScanning={isScanning}
           isInitialized={isInitialized}

@@ -23,6 +23,7 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
   const retryCountRef = useRef<number>(0);
   const torchStateRef = useRef<boolean>(false);
   const scannerInitializedRef = useRef<boolean>(false);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -119,6 +120,22 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
     }
   }, [preInitialize]);
 
+  // Add a div with required classes for Dynamsoft scanner
+  useEffect(() => {
+    if (containerRef.current && !containerRef.current.querySelector('.dce-video-container')) {
+      const videoContainer = document.createElement('div');
+      videoContainer.className = 'dce-video-container';
+      videoContainer.style.position = 'absolute';
+      videoContainer.style.left = '0';
+      videoContainer.style.top = '0';
+      videoContainer.style.width = '100%';
+      videoContainer.style.height = '100%';
+      containerRef.current.appendChild(videoContainer);
+      
+      console.log("Created dce-video-container element for Dynamsoft scanner");
+    }
+  }, [isOpen, scanReady]);
+
   const handleOpenScanner = async () => {
     retryCountRef.current = 0;
     torchStateRef.current = false;
@@ -128,7 +145,7 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
       setIsOpen(true);
       setTimeout(() => {
         toggleScanning();
-      }, 200);
+      }, 600); // Increased delay to ensure DOM is ready
     } catch (err) {
       console.error("Permission error:", err);
     }
@@ -177,7 +194,7 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
       torchStateRef.current = false;
       setTimeout(() => {
         toggleScanning();
-      }, 300);
+      }, 600); // Increased delay for reliability
     } else {
       toast.error("Failed to restart scanner. Please try again.");
     }
@@ -218,18 +235,20 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
             </div>
             <div className="flex-1 flex items-center justify-center p-4">
               {scanReady && (
-                <BarcodeScannerUI 
-                  isScanning={isScanning}
-                  isTorchOn={torchStateRef.current}
-                  isInitialized={isInitialized}
-                  isError={isError}
-                  cameraPermissions={cameraPermissions}
-                  viewRef={viewRef}
-                  onToggleTorch={handleTorchToggle}
-                  onCancel={handleStopScanning}
-                  onRequestPermission={requestCameraPermission}
-                  onRetry={handleRetry}
-                />
+                <div ref={containerRef} className="scanner-container w-full relative" style={{ minHeight: '300px' }}>
+                  <BarcodeScannerUI 
+                    isScanning={isScanning}
+                    isTorchOn={torchStateRef.current}
+                    isInitialized={isInitialized}
+                    isError={isError}
+                    cameraPermissions={cameraPermissions}
+                    viewRef={viewRef}
+                    onToggleTorch={handleTorchToggle}
+                    onCancel={handleStopScanning}
+                    onRequestPermission={requestCameraPermission}
+                    onRetry={handleRetry}
+                  />
+                </div>
               )}
             </div>
           </SheetContent>
@@ -245,18 +264,20 @@ const BarcodeScanner = ({ onDetected, onScan }: BarcodeScannerProps) => {
             </DialogHeader>
             <div className="p-4 flex flex-col items-center justify-center">
               {scanReady && (
-                <BarcodeScannerUI 
-                  isScanning={isScanning}
-                  isTorchOn={torchStateRef.current}
-                  isInitialized={isInitialized}
-                  isError={isError}
-                  cameraPermissions={cameraPermissions}
-                  viewRef={viewRef}
-                  onToggleTorch={handleTorchToggle}
-                  onCancel={handleStopScanning}
-                  onRequestPermission={requestCameraPermission}
-                  onRetry={handleRetry}
-                />
+                <div ref={containerRef} className="scanner-container w-full relative" style={{ minHeight: '300px' }}>
+                  <BarcodeScannerUI 
+                    isScanning={isScanning}
+                    isTorchOn={torchStateRef.current}
+                    isInitialized={isInitialized}
+                    isError={isError}
+                    cameraPermissions={cameraPermissions}
+                    viewRef={viewRef}
+                    onToggleTorch={handleTorchToggle}
+                    onCancel={handleStopScanning}
+                    onRequestPermission={requestCameraPermission}
+                    onRetry={handleRetry}
+                  />
+                </div>
               )}
             </div>
           </DialogContent>

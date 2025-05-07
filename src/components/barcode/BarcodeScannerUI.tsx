@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Loader, CameraOff, Flashlight, FlashlightOff, RefreshCw, Camera } from "lucide-react";
 import { 
   Tooltip,
@@ -37,6 +37,34 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
   onRetry
 }) => {
   const [isRequestingPermission, setIsRequestingPermission] = useState(false);
+  
+  // Ensure the container has the class that Dynamsoft needs
+  useEffect(() => {
+    // Add the required Dynamsoft video container if needed
+    if (viewRef.current) {
+      console.log("Setting up scanner view container");
+      
+      // Make sure the viewRef has the proper class Dynamsoft looks for
+      viewRef.current.classList.add('dce-video-container-overlay');
+      
+      // Check if we need to create a container for Dynamsoft
+      if (!document.querySelector('.dce-video-container')) {
+        const videoContainer = document.createElement('div');
+        videoContainer.className = 'dce-video-container';
+        videoContainer.style.position = 'absolute';
+        videoContainer.style.left = '0';
+        videoContainer.style.top = '0';
+        videoContainer.style.width = '100%';
+        videoContainer.style.height = '100%';
+        
+        // Insert it as a sibling to viewRef if possible
+        if (viewRef.current.parentElement) {
+          viewRef.current.parentElement.insertBefore(videoContainer, viewRef.current);
+        }
+        console.log("Created dce-video-container element");
+      }
+    }
+  }, [viewRef, isInitialized]);
   
   // Function to handle requesting camera permissions
   const requestCameraPermission = async () => {
@@ -134,18 +162,21 @@ const BarcodeScannerUI: React.FC<BarcodeScannerUIProps> = ({
             </div>
           )}
           
-          {/* Scanner container */}
+          {/* Scanner container - make sure it has the right structure */}
           <div 
             className="scanner-container relative bg-black w-full h-full"
             data-scanner-container
           >
+            {/* Container for Dynamsoft scanner */}
+            <div className="dce-video-container absolute inset-0" style={{ backgroundColor: 'black' }}></div>
+            
             {/* Video container for Dynamsoft */}
             <div 
               ref={viewRef} 
-              className="absolute inset-0 flex items-center justify-center overflow-hidden"
+              className="absolute inset-0 flex items-center justify-center overflow-hidden dce-video-container-overlay"
               data-scanner-view
               id="dynamsoft-scanner-container"
-              style={{ backgroundColor: 'black' }}
+              style={{ backgroundColor: 'transparent', zIndex: 1 }}
             />
             
             {/* Scanner overlay */}

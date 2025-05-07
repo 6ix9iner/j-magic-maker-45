@@ -18,10 +18,10 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     let timer: NodeJS.Timeout;
     
     if (isOpen) {
-      // Short delay to ensure dialog is rendered before scanner
+      // Longer delay to ensure dialog is rendered before scanner
       timer = setTimeout(() => {
         setShouldRenderScanner(true);
-      }, 300);
+      }, 500);
     } else {
       // Immediately remove scanner when dialog closes
       setShouldRenderScanner(false);
@@ -32,7 +32,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     };
   }, [isOpen]);
   
-  // Create a handler that adapts onDetected to the expected onScan interface
+  // Create a handler that adapts onDetected to the expected interface
   const handleDetection = (code: string) => {
     onDetected(code);
     onClose();
@@ -51,10 +51,12 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
         </DialogHeader>
         <div className="py-4">
           {shouldRenderScanner && (
-            <BarcodeScanner 
-              onDetected={handleDetection} 
-              key={`scanner-instance-${Date.now()}`}
-            />
+            <div className="barcode-container" style={{ minHeight: "300px" }}>
+              <BarcodeScanner 
+                onDetected={handleDetection} 
+                key={`scanner-instance-${Date.now()}`}
+              />
+            </div>
           )}
         </div>
       </DialogContent>

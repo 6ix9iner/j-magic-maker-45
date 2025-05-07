@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import BarcodeScanner from "@/components/barcode/BarcodeScanner";
+import { motion } from "framer-motion";
 
 interface BarcodeDialogProps {
   isOpen: boolean;
@@ -54,25 +55,50 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) onClose();
     }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700 text-white">
         <DialogHeader>
-          <DialogTitle>Scan Barcode</DialogTitle>
-          <DialogDescription>
+          <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Scan Barcode</DialogTitle>
+          <DialogDescription className="text-slate-300">
             Position the barcode in view of your camera
           </DialogDescription>
         </DialogHeader>
         <div className="py-4">
           {shouldRenderScanner && (
-            <div 
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.3 }}
               ref={containerRef} 
-              className="barcode-container relative" 
+              className="barcode-container relative overflow-hidden rounded-xl" 
               style={{ minHeight: "300px" }}
             >
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 pointer-events-none z-10 rounded-xl"></div>
+              <div className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-gradient-to-r from-blue-400 to-purple-500 z-20 animate-pulse"></div>
+              
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                <motion.div 
+                  className="w-64 h-64 border-2 border-blue-400 rounded-lg"
+                  animate={{
+                    boxShadow: ["0 0 0 0 rgba(59, 130, 246, 0)", "0 0 0 10px rgba(59, 130, 246, 0.3)"],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    repeatType: "reverse"
+                  }}
+                >
+                  <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-blue-400"></div>
+                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-blue-400"></div>
+                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-blue-400"></div>
+                  <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-blue-400"></div>
+                </motion.div>
+              </div>
+              
               <BarcodeScanner 
                 onDetected={handleDetection} 
                 key={`scanner-instance-${Date.now()}`}
               />
-            </div>
+            </motion.div>
           )}
         </div>
       </DialogContent>

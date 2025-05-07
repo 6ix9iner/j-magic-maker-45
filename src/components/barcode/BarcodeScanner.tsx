@@ -88,8 +88,18 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
       isMounted = false;
       if (scannerRef.current) {
         console.log("Cleaning up scanner...");
-        scannerRef.current.stop().catch(e => console.log("Error stopping scanner:", e));
-        scannerRef.current.destroyContext().catch(e => console.log("Error destroying scanner context:", e));
+        // Fixed: Don't chain .catch() on void-returning functions
+        try {
+          scannerRef.current.stop();
+        } catch (e) {
+          console.log("Error stopping scanner:", e);
+        }
+        
+        try {
+          scannerRef.current.destroyContext();
+        } catch (e) {
+          console.log("Error destroying scanner context:", e);
+        }
         scannerRef.current = null;
       }
       

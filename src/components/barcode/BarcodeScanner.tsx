@@ -1,5 +1,5 @@
 
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useBarcodeScannerSDK } from '@/hooks/useBarcodeScannerSDK';
@@ -29,8 +29,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
     isInitialized,
     isError,
     toggleScanning,
-    toggleTorch,
-    stopScanning
+    toggleTorch
   } = useBarcodeScannerSDK({
     onScan: handleScan,
     stopAfterScan: true // Auto-stop scanning after detecting a barcode
@@ -39,7 +38,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onScan }) => {
   // Reset scan result and restart scanning
   const handleReset = () => {
     setLastScan(null);
-    toggleScanning();
+    setTimeout(() => {
+      toggleScanning();
+    }, 100);
   };
 
   // Show error state when scanner fails to initialize

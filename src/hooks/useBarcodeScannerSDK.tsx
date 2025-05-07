@@ -1,8 +1,7 @@
-
 import { useEffect, useRef, useState } from 'react';
 import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { useToast } from '@/hooks/use-toast';
-import { DYNAMSOFT_LICENSE_KEY, BARCODE_READER_CONFIG } from '@/utils/dynamsoftConfig';
+import { DYNAMSOFT_LICENSE_KEY, ensureLicenseIsSet } from '@/utils/dynamsoftConfig';
 
 export interface ScanResult {
   code: string;
@@ -33,9 +32,8 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarco
       try {
         console.log("Setting up Dynamsoft Barcode SDK");
         
-        // 1. Configure license first
-        console.log("Setting license key");
-        BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+        // 1. Configure license first (without modifying it after loadWasm is called)
+        await ensureLicenseIsSet();
         
         // 2. Set engine resource path without version in path
         console.log("Setting resource path");
@@ -129,11 +127,8 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarco
       const settings = await scanner.getRuntimeSettings();
       console.log("Current settings:", settings);
       
-      // Update barcode formats
-      settings.barcodeFormatIds = BARCODE_READER_CONFIG.barcodeFormats.reduce(
-        (acc, cur) => acc | cur,
-        0
-      );
+      // Update barcode formats - ensure we're using a valid format
+      settings.barcodeFormatIds = 0x3FF | 0x1000000 | 0x2000000;  // Common 1D, QR, DataMatrix
       
       // Update deblur level
       settings.deblurLevel = 2;
@@ -149,8 +144,6 @@ export const useBarcodeScannerSDK = ({ onScan, stopAfterScan = false }: UseBarco
         // Set the UI Element URL on the class, not the instance
         BarcodeScanner.defaultUIElementURL = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode/dist/dbr.ui.html";
         
-        // Note: createCameraElements is not a method of BarcodeScanner
-        // Instead, we'll prepare the DOM for the scanner
         console.log("Preparing DOM for scanner UI");
       } catch (e) {
         console.log("Warning while configuring UI elements:", e);

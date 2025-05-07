@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import BarcodeScanner from "@/components/BarcodeScanner";
+import BarcodeScanner from "@/components/barcode/BarcodeScanner";
 
 interface BarcodeDialogProps {
   isOpen: boolean;

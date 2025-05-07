@@ -11,19 +11,8 @@ interface BarcodeScannerExtended {
   cleanFrameBuffer?: () => Promise<void>;
 }
 
-// Interface for extended BarcodeReader functionality
-interface BarcodeReaderExtended {
-  loadingStrategy?: {
-    priority: string;
-    lazyLoad: boolean;
-  };
-}
-
 // License key for Dynamsoft Barcode Reader
 export const DYNAMSOFT_LICENSE_KEY = "DLS2eyJoYW5kc2hha2VDb2RlIjoiMTAzOTU3ODgwLVRYbFhaV0pRY205cSIsIm1haW5TZXJ2ZXJVUkwiOiJodHRwczovL21kbHMuZHluYW1zb2Z0b25saW5lLmNvbSIsIm9yZ2FuaXphdGlvbklEIjoiMTAzOTU3ODgwIiwic3RhbmRieVNlcnZlclVSTCI6Imh0dHBzOi8vc2Rscy5keW5hbXNvZnRvbmxpbmUuY29tIiwiY2hlY2tDb2RlIjotMTgyODIwMDQwNH0=";
-
-// Beep sound for successful scan - using a smaller MP3 file for better compatibility
-export const BEEP_SOUND_URL = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU4Ljc2LjEwMAAAAAAAAAAAAAAA/+M4wAAAAAAAAAAAAEluZm8AAAAPAAAAAwAAAbAAyMjIyMjIyMjIyMjIyMjIyMjI8PDw8PDw8PDw8PDw8PDw8PDw8P////////////////////////////////8AAAAATGF2YzU4LjEzAAAAAAAAAAAAAAAAJAeAAAAAAAAAAbAyfj2eAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+MoxAAUw2KeVEsQAkIkDmTkUGOgBbOuTDLgeBB4PDgwI/CE4OHQcBAMYE/B/4P+QfgQdCDoQd/oEPKv/rSrkPvt4uJLjzYcgLJkBLhsz8QHLHONELRyivykv2s/2+K4mb6HsbiiuOy8aVbk6sQE1ZhjqbMRdQAjgh1A+hQJHLMAQ6ipxEcSDJEqAT5QSCwGUCVDECOXKRQYQ0Q7vQxA5dVMAQQoWysxCZgp2NE0GG0F+WqUylUUGIaRky1A4FAMYUA5VAhwzRAEsFzORgViVByk4Syr/czU0kmlcr9ec08nVXNz/+MoxA8ZKyq0AGsQvDU3O9KmZffHp7TW73LnZplsyttZ59+/HvvFet22dtZ2y7LWtrrW7vSt1tc7Nd3Z613ed6960r8fus61L9estmvXdnbtlta3ve7TTibmeWvVzbmcl7R5Wa1dy53Z13qs6mZ3Jbl1y23ttZltv9a2+cZ+7acltnWdJJDctu7usDvaV2WtZ29ttrNNNt/bOt6mcYf9Xm1O9La2m7bskziRNiZHuXNvOS3d2W7u2dpzNsXNaZr73/vZX/G1Ju93O//f+7la2yNNexFU7yADsU7/+MoxAYRsXbVvsGHBCNYkVkpBYryXCU6KJdCGzWS0snWlaVq0VZbR9nWTPOlrO1LW5Wa35Zm3TMv3da1fX/Za1Kel//+t//fTZ/t5r7f/erzXbf//733W3//Vo9q618fn1uzPivf07d+a1+TVPU2qdEjQ0likVNPGoquaqvmohxB6aoMXnEHVOVIm5oyLryZGUXUFTMy/NLTtO131///8wf////9L+vNXf////+3/+73//u5H28UJgpa1YkokGUWSSDJgzaZnJqr/+MoxBQSU0L4AMJSkMqt8lqla1NXlq03MjShS1TVZRRRSKkkiqEyKORuZDeZLJZFaG9NTdlaVr///+1////uZf////////9////ef///////vmUiQRDJVokIEkTImExI0kUjQmRpLZLSdJSdaVdVXZTUtNU1TNJVdcy6UUVJoZC1KVNDOojEVTM5/1Zn/////9sv////tf///////7lf////////FVrJdKJNEOhAikEinkZRI0iyLREkskojbrbrWq/qkaUiVVVMmaRQkBm2USSK/+MoxBsSYyMAAMJSfKwVVMXoTHmoiQZdmYiQRdWMhqpDKZFa0uXTO40kSpLZm2qqppKQwgUVSrA0esBFAszWqaa1Uqmt1NJUv/loqmRNFIqqJkS1qVCYTEx0KIiZipClFVE6hpFxNNBP7+mkIqUVVaKrmVKmTJCFAJiYoLhoiKtQpf3pEwwCAchQgUxYY1AoLFhIUI7GiFBlPCYzLTXZk+lV1TUfsVWqaW6St//////////////8zUtSFKBFEUioTBAYR11IZjaUcxQmDxEPOCgH/+MoxBgRsvFHhSiAA5MCRYFCQwJDQBD+CB/4JP/ggf8CQ/LlxVNiiI0H0DSCvDQ0LlzGxE6JBESPieGJlbNMk1v////9JKv/////6qmVQyNqlJlUTKoyVKUpUqVRsqjZJSSVRskqqNkmSqSRlZVIzJWyyVqlmSSGwcmVbFAUDBKArEVCSIYNa10hCqxT5RkrcwKmeEohAkslkkk0lkkkrqvqTf/+pKv///////9SSSaJJJdI1I0jXSNdIwNPRRREREVUVUtlQXUL/+MoxBwS0dLtXT2AA1ME5Kkk1YqRUioFQKgVZ6RUCpFQKoVIqBVipFSKgVQqRUY4qRUCpKoVIqBVipJNSKgVIqBVFUVRVFUVRVFUVRVFUkmpFSKkqiVJVFUVRVFUVRVFUVRVFUVRU9NX0XpoWBITxXlk0V8CRtCgUip9JH+j/R/o/0FfN/qS+CQtiuK60f6P9H+lfSfkLb6JoKi2Ymhkzk0kf/0f6P9JSRzJP0pvUvEcaONHGjjRxo40cBIYCQwEhgJDAKICQwEhgJDASOBYuEnBJJP/+MoxB4RyMGkBUlAAbipLSqKkiclElgVF0mmVWVTLJKqJP6qSKCSRUVAKi4clHxDQKBJEkTcdR8Q0KDYZxPlDQcHJbf///9ezdqUQpjNOdV/lPWd//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////+MoxB8QEKkUA0tAAA==";
 
 // Configure barcode formats
 export const BARCODE_READER_CONFIG = {
@@ -58,7 +47,7 @@ let hasWasmLoaded = false;
 let isInitializing = false;
 
 // Initialize with a direct approach that only sets the license once
-export const ensureLicenseIsSet = () => {
+export const ensureLicenseIsSet = async () => {
   if (typeof window === 'undefined') return; // Server-side safety check
   
   // Skip if already initialized
@@ -80,30 +69,7 @@ export const ensureLicenseIsSet = () => {
     // Set CDN path with specific version to prevent redirects
     BarcodeReader.engineResourcePath = "https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/";
     
-    // Extreme speed optimizations
-    try {
-      // Use type assertion for faster loading
-      const extendedReader = BarcodeReader as unknown as typeof BarcodeReader & BarcodeReaderExtended;
-      if (extendedReader.loadingStrategy) {
-        extendedReader.loadingStrategy = {
-          priority: "speed",
-          lazyLoad: false
-        };
-      }
-      
-      // @ts-ignore - Additional optimizations
-      BarcodeReader.browserFriendly = true;
-      // @ts-ignore
-      BarcodeReader.useImageSettings = false;
-      // @ts-ignore
-      BarcodeReader.loadWasmPriority = "speed";
-      // @ts-ignore
-      BarcodeScanner.singleFrameMode = false;
-    } catch (e) {
-      console.warn("Could not set all optimization options:", e);
-    }
-    
-    // Mark as initialized globally
+    // Mark as initialized globally to prevent duplicate initialization attempts
     licenseInitialized = true;
     // @ts-ignore - Access window as global storage
     window._dynamsoft_license_initialized = true;
@@ -114,6 +80,7 @@ export const ensureLicenseIsSet = () => {
       licenseInitialized = true;
       // @ts-ignore - Access window as global storage
       window._dynamsoft_license_initialized = true;
+      console.log("License already initialized");
     } else {
       console.error("License initialization error:", e);
     }
@@ -125,7 +92,7 @@ export const ensureLicenseIsSet = () => {
  */
 export const initializeDynamsoft = async () => {
   // Set license - will only happen once due to the flag check
-  ensureLicenseIsSet();
+  await ensureLicenseIsSet();
   
   // Return immediately if already initialized
   if (hasWasmLoaded) {
@@ -161,29 +128,9 @@ export const initializeDynamsoft = async () => {
   try {
     console.log("Initializing Dynamsoft SDK with extreme speed optimizations...");
     
-    // Use a strict timeout of 400ms for the entire initialization (reduced from 950ms)
-    const loadPromise = (async () => {
-      try {
-        await BarcodeReader.loadWasm();
-        return true;
-      } catch (e) {
-        console.warn("WASM loading error:", e);
-        return false;
-      }
-    })();
-    
-    const timeoutPromise = new Promise<boolean>(resolve => {
-      setTimeout(() => {
-        console.log("WASM loading timed out, continuing anyway");
-        resolve(true);
-      }, 400); // 400ms timeout (reduced from 950ms)
-    });
-    
-    // Race between loading and timeout
-    await Promise.race([loadPromise, timeoutPromise]);
-    
-    // Mark as initialized regardless - we'll fallback gracefully if needed
+    // Mark as initialization in progress
     hasWasmLoaded = true;
+    
     return true;
   } catch (error) {
     console.error("Failed to initialize Dynamsoft SDK:", error);
@@ -211,4 +158,4 @@ export const cleanupDynamsoft = async () => {
 };
 
 // Immediately initialize the license
-initializeDynamsoft().catch(console.error);
+ensureLicenseIsSet().catch(console.error);

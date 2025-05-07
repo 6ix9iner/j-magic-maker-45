@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import BarcodeScanner from '@/components/BarcodeScanner';
+import BarcodeScanner from '@/components/barcode/BarcodeScanner';
 import ScannedItemsList, { ScannedItem } from '@/components/ScannedItemsList';
 import { useIsMobile } from '@/hooks/use-mobile';
 

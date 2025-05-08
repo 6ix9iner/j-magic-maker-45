@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import BarcodeScanner from "@/components/barcode/BarcodeScanner";
 import { motion } from "framer-motion";
+import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
+import { DYNAMSOFT_LICENSE_KEY } from '@/components/barcode/BarcodeConfigUtils';
 
 interface BarcodeDialogProps {
   isOpen: boolean;
@@ -13,48 +14,164 @@ interface BarcodeDialogProps {
 const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   // Track whether to render the scanner to ensure clean mounting/unmounting
   const [shouldRenderScanner, setShouldRenderScanner] = useState(false);
+  const [scanner, setScanner] = useState<DynamsoftScanner | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const scannerContainerRef = useRef<HTMLDivElement>(null);
   const dialogOpenRef = useRef(false);
-  const scannerKeyRef = useRef(Date.now());
+  const videoContainerCreated = useRef<boolean>(false);
+  const isDestroyingRef = useRef<boolean>(false);
+  
+  // Initialize the barcode reader library once on component mount
+  useEffect(() => {
+    // We don't set license here anymore - it's only set in the main scanner initialization
+    // This avoids the "license is not allowed to change" error
+    
+    return () => {
+      // Clean up any resources when component unmounts
+      isDestroyingRef.current = true;
+    };
+  }, []);
   
   // Track dialog open state for proper scanner initialization/cleanup
   useEffect(() => {
     dialogOpenRef.current = isOpen;
     
-    // When dialog opens, generate a new key to force scanner remount
+    // When dialog opens, prepare for scanner mounting
     if (isOpen) {
-      scannerKeyRef.current = Date.now();
+      setShouldRenderScanner(true);
+    } else {
+      cleanupScanner();
+      setShouldRenderScanner(false);
     }
   }, [isOpen]);
   
-  // Handle scanner mounting with a slight delay to ensure dialog is fully open
+  // Set up the scanner when the container is ready and dialog is open
   useEffect(() => {
-    let timer: NodeJS.Timeout;
+    if (!shouldRenderScanner || !dialogOpenRef.current) return;
     
-    if (isOpen) {
-      // Longer delay to ensure dialog is rendered before scanner
-      timer = setTimeout(() => {
-        if (dialogOpenRef.current) {
-          console.log("Rendering scanner in dialog");
-          setShouldRenderScanner(true);
+    let isMounted = true;
+    
+    const setupScanner = async () => {
+      if (isDestroyingRef.current || !dialogOpenRef.current) return;
+      
+      try {
+        console.log("Setting up scanner in dialog");
+        
+        // Create video container element required by Dynamsoft scanner
+        if (scannerContainerRef.current && !videoContainerCreated.current) {
+          const videoContainer = document.createElement('div');
+          videoContainer.className = 'dce-video-container';
+          videoContainer.id = 'dce-video-container-dialog';
+          videoContainer.style.position = 'absolute';
+          videoContainer.style.left = '0';
+          videoContainer.style.top = '0';
+          videoContainer.style.width = '100%';
+          videoContainer.style.height = '100%';
+          scannerContainerRef.current.appendChild(videoContainer);
+          videoContainerCreated.current = true;
+          console.log("Dialog video container created");
         }
-      }, 300);
-    } else {
-      // Immediately remove scanner when dialog closes
-      setShouldRenderScanner(false);
-    }
+        
+        // Create scanner instance without setting license again
+        const scannerInstance = await DynamsoftScanner.createInstance();
+        console.log("Dialog scanner instance created");
+        
+        // Update settings for better performance
+        const settings = await scannerInstance.getRuntimeSettings();
+        settings.barcodeFormatIds = 0x3FF | 0x1000000 | 0x2000000; // Common 1D, QR, DataMatrix
+        settings.deblurLevel = 2;
+        await scannerInstance.updateRuntimeSettings(settings);
+        
+        if (isMounted && dialogOpenRef.current && !isDestroyingRef.current) {
+          setScanner(scannerInstance);
+          
+          // Set up callback for barcode detection
+          scannerInstance.onUnduplicatedRead = (txt, result) => {
+            console.log("Dialog barcode detected:", txt);
+            onDetected(txt);
+          };
+          
+          // Start scanning if container is ready
+          if (scannerContainerRef.current) {
+            try {
+              await scannerInstance.setUIElement(scannerContainerRef.current);
+              await scannerInstance.show();
+              console.log("Dialog scanner started");
+            } catch (err) {
+              console.error("Failed to start dialog scanner:", err);
+              if (isMounted && !isDestroyingRef.current) {
+                setError("Camera access required");
+              }
+            }
+          }
+        } else {
+          console.log("Component unmounted during scanner setup, cleaning up");
+          try {
+            await scannerInstance.destroyContext();
+          } catch (e) {
+            console.error("Error destroying scanner during setup cleanup:", e);
+          }
+        }
+      } catch (err) {
+        console.error("Dialog scanner setup error:", err);
+        if (isMounted && !isDestroyingRef.current) {
+          setError("Please allow camera access to scan");
+        }
+      }
+    };
+    
+    setupScanner();
     
     return () => {
-      clearTimeout(timer);
+      isMounted = false;
+      cleanupScanner();
     };
-  }, [isOpen]);
+  }, [shouldRenderScanner]);
+
+  // Clean up scanner resources
+  const cleanupScanner = async () => {
+    if (scanner) {
+      try {
+        console.log("Cleaning up dialog scanner");
+        try {
+          await scanner.hide();
+          console.log("Dialog scanner hidden");
+        } catch (e) {
+          console.error("Error hiding dialog scanner:", e);
+        }
+        
+        try {
+          await scanner.destroyContext();
+          console.log("Dialog scanner destroyed");
+        } catch (e) {
+          console.error("Error destroying dialog scanner:", e);
+        }
+        
+        setScanner(null);
+      } catch (e) {
+        console.error("Error in dialog scanner cleanup:", e);
+      }
+    }
+    
+    // Clean up the video container
+    if (scannerContainerRef.current) {
+      const videoContainer = document.getElementById('dce-video-container-dialog');
+      if (videoContainer && videoContainer.parentNode === scannerContainerRef.current) {
+        scannerContainerRef.current.removeChild(videoContainer);
+        console.log("Dialog video container removed");
+      }
+    }
+    
+    videoContainerCreated.current = false;
+  };
 
   // Create a handler that adapts onDetected to the expected interface
   const handleDetection = (code: string) => {
     console.log("Barcode detected in dialog:", code);
     onDetected(code);
     
-    // Instead of closing, we'll just update the dialog but leave it open
-    // This allows for multiple scans
+    // We don't close the dialog after detection, allowing for multiple scans
+    // User can manually close the dialog when done
     // onClose();
   };
 
@@ -114,10 +231,21 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
                 </motion.div>
               </div>
               
-              <BarcodeScanner 
-                onDetected={handleDetection} 
-                key={`scanner-instance-${scannerKeyRef.current}`}
-              />
+              <div 
+                ref={scannerContainerRef} 
+                className="absolute inset-0"
+              >
+                {error && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-white z-40">
+                    <div className="text-center p-4">
+                      <p className="text-red-500 font-medium mb-2">{error}</p>
+                      <p className="text-sm text-gray-600">
+                        Please allow camera access to scan barcodes
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
         </div>

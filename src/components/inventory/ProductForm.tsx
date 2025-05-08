@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+
+import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -6,6 +7,7 @@ import { Barcode } from "lucide-react";
 import { useIsMobile } from '@/hooks/use-mobile';
 // Import the barcode dialog component that uses the functional scanner implementation
 import BarcodeDialog from "@/components/inventory/BarcodeDialog";
+import { initializeBarcodeReader } from '@/components/barcode/BarcodeInitializer';
 
 interface Product {
   id?: string;
@@ -37,6 +39,14 @@ const ProductForm = ({
 }: ProductFormProps) => {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const isMobile = useIsMobile();
+  
+  // Make sure barcode scanner is initialized when component mounts
+  useEffect(() => {
+    // Initialize barcode scanner when component mounts
+    initializeBarcodeReader().catch(err => {
+      console.error("Error initializing barcode reader:", err);
+    });
+  }, []);
 
   const handleBarcodeDetected = (result: string) => {
     // Create a synthetic change event to update the barcode field
@@ -184,7 +194,7 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Modified BarcodeDialog implementation */}
+      {/* Improved BarcodeDialog implementation */}
       <BarcodeDialog
         isOpen={isScannerOpen}
         onClose={handleCloseScanner}

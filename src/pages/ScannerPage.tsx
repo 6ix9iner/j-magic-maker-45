@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -9,12 +8,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { BarcodeReader, BarcodeScanner } from 'dynamsoft-javascript-barcode';
-import { DYNAMSOFT_LICENSE_KEY } from '@/components/barcode/BarcodeConfigUtils';
+import { BarcodeScanner } from 'dynamsoft-javascript-barcode';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from 'date-fns';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
+import { initializeBarcodeReader, isBarcodeReaderInitialized } from '@/components/barcode/BarcodeInitializer';
 
 // Type definition for a scanned item
 export interface ScannedItem {
@@ -39,15 +38,12 @@ const ScannerPage = () => {
     let isInitStarted = false;
     
     const initBarcodeReader = async () => {
-      if (isInitStarted) return;
+      if (isInitStarted || isBarcodeReaderInitialized()) return;
       isInitStarted = true;
       
       setIsInitializing(true);
       try {
-        // Set license key
-        BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-        // Set engine resource path
-        BarcodeReader.engineResourcePath = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/';
+        await initializeBarcodeReader();
         console.log("Barcode scanner initialized in ScannerPage");
         setIsScannerReady(true);
       } catch (e) {

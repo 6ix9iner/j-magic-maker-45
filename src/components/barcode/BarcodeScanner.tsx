@@ -1,7 +1,7 @@
-
 import React, { useEffect, useRef, useState } from 'react';
-import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
-import { createBarcodeReaderConfig, DYNAMSOFT_LICENSE_KEY, BEEP_SOUND_URL } from './BarcodeConfigUtils';
+import { BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
+import { createBarcodeReaderConfig, BEEP_SOUND_URL } from './BarcodeConfigUtils';
+import { initializeBarcodeReader, isBarcodeReaderInitialized } from './BarcodeInitializer';
 
 interface BarcodeScannerProps {
   onDetected: (code: string) => void;
@@ -29,6 +29,22 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
       console.error("Error creating audio:", err);
     }
   };
+
+  useEffect(() => {
+    // Ensure barcode library is initialized
+    const ensureInitialized = async () => {
+      if (!isBarcodeReaderInitialized()) {
+        try {
+          await initializeBarcodeReader();
+        } catch (err) {
+          console.error("Failed to initialize barcode reader:", err);
+          setError("Failed to initialize scanner");
+        }
+      }
+    };
+    
+    ensureInitialized();
+  }, []);
 
   useEffect(() => {
     // If we're in controlled mode and not open, do nothing
@@ -67,10 +83,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
         // Ensure video container is created before scanner initialization
         ensureVideoContainer();
         
-        // Set license
-        BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
-        // Set engine resource path
-        BarcodeReader.engineResourcePath = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/';
+        // Make sure barcode reader is initialized globally
+        if (!isBarcodeReaderInitialized()) {
+          await initializeBarcodeReader();
+        }
         
         // Create scanner instance
         scannerInstance = await DynamsoftScanner.createInstance();

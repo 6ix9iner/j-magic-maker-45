@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +11,8 @@ import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Settings from "./pages/Settings";
+import Sales from "./pages/Sales";
+import Receipts from "./pages/Receipts";
 import Layout from "./components/Layout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoadingScreen from "./components/LoadingScreen";
@@ -81,6 +82,16 @@ const AppRoutes = () => {
         <Route path="/settings" element={
           <ProtectedRoute>
             <Settings />
+          </ProtectedRoute>
+        } />
+        <Route path="/sales" element={
+          <ProtectedRoute>
+            <Sales />
+          </ProtectedRoute>
+        } />
+        <Route path="/receipts" element={
+          <ProtectedRoute>
+            <Receipts />
           </ProtectedRoute>
         } />
         <Route path="*" element={<NotFound />} />

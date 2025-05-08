@@ -14,15 +14,29 @@ import BarcodeReaderComponent from '@/components/barcode/BarcodeScanner';
 interface BarcodeScannerProps {
   onDetected: (code: string) => void;
   onScan?: (code: string, symbology: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) => {
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ 
+  onDetected, 
+  onScan, 
+  open, 
+  onOpenChange 
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isScannerReady, setIsScannerReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const isMobile = useIsMobile();
   // Track dialog open state for proper scanner initialization
   const dialogOpenRef = React.useRef(false);
+
+  // Handle controlled mode when open/onOpenChange are provided
+  useEffect(() => {
+    if (open !== undefined && onOpenChange) {
+      setIsOpen(open);
+    }
+  }, [open, onOpenChange]);
 
   // Initialize barcode reader
   useEffect(() => {
@@ -58,11 +72,17 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
   const handleDialogOpen = () => {
     setIsOpen(true);
     dialogOpenRef.current = true;
+    if (onOpenChange) {
+      onOpenChange(true);
+    }
   };
 
   const handleDialogClose = () => {
     setIsOpen(false);
     dialogOpenRef.current = false;
+    if (onOpenChange) {
+      onOpenChange(false);
+    }
   };
 
   const handleScan = (code: string, symbology: string = "Unknown") => {
@@ -237,17 +257,24 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
 
   return (
     <>
-      <Button 
-        onClick={handleDialogOpen}
-        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
-        disabled={isInitializing}
-      >
-        <ScanBarcode className="w-5 h-5 mr-2" />
-        {isInitializing ? "Initializing Scanner..." : "Scan Barcode"}
-      </Button>
+      {/* Only render the button if we're not in controlled mode */}
+      {open === undefined && (
+        <Button 
+          onClick={handleDialogOpen}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium"
+          disabled={isInitializing}
+        >
+          <ScanBarcode className="w-5 h-5 mr-2" />
+          {isInitializing ? "Initializing Scanner..." : "Scan Barcode"}
+        </Button>
+      )}
 
       {isMobile ? (
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+        <Sheet open={isOpen} onOpenChange={(open) => {
+          setIsOpen(open);
+          if (onOpenChange) onOpenChange(open);
+          dialogOpenRef.current = open;
+        }}>
           <SheetContent side="bottom" className="h-[85vh] p-0">
             <div className="p-4 border-b">
               <h2 className="text-xl font-semibold">Scan Barcode</h2>
@@ -260,7 +287,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, onScan }) =
           </SheetContent>
         </Sheet>
       ) : (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={(open) => {
+          setIsOpen(open);
+          if (onOpenChange) onOpenChange(open);
+          dialogOpenRef.current = open;
+        }}>
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>Scan Barcode</DialogTitle>

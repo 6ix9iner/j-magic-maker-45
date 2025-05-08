@@ -69,7 +69,7 @@ const ProductForm = ({
             name="name"
             value={product.name || ''}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-white/20 bg-white/5 text-white"
+            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -82,13 +82,13 @@ const ProductForm = ({
               name="barcode"
               value={product.barcode || ''}
               onChange={onInputChange}
-              className="flex-1 rounded-xl border-white/20 bg-white/5 text-white"
+              className="flex-1 rounded-xl border-slate-300 bg-white text-slate-900"
             />
             <Button 
               variant="outline" 
               size="icon" 
               type="button"
-              className="rounded-xl border-white/20 bg-white/5 hover:bg-white/10 text-white"
+              className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
               onClick={() => setIsScannerOpen(true)}
             >
               <Barcode className="h-4 w-4" />
@@ -107,7 +107,7 @@ const ProductForm = ({
             min="0"
             value={product.price || 0}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-white/20 bg-white/5 text-white"
+            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -122,7 +122,7 @@ const ProductForm = ({
             min="0"
             value={product.purchase_price || 0}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-white/20 bg-white/5 text-white"
+            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -136,7 +136,7 @@ const ProductForm = ({
             min="0"
             value={product.stock_count || 0}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-white/20 bg-white/5 text-white"
+            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -148,7 +148,7 @@ const ProductForm = ({
             name="category"
             value={product.category || ''}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-white/20 bg-white/5 text-white"
+            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
           />
         </div>
       </div>
@@ -156,74 +156,24 @@ const ProductForm = ({
         <Button 
           variant="outline" 
           onClick={onCancel}
-          className="rounded-xl border-white/20 bg-white/5 hover:bg-white/10"
+          className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
         >
           Cancel
         </Button>
         <Button 
           onClick={onSave}
-          className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700"
+          className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white"
         >
           {isEditing ? 'Update' : 'Create'}
         </Button>
       </DialogFooter>
 
-      {/* Integrated Barcode Scanner using MobilePopover for mobile */}
-      {isMobile ? (
-        <MobilePopover
-          isOpen={isScannerOpen}
-          onClose={() => setIsScannerOpen(false)}
-          title="Scan Product Barcode"
-        >
-          <div className="p-2">
-            {isScannerOpen && (
-              <div className="relative rounded-xl overflow-hidden">
-                <BarcodeScanner onDetected={handleBarcodeDetected} />
-                <div className="scan-line"></div>
-                <div className="scan-corner scan-corner-tl"></div>
-                <div className="scan-corner scan-corner-tr"></div>
-                <div className="scan-corner scan-corner-bl"></div>
-                <div className="scan-corner scan-corner-br"></div>
-              </div>
-            )}
-            <p className="text-sm text-center mt-3 text-white/70">
-              Position barcode within view for automatic scanning
-            </p>
-          </div>
-        </MobilePopover>
-      ) : (
-        <div className={`fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center z-50 ${isScannerOpen ? 'block' : 'hidden'}`}>
-          <div className="bg-gradient-to-b from-slate-800 to-slate-900 rounded-2xl w-[90%] max-w-md overflow-hidden shadow-2xl border border-white/10">
-            <div className="p-4 border-b border-slate-700">
-              <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
-                  Scan Product Barcode
-                </h2>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsScannerOpen(false)}
-                  className="text-white hover:bg-white/10"
-                >
-                  Cancel
-                </Button>
-              </div>
-            </div>
-            <div className="p-4">
-              {isScannerOpen && (
-                <div className="relative rounded-xl overflow-hidden">
-                  <BarcodeScanner onDetected={handleBarcodeDetected} />
-                  <div className="scan-line"></div>
-                  <div className="scan-corner scan-corner-tl"></div>
-                  <div className="scan-corner scan-corner-tr"></div>
-                  <div className="scan-corner scan-corner-bl"></div>
-                  <div className="scan-corner scan-corner-br"></div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Use the main scanner component */}
+      <BarcodeScanner 
+        onDetected={handleBarcodeDetected} 
+        open={isScannerOpen}
+        onOpenChange={setIsScannerOpen}
+      />
     </>
   );
 };

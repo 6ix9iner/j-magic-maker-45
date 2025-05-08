@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { PackageAlert } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -211,7 +211,7 @@ const Dashboard = () => {
                 <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
                   <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1">
                     Low Stock Alert
-                    <PackageAlert className="h-3.5 w-3.5 text-red-500" />
+                    <AlertCircle className="h-3.5 w-3.5 text-red-500" />
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
@@ -225,7 +225,7 @@ const Dashboard = () => {
             <PopoverContent className="w-80 max-h-96 overflow-auto p-0" align="end">
               <div className="p-4 border-b">
                 <h3 className="font-medium text-lg flex items-center gap-2">
-                  <PackageAlert className="h-4 w-4 text-red-500" />
+                  <AlertCircle className="h-4 w-4 text-red-500" />
                   Low Stock Products
                 </h3>
                 <p className="text-sm text-muted-foreground">Products with less than 5 items in stock</p>

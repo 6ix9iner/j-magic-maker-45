@@ -27,6 +27,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isScannerReady, setIsScannerReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [showInitMessage, setShowInitMessage] = useState(false);
   const isMobile = useIsMobile();
   // Track dialog open state for proper scanner initialization
   const dialogOpenRef = React.useRef(false);
@@ -70,11 +71,17 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   }, []);
 
   const handleDialogOpen = () => {
+    setShowInitMessage(true);
     setIsOpen(true);
     dialogOpenRef.current = true;
     if (onOpenChange) {
       onOpenChange(true);
     }
+    
+    // Hide the initialization message after a short delay
+    setTimeout(() => {
+      setShowInitMessage(false);
+    }, 2000);
   };
 
   const handleDialogClose = () => {
@@ -222,6 +229,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     
     return (
       <div className="flex flex-col items-center p-4">
+        {showInitMessage && (
+          <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center text-white">
+            <div className="text-center p-6 bg-slate-800/90 rounded-lg shadow-lg max-w-[250px] animate-pulse">
+              <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
+              <p className="font-medium text-lg mb-1">Initializing Scanner</p>
+              <p className="text-sm text-slate-300">Please wait a moment...</p>
+            </div>
+          </div>
+        )}
         {error ? (
           <div className="text-center py-8">
             <p className="text-amber-500 font-medium">{error}</p>

@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Barcode } from "lucide-react";
 import { useIsMobile } from '@/hooks/use-mobile';
-// Import the main BarcodeScanner component from the root components directory
-import BarcodeScanner from "@/components/BarcodeScanner";
+// Import the barcode dialog component that uses the functional scanner implementation
+import BarcodeDialog from "@/components/inventory/BarcodeDialog";
 
 interface Product {
   id?: string;
@@ -174,12 +174,11 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* This uses the BarcodeScanner from the root components directory which 
-          works with both the dialog and sheet interfaces */}
-      <BarcodeScanner
+      {/* Use the BarcodeDialog component instead of the direct BarcodeScanner */}
+      <BarcodeDialog
+        isOpen={isScannerOpen}
+        onClose={() => setIsScannerOpen(false)}
         onDetected={handleBarcodeDetected}
-        open={isScannerOpen}
-        onOpenChange={setIsScannerOpen}
       />
     </>
   );

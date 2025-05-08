@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -10,6 +9,7 @@ import { toast } from "sonner";
 import BusinessInfoForm from "@/components/receipt/BusinessInfoForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Receipt from "@/components/receipt/Receipt";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface BusinessInfo {
   business_name: string;
@@ -225,27 +225,31 @@ const Receipts = () => {
           setEditMode(false);
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle>
               {businessInfo ? "Edit Business Information" : "Set Up Business Information"}
             </DialogTitle>
           </DialogHeader>
-          <BusinessInfoForm
-            initialData={businessInfo ? {
-              businessName: businessInfo.business_name,
-              address: businessInfo.address,
-              city: businessInfo.city,
-              state: businessInfo.state,
-              zipCode: businessInfo.zip_code,
-              phone: businessInfo.phone,
-              email: businessInfo.email,
-              website: businessInfo.website || '',
-              taxId: businessInfo.tax_id || '',
-              thankYouMessage: businessInfo.thank_you_message || ''
-            } : undefined}
-            onSaved={handleBusinessInfoSaved}
-          />
+          <ScrollArea className="flex-1 max-h-[70vh]">
+            <div className="p-1">
+              <BusinessInfoForm
+                initialData={businessInfo ? {
+                  businessName: businessInfo.business_name,
+                  address: businessInfo.address,
+                  city: businessInfo.city,
+                  state: businessInfo.state,
+                  zipCode: businessInfo.zip_code,
+                  phone: businessInfo.phone,
+                  email: businessInfo.email,
+                  website: businessInfo.website || '',
+                  taxId: businessInfo.tax_id || '',
+                  thankYouMessage: businessInfo.thank_you_message || ''
+                } : undefined}
+                onSaved={handleBusinessInfoSaved}
+              />
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>

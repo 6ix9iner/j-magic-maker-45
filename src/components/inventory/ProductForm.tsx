@@ -6,7 +6,6 @@ import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Barcode } from "lucide-react";
 import { useIsMobile } from '@/hooks/use-mobile';
 import BarcodeScanner from "@/components/barcode/BarcodeScanner";
-import MobilePopover from '@/components/ui/mobile-popover';
 
 interface Product {
   id?: string;
@@ -70,6 +69,7 @@ const ProductForm = ({
             value={product.name || ''}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+            placeholder="Product name"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -83,6 +83,7 @@ const ProductForm = ({
               value={product.barcode || ''}
               onChange={onInputChange}
               className="flex-1 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+              placeholder="Scan or enter barcode"
             />
             <Button 
               variant="outline" 
@@ -108,6 +109,7 @@ const ProductForm = ({
             value={product.price || 0}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+            placeholder="0.00"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -123,6 +125,7 @@ const ProductForm = ({
             value={product.purchase_price || 0}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+            placeholder="0.00"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -137,6 +140,7 @@ const ProductForm = ({
             value={product.stock_count || 0}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+            placeholder="0"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -149,6 +153,7 @@ const ProductForm = ({
             value={product.category || ''}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
+            placeholder="Product category"
           />
         </div>
       </div>
@@ -168,9 +173,9 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Use the barcode scanner component with controlled open state */}
-      <BarcodeScanner 
-        onDetected={handleBarcodeDetected} 
+      {/* Use the updated barcode scanner from components/barcode/BarcodeScanner.tsx */}
+      <BarcodeScanner
+        onDetected={handleBarcodeDetected}
         open={isScannerOpen}
         onOpenChange={setIsScannerOpen}
       />

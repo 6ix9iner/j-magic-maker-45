@@ -1,17 +1,11 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Settings as SettingsIcon, ShoppingCart, FileText, LogOut } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon, ShoppingCart, FileText } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -21,6 +15,9 @@ const Settings = () => {
     await signOut();
     navigate('/auth');
   };
+
+  // Debug navigation
+  console.log("Rendering Settings page");
 
   return (
     <div className="container mx-auto py-6">
@@ -39,58 +36,76 @@ const Settings = () => {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <div className="premium-card p-6">
-          <h2 className="text-lg font-medium mb-4">Account Settings</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Manage your account preferences and personal information.
-          </p>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline">
-                <SettingsIcon className="mr-2 h-4 w-4" />
-                Settings Options
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm">
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate('/settings')}
-              >
-                <SettingsIcon className="mr-2 h-4 w-4" />
-                <span>Account Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate('/sales')}
-              >
-                <ShoppingCart className="mr-2 h-4 w-4" />
-                <span>Sales</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem 
-                className="cursor-pointer"
-                onClick={() => navigate('/receipts')}
-              >
-                <FileText className="mr-2 h-4 w-4" />
-                <span>Receipt Generator</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                className="cursor-pointer text-red-600"
-                onClick={handleSignOut}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Sign Out</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <SettingsIcon className="h-5 w-5" />
+              Account Settings
+            </CardTitle>
+            <CardDescription>
+              Manage your account preferences and personal information.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <Button 
+              variant="outline"
+              className="justify-start"
+              onClick={() => navigate('/settings')}
+            >
+              <SettingsIcon className="mr-2 h-4 w-4" />
+              <span>Profile Settings</span>
+            </Button>
+            <Button 
+              variant="outline"
+              className="justify-start"
+              onClick={() => navigate('/sales')}
+            >
+              <ShoppingCart className="mr-2 h-4 w-4" />
+              <span>Sales</span>
+            </Button>
+            <Button 
+              variant="outline"
+              className="justify-start"
+              onClick={() => navigate('/receipts')}
+            >
+              <FileText className="mr-2 h-4 w-4" />
+              <span>Receipt Generator</span>
+            </Button>
+            <Button 
+              variant="destructive"
+              className="justify-start mt-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Sign Out</span>
+            </Button>
+          </CardContent>
+        </Card>
         
-        <div className="premium-card p-6">
-          <h2 className="text-lg font-medium mb-4">Application Settings</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Configure application behavior and preferences.
-          </p>
-        </div>
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Application Settings</CardTitle>
+            <CardDescription>
+              Configure application behavior and preferences.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <h3 className="text-sm font-medium mb-1">Appearance</h3>
+                <p className="text-sm text-muted-foreground">
+                  Customize how the application looks and feels.
+                </p>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium mb-1">Notifications</h3>
+                <p className="text-sm text-muted-foreground">
+                  Manage how you receive alerts and updates.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </motion.div>
     </div>
   );

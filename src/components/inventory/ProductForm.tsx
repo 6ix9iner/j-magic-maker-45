@@ -69,7 +69,7 @@ const ProductForm = ({
             name="name"
             value={product.name || ''}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
+            className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -82,13 +82,13 @@ const ProductForm = ({
               name="barcode"
               value={product.barcode || ''}
               onChange={onInputChange}
-              className="flex-1 rounded-xl border-slate-300 bg-white text-slate-900"
+              className="flex-1 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
             />
             <Button 
               variant="outline" 
               size="icon" 
               type="button"
-              className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
+              className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
               onClick={() => setIsScannerOpen(true)}
             >
               <Barcode className="h-4 w-4" />
@@ -107,7 +107,7 @@ const ProductForm = ({
             min="0"
             value={product.price || 0}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
+            className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -122,7 +122,7 @@ const ProductForm = ({
             min="0"
             value={product.purchase_price || 0}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
+            className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -136,7 +136,7 @@ const ProductForm = ({
             min="0"
             value={product.stock_count || 0}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
+            className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
           />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
@@ -148,7 +148,7 @@ const ProductForm = ({
             name="category"
             value={product.category || ''}
             onChange={onInputChange}
-            className="col-span-3 rounded-xl border-slate-300 bg-white text-slate-900"
+            className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
           />
         </div>
       </div>
@@ -156,7 +156,7 @@ const ProductForm = ({
         <Button 
           variant="outline" 
           onClick={onCancel}
-          className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 text-slate-700"
+          className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
         >
           Cancel
         </Button>
@@ -168,7 +168,7 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Use the main scanner component */}
+      {/* Use the barcode scanner component with controlled open state */}
       <BarcodeScanner 
         onDetected={handleBarcodeDetected} 
         open={isScannerOpen}

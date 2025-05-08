@@ -5,15 +5,20 @@ import { createBarcodeReaderConfig, DYNAMSOFT_LICENSE_KEY, BEEP_SOUND_URL } from
 
 interface BarcodeScannerProps {
   onDetected: (code: string) => void;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
+const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpenChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scanner, setScanner] = useState<DynamsoftScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const videoContainerCreated = useRef<boolean>(false);
   const isDestroyingRef = useRef<boolean>(false);
+  
+  // Support both controlled and uncontrolled modes
+  const isControlled = open !== undefined && onOpenChange !== undefined;
 
   // Sound effect for successful scan
   const playBeep = () => {
@@ -26,6 +31,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
   };
 
   useEffect(() => {
+    // If we're in controlled mode and not open, do nothing
+    if (isControlled && !open) {
+      return;
+    }
+    
     let isMounted = true;
     let scannerInstance: DynamsoftScanner | null = null;
     console.log("BarcodeScanner component mounted");
@@ -97,6 +107,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
           console.log("Barcode detected:", txt, result.barcodeFormatString);
           playBeep();
           onDetected(txt);
+          
+          // Close scanner if we're in controlled mode
+          if (isControlled && onOpenChange) {
+            onOpenChange(false);
+          }
         };
         
         setScanner(scannerInstance);
@@ -166,7 +181,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected }) => {
         })();
       }
     };
-  }, [onDetected]);
+  }, [onDetected, open, onOpenChange, isControlled]);
+
+  // If we're in controlled mode and not open, render nothing
+  if (isControlled && !open) {
+    return null;
+  }
 
   return (
     <div className="w-full">

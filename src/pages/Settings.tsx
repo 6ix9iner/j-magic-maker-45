@@ -6,12 +6,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { 
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
 import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
@@ -121,39 +115,38 @@ const Settings = () => {
                 </p>
               </div>
               
-              {/* Theme dropdown - Fixed structure */}
+              {/* Theme selection with buttons instead of dropdown */}
               <div>
-                <h3 className="text-sm font-medium mb-1">Theme</h3>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" size="sm">
-                      Select Theme
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-40 bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700">
-                    <DropdownMenuItem 
-                      className="flex items-center gap-2 cursor-pointer" 
-                      onClick={() => handleThemeChange('light')}
-                    >
-                      <Sun className="h-4 w-4" />
-                      <span>Light</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="flex items-center gap-2 cursor-pointer" 
-                      onClick={() => handleThemeChange('dark')}
-                    >
-                      <Moon className="h-4 w-4" />
-                      <span>Dark</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      className="flex items-center gap-2 cursor-pointer" 
-                      onClick={() => handleThemeChange('system')}
-                    >
-                      <Laptop className="h-4 w-4" />
-                      <span>System</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <h3 className="text-sm font-medium mb-2">Theme</h3>
+                <div className="flex flex-wrap gap-2">
+                  <Button 
+                    variant={theme === 'light' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleThemeChange('light')}
+                    className="flex items-center gap-2"
+                  >
+                    <Sun className="h-4 w-4" />
+                    <span>Light</span>
+                  </Button>
+                  <Button 
+                    variant={theme === 'dark' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleThemeChange('dark')}
+                    className="flex items-center gap-2"
+                  >
+                    <Moon className="h-4 w-4" />
+                    <span>Dark</span>
+                  </Button>
+                  <Button 
+                    variant={theme === 'system' ? "default" : "outline"} 
+                    size="sm"
+                    onClick={() => handleThemeChange('system')}
+                    className="flex items-center gap-2"
+                  >
+                    <Laptop className="h-4 w-4" />
+                    <span>System</span>
+                  </Button>
+                </div>
               </div>
             </div>
           </CardContent>

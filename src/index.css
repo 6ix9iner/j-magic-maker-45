@@ -90,10 +90,8 @@
   }
 
   body {
-    @apply bg-gradient-to-b from-blue-900 via-indigo-800 to-blue-700 text-foreground;
+    @apply bg-white text-foreground;
     min-height: 100vh;
-    background-size: 200% 200%;
-    animation: gradient-animation 15s ease infinite;
   }
 }
 
@@ -126,20 +124,9 @@
   animation: fade-in-up 1s ease-out forwards;
 }
 
-@keyframes gradient-animation {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* Enhanced glassmorphism effect */
-.glassmorphism {
-  @apply backdrop-blur-xl bg-white/15 border border-white/20 shadow-xl;
-}
-
 /* Premium card effect - Updated for better interactivity */
 .premium-card {
-  @apply bg-gradient-to-br from-white/20 to-white/5 shadow-xl border border-white/20 rounded-2xl overflow-hidden;
+  @apply bg-white shadow-xl border border-slate-200 rounded-2xl overflow-hidden dark:bg-slate-900 dark:border-slate-800;
   position: relative; /* Ensure proper stacking context */
   z-index: 1; /* Ensure card is above background elements */
 }
@@ -150,39 +137,11 @@ input, button, textarea, select {
   z-index: 5 !important; /* Ensure inputs are above overlays */
 }
 
-/* Fix for premium input styling to ensure it's interactive */
-.premium-input {
-  @apply bg-white/20 border border-white/30 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent;
-  position: relative;
-  z-index: 5;
-}
-
-/* Fix glassmorphism effect to ensure it doesn't block interaction */
-.glassmorphism {
-  @apply backdrop-blur-xl bg-white/15 border border-white/20 shadow-xl;
-  position: relative;
-}
-
-/* Ensure glassmorphism doesn't block interaction */
-.glassmorphism::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  backdrop-filter: blur(10px);
-  background: transparent;
-  z-index: -1;
-}
-
 /* Premium card header with fixed z-index */
 .premium-card-header {
   @apply bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white font-medium p-4;
   position: relative;
   z-index: 2;
-}
-
-/* Premium card effect */
-.premium-card {
-  @apply bg-gradient-to-br from-white/20 to-white/5 shadow-xl border border-white/20 rounded-2xl overflow-hidden backdrop-blur-xl;
 }
 
 /* Enhanced fix for barcode scanner video display */
@@ -249,144 +208,19 @@ video.dce-video-player {
   @apply bg-gradient-to-r from-blue-600 to-indigo-500 hover:from-blue-700 hover:to-indigo-600 text-white font-medium py-2 px-4 rounded-xl shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5;
 }
 
-.premium-input {
-  @apply bg-white/10 border border-white/30 rounded-xl text-white placeholder:text-white/50 focus:ring-2 focus:ring-blue-400/50 focus:border-transparent;
-}
-
-.premium-input::placeholder {
-  @apply text-white/40;
-}
-
 .premium-card-header {
   @apply bg-gradient-to-r from-blue-600/90 to-indigo-600/90 text-white font-medium p-5 rounded-t-2xl;
 }
 
 .premium-card-content {
-  @apply p-5 backdrop-blur-xl;
-}
-
-/* Glass panel effect */
-.glass-panel {
-  @apply backdrop-blur-xl bg-white/10 border border-white/20 rounded-2xl shadow-xl;
-}
-
-/* Glowing effect */
-.glow {
-  @apply relative;
-  box-shadow: 0 0 25px rgba(74, 135, 255, 0.5), 0 0 15px rgba(74, 135, 255, 0.3);
-}
-
-.glow::after {
-  @apply absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300 ease-in-out;
-  content: '';
-  background: radial-gradient(circle at center, rgba(74, 135, 255, 0.3) 0%, transparent 70%);
-}
-
-.glow:hover::after {
-  @apply opacity-100;
-}
-
-/* Animated underline for text links */
-.animated-underline {
-  @apply relative inline-block;
-}
-
-.animated-underline::after {
-  @apply absolute bottom-0 left-0 w-0 h-0.5 bg-blue-400 transition-all duration-300;
-  content: '';
-}
-
-.animated-underline:hover::after {
-  @apply w-full;
+  @apply p-5;
 }
 
 /* Better scrollbar */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-white/20 rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-white/30;
-}
-
-/* New scanner UI animation styles */
-.scan-line {
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  background: linear-gradient(90deg, rgba(59,130,246,0), rgba(59,130,246,1), rgba(59,130,246,0));
-  animation: scan 2s linear infinite;
-}
-
-@keyframes scan {
-  0% {
-    top: 0%;
-    opacity: 0;
-  }
-  10% {
-    opacity: 1;
-  }
-  90% {
-    opacity: 1;
-  }
-  100% {
-    top: 100%;
-    opacity: 0;
-  }
-}
-
-/* Scan area corners */
-.scan-corner {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  border-color: rgba(255,255,255,0.8);
-}
-
-.scan-corner-tl {
-  top: 20px;
-  left: 20px;
-  border-left: 2px solid;
-  border-top: 2px solid;
-}
-
-.scan-corner-tr {
-  top: 20px;
-  right: 20px;
-  border-right: 2px solid;
-  border-top: 2px solid;
-}
-
-.scan-corner-bl {
-  bottom: 20px;
-  left: 20px;
-  border-left: 2px solid;
-  border-bottom: 2px solid;
-}
-
-.scan-corner-br {
-  bottom: 20px;
-  right: 20px;
-  border-right: 2px solid;
-  border-bottom: 2px solid;
-}
-
-/* Premium card transitions */
-.card-transition {
-  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.card-transition:hover {
-  transform: translateY(-4px);
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 /* Mobile app styled bottom navigation */
@@ -395,15 +229,42 @@ video.dce-video-player {
 }
 
 .mobile-nav-button.active {
-  @apply bg-white/10 text-white;
+  @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300;
 }
 
 .mobile-nav-button:not(.active) {
-  @apply text-white/60;
+  @apply text-slate-500;
 }
 
-/* Custom floating action button */
-.floating-action-button {
-  @apply fixed bottom-20 right-4 w-14 h-14 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg z-30;
-  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.5);
+/* Make sure bg-white is used throughout the app */
+.app-background {
+  @apply bg-white dark:bg-slate-900;
+}
+
+/* Fix any possible overflow issues that might cause scrollbars */
+html, body {
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+/* Override any ScrollArea components to make sure they don't show scrollbars */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Make sure all overflow-y-auto elements look clean without visible scrollbars */
+.overflow-y-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.overflow-y-auto::-webkit-scrollbar {
+  display: none;
 }

@@ -25,7 +25,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
           />
           
           <motion.div
-            className="fixed top-0 right-0 bottom-0 w-full sm:w-4/5 md:w-3/5 lg:w-2/5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl z-50 flex flex-col shadow-2xl border-l border-white/20"
+            className="fixed top-0 right-0 bottom-0 w-full sm:w-4/5 md:w-3/5 lg:w-2/5 bg-white dark:bg-slate-900 z-50 flex flex-col shadow-2xl border-l border-white/20"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -43,11 +43,11 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
               </Button>
             </div>
             
-            <div className="p-5 overflow-y-auto flex-1">
+            <div className="p-5 flex-1 bg-white dark:bg-slate-900">
               {children}
             </div>
             
-            <div className="h-safe-area-bottom bg-white/95 dark:bg-slate-900/95" />
+            <div className="h-safe-area-bottom bg-white dark:bg-slate-900" />
           </motion.div>
         </>
       )}

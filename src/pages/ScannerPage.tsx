@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Button } from '@/components/ui/button';
@@ -111,7 +112,7 @@ const ScannerPage = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="flex flex-col bg-white dark:bg-slate-900">
       <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800">
         <header className="px-4 py-3">
           <div className="container mx-auto">
@@ -122,7 +123,7 @@ const ScannerPage = () => {
         </header>
       </div>
       
-      <main className="flex-1 container mx-auto p-4">
+      <main className="flex-1 container mx-auto p-4 bg-white dark:bg-slate-900">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Scanner and Product Lookup */}
           <div className="flex flex-col gap-6">
@@ -132,7 +133,7 @@ const ScannerPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900">
+              <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900">
                 <CardContent className="p-0">
                   <div className="p-6 flex flex-col items-center text-center space-y-4">
                     <motion.div 
@@ -201,8 +202,8 @@ const ScannerPage = () => {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.2 }}
               >
-                <Card className="overflow-hidden border-0 shadow-lg">
-                  <CardHeader className="bg-slate-50 dark:bg-slate-800 border-b">
+                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900">
+                  <CardHeader className="bg-white dark:bg-slate-900 border-b">
                     <div className="flex justify-between items-center">
                       <CardTitle className="text-lg font-semibold">Recent Scans</CardTitle>
                       <Button 
@@ -217,7 +218,7 @@ const ScannerPage = () => {
                     </div>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <ScrollArea className="max-h-[300px]">
+                    <div className="max-h-[300px] overflow-y-auto">
                       <div className="divide-y">
                         {scannedItems.map((item) => (
                           <motion.div
@@ -245,7 +246,7 @@ const ScannerPage = () => {
                           </motion.div>
                         ))}
                       </div>
-                    </ScrollArea>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -271,8 +272,8 @@ const ScannerPage = () => {
           transition={{ duration: 0.3, delay: 0.4 }}
           className="mt-8"
         >
-          <Card className="shadow-lg border-0">
-            <CardHeader className="border-b bg-slate-50 dark:bg-slate-800">
+          <Card className="shadow-lg border-0 bg-white dark:bg-slate-900">
+            <CardHeader className="border-b bg-white dark:bg-slate-800">
               <CardTitle>Scan Statistics</CardTitle>
             </CardHeader>
             <CardContent className="pt-6">
@@ -306,7 +307,7 @@ const ScannerPage = () => {
               
               {/* Most common barcode types */}
               {scannedItems.length > 0 && (
-                <div className="mt-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl">
+                <div className="mt-6 bg-white dark:bg-slate-800/50 p-4 rounded-xl">
                   <h3 className="text-sm font-medium mb-3">Most Common Barcode Types</h3>
                   {Array.from(
                     scannedItems.reduce((acc, item) => {
@@ -337,7 +338,7 @@ const ScannerPage = () => {
         </motion.div>
       </main>
       
-      <footer className="p-4 border-t border-slate-200 dark:border-slate-800 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70">
+      <footer className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
         <motion.div 
           className="container mx-auto flex justify-center"
           initial={{ opacity: 0, y: 10 }}
@@ -357,10 +358,10 @@ const ScannerPage = () => {
       {/* Scanner Dialog/Sheet for Mobile or Desktop */}
       {isMobile ? (
         <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <SheetContent side="bottom" className="h-[85vh] p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Scan Barcode</h2>
-              <p className="text-sm text-slate-300 mt-1">
+          <SheetContent side="bottom" className="h-[85vh] p-0 bg-white border-t-2 border-blue-500">
+            <div className="p-4 border-b">
+              <h2 className="text-xl font-bold text-blue-700">Scan Barcode</h2>
+              <p className="text-sm text-slate-600 mt-1">
                 Position barcode within view for automatic scanning
               </p>
             </div>
@@ -372,9 +373,9 @@ const ScannerPage = () => {
         </Sheet>
       ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-md bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700 text-white">
+          <DialogContent className="sm:max-w-md bg-white">
             <DialogHeader>
-              <DialogTitle className="text-xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">Scan Barcode</DialogTitle>
+              <DialogTitle className="text-xl font-bold text-blue-700">Scan Barcode</DialogTitle>
             </DialogHeader>
             
             {isDialogOpen && (
@@ -520,21 +521,21 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
   }, [onDetected]);
   
   return (
-    <div className="flex flex-col items-center p-4">
+    <div className="flex flex-col items-center p-4 bg-white">
       {error ? (
         <div className="text-center py-8">
-          <div className="bg-amber-900/20 p-3 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
+          <div className="bg-amber-100 p-3 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
             <Camera className="w-8 h-8 text-amber-500" />
           </div>
-          <p className="text-amber-500 font-medium">Camera access required</p>
-          <p className="text-sm text-slate-400 mt-2">
+          <p className="text-amber-500 font-medium">{error}</p>
+          <p className="text-sm text-slate-600 mt-2">
             Please allow camera access to scan barcodes
           </p>
           <div className="flex gap-3 justify-center mt-6">
             <Button 
               onClick={onClose} 
               variant="outline"
-              className="border-slate-700 hover:bg-slate-800 text-slate-300"
+              className="border-slate-300 hover:bg-slate-100"
             >
               Close
             </Button>
@@ -550,7 +551,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 pointer-events-none z-10"></div>
+            <div className="absolute inset-0 pointer-events-none z-10"></div>
             <motion.div 
               className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-gradient-to-r from-blue-400 to-purple-500 z-20"
               animate={{ 
@@ -590,7 +591,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           </motion.div>
           
           <motion.p 
-            className="text-sm text-center my-4 text-slate-300"
+            className="text-sm text-center my-4 text-slate-600"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.3 }}
@@ -606,7 +607,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             <Button 
               variant="outline" 
               onClick={onClose} 
-              className="mt-2 border-slate-700 hover:bg-slate-800 text-slate-300"
+              className="mt-2 border-slate-300 hover:bg-slate-100"
             >
               Cancel
             </Button>

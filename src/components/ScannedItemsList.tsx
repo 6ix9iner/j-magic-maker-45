@@ -1,7 +1,5 @@
 
 import React from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { Trash2 } from 'lucide-react';
 
@@ -32,13 +30,13 @@ const ScannedItemsList: React.FC<ScannedItemsListProps> = ({
   }
   
   return (
-    <div className="border rounded-md">
+    <div className="border rounded-md bg-white">
       <div className="flex items-center justify-between p-4">
         <h3 className="text-lg font-medium">Scan History</h3>
         <Button variant="outline" size="sm" onClick={onClear}>Clear All</Button>
       </div>
-      <Separator />
-      <ScrollArea className="h-[300px]">
+      <div className="border-t" />
+      <div className="max-h-[300px] overflow-y-auto no-scrollbar">
         <div className="p-4">
           {items.map((item) => (
             <div key={item.id} className="flex items-center justify-between py-2">
@@ -59,7 +57,7 @@ const ScannedItemsList: React.FC<ScannedItemsListProps> = ({
             </div>
           ))}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 };

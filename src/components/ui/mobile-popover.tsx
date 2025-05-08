@@ -17,7 +17,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
       {isOpen && (
         <>
           <motion.div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/70 backdrop-blur-md z-50"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -25,29 +25,29 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
           />
           
           <motion.div
-            className="fixed bottom-0 left-0 right-0 bg-white dark:bg-slate-900 rounded-t-2xl z-50 max-h-[90vh] overflow-auto"
+            className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-t-3xl z-50 max-h-[90vh] overflow-auto shadow-2xl border border-white/20"
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
-            transition={{ type: "spring", damping: 20, stiffness: 300 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-4 flex justify-between items-center">
-              <h3 className="font-semibold text-white text-lg">{title}</h3>
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex justify-between items-center rounded-t-3xl">
+              <h3 className="font-semibold text-white text-lg tracking-tight">{title}</h3>
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8 text-white hover:bg-white/10"
+                className="h-8 w-8 rounded-full text-white hover:bg-white/20 transition-colors"
                 onClick={onClose}
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
             
-            <div className="p-4 overflow-y-auto max-h-[calc(90vh-80px)]">
+            <div className="p-5 overflow-y-auto max-h-[calc(90vh-80px)]">
               {children}
             </div>
             
-            <div className="h-safe-area-bottom bg-white dark:bg-slate-900" />
+            <div className="h-safe-area-bottom bg-white/95 dark:bg-slate-900/95" />
           </motion.div>
         </>
       )}

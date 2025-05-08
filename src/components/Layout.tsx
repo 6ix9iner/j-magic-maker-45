@@ -6,13 +6,6 @@ import { Home, BarChart3, Package, Settings, LogOut } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -50,9 +43,9 @@ const Layout = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {/* Top Navigation Bar */}
+      {/* Top Navigation Bar - Enhanced with premium glass effect */}
       <motion.header 
-        className="glassmorphism shadow-lg border-b z-10"
+        className="glass-panel shadow-lg border-b z-10 border-white/10"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -137,15 +130,15 @@ const Layout = () => {
                 </DropdownMenu>
               </div>
               
-              {/* Mobile sheet - Now using MobilePopover instead */}
+              {/* Mobile user button - Enhanced for better visibility */}
               <div className="sm:hidden">
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="rounded-full px-2 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 hover:bg-white/10"
+                  className="rounded-full px-2 bg-gradient-to-r from-blue-900/30 to-purple-900/30 backdrop-blur-sm border border-white/20 hover:bg-white/10 shadow-lg"
                   onClick={() => setIsMobileMenuOpen(true)}
                 >
-                  <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
+                  <Avatar className="h-7 w-7 ring-2 ring-white/40 shadow-lg">
                     <AvatarImage src="" />
                     <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-xs">
                       {getUserInitials()}
@@ -159,7 +152,7 @@ const Layout = () => {
                   title="Account"
                 >
                   <div className="py-4">
-                    <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-lg border border-white/10">
+                    <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-xl border border-white/10 shadow-inner">
                       <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
                         <AvatarImage src="" />
                         <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium">
@@ -179,7 +172,7 @@ const Layout = () => {
                           setIsMobileMenuOpen(false);
                         }} 
                         variant="outline" 
-                        className="w-full justify-start text-left border-white/10 bg-white/5 hover:bg-white/10"
+                        className="w-full justify-start text-left border-white/10 bg-white/5 hover:bg-white/10 rounded-xl"
                       >
                         <Settings className="w-4 h-4 mr-2" />
                         Account Settings
@@ -189,7 +182,7 @@ const Layout = () => {
                     <Button 
                       onClick={handleSignOut} 
                       variant="destructive" 
-                      className="w-full shadow-lg"
+                      className="w-full shadow-lg rounded-xl"
                     >
                       <LogOut className="w-4 h-4 mr-2" />
                       Sign Out
@@ -202,20 +195,22 @@ const Layout = () => {
         </div>
       </motion.header>
       
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto p-4">
-        <Outlet />
+      {/* Main Content Area - Enhanced with padding and overflow handling */}
+      <main className="flex-1 overflow-y-auto pb-20">
+        <div className="max-w-5xl mx-auto p-4">
+          <Outlet />
+        </div>
       </main>
       
-      {/* Bottom Tab Navigation for Mobile */}
+      {/* Bottom Tab Navigation - Enhanced with modern mobile app styling */}
       {user && (
         <motion.nav 
-          className="glassmorphism shadow-lg border-t"
+          className="fixed bottom-0 left-0 right-0 glass-panel border-t border-white/10 shadow-2xl h-16 z-40"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="flex justify-around items-center h-16 max-w-xl mx-auto">
+          <div className="flex justify-around items-center h-full max-w-xl mx-auto px-2">
             {navItems.map((item) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
@@ -225,29 +220,31 @@ const Layout = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "flex flex-col items-center justify-center w-1/4 py-1",
-                    isActive ? "text-white" : "text-white/50"
+                    "mobile-nav-button",
+                    isActive ? "active" : ""
                   )}
                 >
                   <div className="relative">
-                    <Icon className={cn("h-5 w-5", isActive ? "text-white" : "text-white/50")} />
+                    <Icon className={cn("h-5 w-5 mb-1", isActive ? "text-white" : "text-white/60")} />
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
-                        className="absolute -bottom-2 w-full h-0.5 bg-white rounded-full"
+                        className="absolute -bottom-1 inset-x-0 mx-auto w-1 h-1 bg-white rounded-full"
                         initial={false}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
                       />
                     )}
                   </div>
                   <span className={cn(
-                    "text-xs mt-1",
+                    "text-xs",
                     isActive ? "font-medium" : "font-normal"
                   )}>{item.name}</span>
                 </Link>
               );
             })}
           </div>
+          {/* Safe area bottom padding for iOS devices */}
+          <div className="h-safe-area-bottom" />
         </motion.nav>
       )}
     </div>

@@ -1,4 +1,3 @@
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -223,17 +222,17 @@ video.dce-video-player {
   display: none;
 }
 
-/* Mobile app styled bottom navigation */
+/* Mobile app styled bottom navigation - updated for better visibility */
 .mobile-nav-button {
   @apply flex flex-col items-center justify-center py-2 w-full rounded-xl transition-colors;
 }
 
 .mobile-nav-button.active {
-  @apply bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300;
+  @apply bg-white/20 text-white;
 }
 
 .mobile-nav-button:not(.active) {
-  @apply text-slate-500;
+  @apply text-white/70 hover:text-white hover:bg-white/10;
 }
 
 /* Make sure bg-white is used throughout the app */

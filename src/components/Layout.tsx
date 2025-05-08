@@ -202,10 +202,10 @@ const Layout = () => {
         </div>
       </main>
       
-      {/* Bottom Tab Navigation - Enhanced with modern mobile app styling */}
+      {/* Bottom Tab Navigation - Enhanced for better visibility */}
       {user && (
         <motion.nav 
-          className="fixed bottom-0 left-0 right-0 glass-panel border-t border-white/10 shadow-2xl h-16 z-40"
+          className="fixed bottom-0 left-0 right-0 bg-blue-600 dark:bg-slate-800 border-t border-white/20 shadow-2xl h-16 z-40"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
@@ -220,12 +220,14 @@ const Layout = () => {
                   key={item.path}
                   to={item.path}
                   className={cn(
-                    "mobile-nav-button",
-                    isActive ? "active" : ""
+                    "flex flex-col items-center justify-center py-2 w-full rounded-xl transition-colors",
+                    isActive 
+                      ? "bg-white/20 text-white" 
+                      : "text-white/70 hover:text-white hover:bg-white/10"
                   )}
                 >
                   <div className="relative">
-                    <Icon className={cn("h-5 w-5 mb-1", isActive ? "text-white" : "text-white/60")} />
+                    <Icon className={cn("h-5 w-5 mb-1", isActive ? "text-white" : "text-white/70")} />
                     {isActive && (
                       <motion.div
                         layoutId="activeIndicator"
@@ -244,7 +246,7 @@ const Layout = () => {
             })}
           </div>
           {/* Safe area bottom padding for iOS devices */}
-          <div className="h-safe-area-bottom" />
+          <div className="h-safe-area-bottom bg-blue-600 dark:bg-slate-800" />
         </motion.nav>
       )}
     </div>

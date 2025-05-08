@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
@@ -58,12 +57,20 @@ const Layout = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             <Link to="/" className="flex items-center space-x-2">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
+              <motion.div 
+                className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg"
+                whileHover={{ scale: 1.05 }}
+                transition={{ duration: 0.2 }}
+              >
                 <span className="text-white font-bold text-sm">II</span>
-              </div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-500 to-indigo-400 bg-clip-text text-transparent drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+              </motion.div>
+              <motion.h1 
+                className="text-xl font-bold bg-gradient-to-r from-cyan-400 to-blue-600 bg-clip-text text-transparent drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]"
+                whileHover={{ scale: 1.03 }}
+                transition={{ duration: 0.2 }}
+              >
                 Insight Inventory
-              </h1>
+              </motion.h1>
             </Link>
           </motion.div>
           
@@ -195,7 +202,7 @@ const Layout = () => {
         </div>
       </motion.header>
       
-      {/* Main Content Area - Enhanced with padding and overflow handling */}
+      {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-20">
         <div className="max-w-5xl mx-auto p-4">
           <Outlet />
@@ -205,48 +212,61 @@ const Layout = () => {
       {/* Bottom Tab Navigation - Enhanced for better visibility */}
       {user && (
         <motion.nav 
-          className="fixed bottom-0 left-0 right-0 bg-blue-600 dark:bg-slate-800 border-t border-white/20 shadow-2xl h-16 z-40"
+          className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-700 to-indigo-700 border-t border-white/20 shadow-2xl h-16 z-40"
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
           <div className="flex justify-around items-center h-full max-w-xl mx-auto px-2">
-            {navItems.map((item) => {
+            {navItems.map((item, index) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
               
               return (
-                <Link
+                <motion.div
                   key={item.path}
-                  to={item.path}
-                  className={cn(
-                    "flex flex-col items-center justify-center py-2 w-full rounded-xl transition-colors",
-                    isActive 
-                      ? "bg-white/20 text-white" 
-                      : "text-white/70 hover:text-white hover:bg-white/10"
-                  )}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.1 * index, duration: 0.3 }}
                 >
-                  <div className="relative">
-                    <Icon className={cn("h-5 w-5 mb-1", isActive ? "text-white" : "text-white/70")} />
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeIndicator"
-                        className="absolute -bottom-1 inset-x-0 mx-auto w-1 h-1 bg-white rounded-full"
-                        initial={false}
-                        transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                      />
+                  <Link
+                    to={item.path}
+                    className={cn(
+                      "flex flex-col items-center justify-center py-2 w-full rounded-xl transition-all duration-300 ease-in-out",
+                      isActive 
+                        ? "bg-white/20 text-white scale-105 shadow-lg" 
+                        : "text-white/80 hover:text-white hover:bg-white/10"
                     )}
-                  </div>
-                  <span className={cn(
-                    "text-xs",
-                    isActive ? "font-medium" : "font-normal"
-                  )}>{item.name}</span>
-                </Link>
+                    style={{
+                      minWidth: "70px",
+                      padding: "0.5rem"
+                    }}
+                  >
+                    <div className="relative">
+                      <Icon className={cn(
+                        "h-5 w-5 mb-1 transition-all duration-300", 
+                        isActive ? "text-white scale-110" : "text-white/70"
+                      )} />
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeIndicator"
+                          className="absolute -bottom-1 inset-x-0 mx-auto w-1 h-1 bg-white rounded-full"
+                          initial={false}
+                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                        />
+                      )}
+                    </div>
+                    <span className={cn(
+                      "text-xs transition-all duration-300",
+                      isActive ? "font-medium" : "font-normal"
+                    )}>{item.name}</span>
+                  </Link>
+                </motion.div>
               );
             })}
           </div>
           {/* Safe area bottom padding for iOS devices */}
-          <div className="h-safe-area-bottom bg-blue-600 dark:bg-slate-800" />
+          <div className="h-safe-area-bottom bg-gradient-to-r from-blue-700 to-indigo-700" />
         </motion.nav>
       )}
     </div>

@@ -25,7 +25,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
           />
           
           <motion.div
-            className="fixed top-0 right-0 bottom-0 w-4/5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl z-50 overflow-auto shadow-2xl border-l border-white/20"
+            className="fixed top-0 right-0 bottom-0 w-4/5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl z-50 overflow-hidden shadow-2xl border-l border-white/20"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -43,7 +43,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
               </Button>
             </div>
             
-            <div className="p-5 overflow-y-auto max-h-[calc(100vh-80px)]">
+            <div className="p-5 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
               {children}
             </div>
             

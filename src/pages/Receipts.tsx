@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -231,7 +232,7 @@ const Receipts = () => {
               {businessInfo ? "Edit Business Information" : "Set Up Business Information"}
             </DialogTitle>
           </DialogHeader>
-          <ScrollArea className="flex-1 max-h-[70vh]">
+          <ScrollArea className="flex-1 max-h-[70vh] overflow-y-auto pr-3">
             <div className="p-1">
               <BusinessInfoForm
                 initialData={businessInfo ? {

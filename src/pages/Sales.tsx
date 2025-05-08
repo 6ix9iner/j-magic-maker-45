@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronUp, Download, Printer } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -32,16 +32,16 @@ interface SaleData {
 }
 
 interface BusinessInfo {
-  businessName: string;
+  business_name: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zip_code: string;
   phone: string;
   email: string;
   website?: string;
-  taxId?: string;
-  thankYouMessage?: string;
+  tax_id?: string;
+  thank_you_message?: string;
 }
 
 const Sales = () => {

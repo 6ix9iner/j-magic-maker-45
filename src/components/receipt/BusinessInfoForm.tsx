@@ -66,7 +66,17 @@ const BusinessInfoForm = ({ onSaved, initialData }: BusinessInfoFormProps) => {
         .upsert(
           {
             user_id: user.id,
-            ...data,
+            business_name: data.businessName,
+            address: data.address,
+            city: data.city,
+            state: data.state,
+            zip_code: data.zipCode,
+            phone: data.phone,
+            email: data.email,
+            website: data.website || null,
+            tax_id: data.taxId || null,
+            thank_you_message: data.thankYouMessage || null,
+            updated_at: new Date().toISOString()
           },
           { onConflict: "user_id" }
         );

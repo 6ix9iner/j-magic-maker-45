@@ -5,16 +5,16 @@ import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
 interface BusinessInfo {
-  businessName: string;
+  business_name: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zip_code: string;
   phone: string;
   email: string;
   website?: string;
-  taxId?: string;
-  thankYouMessage?: string;
+  tax_id?: string;
+  thank_you_message?: string;
 }
 
 interface SaleItemData {
@@ -131,13 +131,13 @@ const Receipt = ({ sale, businessInfo }: ReceiptProps) => {
 
     // Create a plain text version of the receipt
     const businessHeader = `
-${businessInfo.businessName}
+${businessInfo.business_name}
 ${businessInfo.address}
-${businessInfo.city}, ${businessInfo.state} ${businessInfo.zipCode}
+${businessInfo.city}, ${businessInfo.state} ${businessInfo.zip_code}
 Phone: ${businessInfo.phone}
 Email: ${businessInfo.email}
 ${businessInfo.website ? `Website: ${businessInfo.website}` : ''}
-${businessInfo.taxId ? `Tax ID: ${businessInfo.taxId}` : ''}
+${businessInfo.tax_id ? `Tax ID: ${businessInfo.tax_id}` : ''}
 `;
 
     const receiptDate = format(new Date(sale.created_at), "MMM d, yyyy h:mm a");
@@ -165,7 +165,7 @@ TOTAL: $${sale.total_amount.toFixed(2)}
 `;
 
     const thankYou = `
-${businessInfo.thankYouMessage || 'Thank you for your business!'}
+${businessInfo.thank_you_message || 'Thank you for your business!'}
 `;
 
     const receiptText = `${businessHeader}${receiptHeader}${itemLines}${totalSection}${thankYou}`;
@@ -187,14 +187,14 @@ ${businessInfo.thankYouMessage || 'Thank you for your business!'}
         className="receipt bg-white p-6 w-full max-w-md mx-auto border rounded-lg shadow-sm"
       >
         <div className="header text-center mb-4">
-          <h2 className="text-xl font-bold">{businessInfo.businessName}</h2>
+          <h2 className="text-xl font-bold">{businessInfo.business_name}</h2>
           <div className="text-gray-600 text-sm">
             <p>{businessInfo.address}</p>
-            <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zipCode}</p>
+            <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
             <p>{businessInfo.phone}</p>
             <p>{businessInfo.email}</p>
             {businessInfo.website && <p>{businessInfo.website}</p>}
-            {businessInfo.taxId && <p>Tax ID: {businessInfo.taxId}</p>}
+            {businessInfo.tax_id && <p>Tax ID: {businessInfo.tax_id}</p>}
           </div>
         </div>
 
@@ -247,7 +247,7 @@ ${businessInfo.thankYouMessage || 'Thank you for your business!'}
         </div>
 
         <div className="thank-you text-center mt-6 italic text-gray-600">
-          {businessInfo.thankYouMessage || 'Thank you for your business!'}
+          {businessInfo.thank_you_message || 'Thank you for your business!'}
         </div>
       </div>
       

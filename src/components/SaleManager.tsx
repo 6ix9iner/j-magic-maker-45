@@ -25,16 +25,16 @@ interface SaleItem {
 }
 
 interface BusinessInfo {
-  businessName: string;
+  business_name: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zip_code: string;
   phone: string;
   email: string;
   website?: string;
-  taxId?: string;
-  thankYouMessage?: string;
+  tax_id?: string;
+  thank_you_message?: string;
 }
 
 interface CompletedSale {
@@ -235,6 +235,9 @@ const SaleManager = forwardRef((props, ref) => {
           items: saleItemsData || []
         });
         setShowReceiptModal(true);
+      } else {
+        // No business info found, show a message
+        toast.info("Sale completed! Set up your business information to generate receipts.");
       }
 
       toast.success("Sale completed successfully!");

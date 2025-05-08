@@ -12,16 +12,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import Receipt from "@/components/receipt/Receipt";
 
 interface BusinessInfo {
-  businessName: string;
+  business_name: string;
   address: string;
   city: string;
   state: string;
-  zipCode: string;
+  zip_code: string;
   phone: string;
   email: string;
   website?: string;
-  taxId?: string;
-  thankYouMessage?: string;
+  tax_id?: string;
+  thank_you_message?: string;
 }
 
 interface SaleItemData {
@@ -180,9 +180,9 @@ const Receipts = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                 <div>
                   <h3 className="font-medium">Business Details</h3>
-                  <p>{businessInfo.businessName}</p>
+                  <p>{businessInfo.business_name}</p>
                   <p>{businessInfo.address}</p>
-                  <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zipCode}</p>
+                  <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
                 </div>
                 <div>
                   <h3 className="font-medium">Contact Information</h3>
@@ -232,7 +232,18 @@ const Receipts = () => {
             </DialogTitle>
           </DialogHeader>
           <BusinessInfoForm
-            initialData={businessInfo || undefined}
+            initialData={businessInfo ? {
+              businessName: businessInfo.business_name,
+              address: businessInfo.address,
+              city: businessInfo.city,
+              state: businessInfo.state,
+              zipCode: businessInfo.zip_code,
+              phone: businessInfo.phone,
+              email: businessInfo.email,
+              website: businessInfo.website || '',
+              taxId: businessInfo.tax_id || '',
+              thankYouMessage: businessInfo.thank_you_message || ''
+            } : undefined}
             onSaved={handleBusinessInfoSaved}
           />
         </DialogContent>

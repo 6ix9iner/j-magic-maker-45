@@ -11,7 +11,6 @@ import PasswordReset from "./pages/PasswordReset";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
-import Settings from "./pages/Settings";
 import Layout from "./components/Layout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoadingScreen from "./components/LoadingScreen";
@@ -76,11 +75,6 @@ const AppRoutes = () => {
         <Route path="/inventory" element={
           <ProtectedRoute>
             <Inventory />
-          </ProtectedRoute>
-        } />
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Settings />
           </ProtectedRoute>
         } />
         <Route path="*" element={<NotFound />} />

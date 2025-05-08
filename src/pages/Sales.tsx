@@ -27,9 +27,16 @@ const Sales = () => {
   useEffect(() => {
     const fetchSales = async () => {
       try {
+        if (!user) {
+          setSales([]);
+          setLoading(false);
+          return;
+        }
+
         const { data, error } = await supabase
           .from("sales")
           .select("*")
+          .eq("user_id", user.id)
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -37,7 +44,7 @@ const Sales = () => {
         }
 
         setSales(data || []);
-        console.log("Sales data:", data);
+        console.log("Sales data for user:", data);
       } catch (error) {
         console.error("Error fetching sales:", error);
         toast.error("Failed to fetch sales data");
@@ -80,8 +87,8 @@ const Sales = () => {
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>All Sales</CardTitle>
-          <CardDescription>A comprehensive list of all sales transactions</CardDescription>
+          <CardTitle>My Sales</CardTitle>
+          <CardDescription>Your personal sales transaction history</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -113,7 +120,7 @@ const Sales = () => {
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">
-              No sales records found
+              {user ? "No sales records found for your account" : "Please sign in to view your sales records"}
             </div>
           )}
         </CardContent>

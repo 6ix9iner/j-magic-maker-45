@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { Home, BarChart3, Package, Settings, LogOut } from 'lucide-react';
+import { Home, BarChart3, Package, Settings, LogOut, FileText, ShoppingCart } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
@@ -14,6 +15,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import MobilePopover from '@/components/ui/mobile-popover';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 const Layout = () => {
   const location = useLocation();
@@ -25,7 +31,7 @@ const Layout = () => {
     { name: "Home", path: "/scanner", icon: Home },
     { name: "Inventory", path: "/inventory", icon: Package },
     { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
-    { name: "Settings", path: "/settings", icon: Settings }
+    { name: "Settings", path: "/settings", icon: Settings, hasDropdown: true }
   ];
 
   const handleSignOut = async () => {
@@ -222,6 +228,91 @@ const Layout = () => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
               
+              // For Settings tab with dropdown
+              if (item.hasDropdown) {
+                return (
+                  <motion.div
+                    key={item.path}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 * index, duration: 0.3 }}
+                  >
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          className={cn(
+                            "flex flex-col items-center justify-center py-2 w-full rounded-xl transition-all duration-300 ease-in-out",
+                            isActive 
+                              ? "bg-white/20 text-white scale-105 shadow-lg" 
+                              : "text-white/80 hover:text-white hover:bg-white/10"
+                          )}
+                          style={{
+                            minWidth: "70px",
+                            padding: "0.5rem"
+                          }}
+                        >
+                          <div className="relative">
+                            <Icon className={cn(
+                              "h-5 w-5 mb-1 transition-all duration-300", 
+                              isActive ? "text-white scale-110" : "text-white/70"
+                            )} />
+                            {isActive && (
+                              <motion.div
+                                layoutId="activeIndicator"
+                                className="absolute -bottom-1 inset-x-0 mx-auto w-1 h-1 bg-white rounded-full"
+                                initial={false}
+                                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                              />
+                            )}
+                          </div>
+                          <span className={cn(
+                            "text-xs transition-all duration-300",
+                            isActive ? "font-medium" : "font-normal"
+                          )}>{item.name}</span>
+                        </button>
+                      </PopoverTrigger>
+                      <PopoverContent 
+                        align="center" 
+                        className="w-56 p-2 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-white/20 shadow-xl rounded-xl"
+                      >
+                        <div className="flex flex-col gap-1 py-1">
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 py-2 px-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            onClick={() => navigate('/settings')}
+                          >
+                            <Settings className="w-4 h-4 text-slate-500" />
+                            <span>Account Settings</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 py-2 px-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            onClick={() => navigate('/sales')}
+                          >
+                            <ShoppingCart className="w-4 h-4 text-slate-500" />
+                            <span>Sales</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 py-2 px-3 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                            onClick={() => navigate('/receipts')}
+                          >
+                            <FileText className="w-4 h-4 text-slate-500" />
+                            <span>Receipt Generator</span>
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator className="my-1 bg-slate-200 dark:bg-slate-700/50" />
+                          <DropdownMenuItem 
+                            className="flex items-center gap-2 py-2 px-3 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-500 cursor-pointer"
+                            onClick={handleSignOut}
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out</span>
+                          </DropdownMenuItem>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </motion.div>
+                );
+              }
+              
+              // For regular tabs
               return (
                 <motion.div
                   key={item.path}

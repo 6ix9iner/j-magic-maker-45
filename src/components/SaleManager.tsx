@@ -6,6 +6,8 @@ import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
 import SaleTable from './sale/SaleTable';
 import SaleSummary from './sale/SaleSummary';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import Receipt from './receipt/Receipt';
 
 interface Product {
   id: string;
@@ -22,11 +24,43 @@ interface SaleItem {
   quantity: number;
 }
 
+interface BusinessInfo {
+  businessName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phone: string;
+  email: string;
+  website?: string;
+  taxId?: string;
+  thankYouMessage?: string;
+}
+
+interface CompletedSale {
+  id: string;
+  total_amount: number;
+  created_at: string;
+  payment_method: string | null;
+  transaction_id: string | null;
+  items?: {
+    id: string;
+    product_id: string | null;
+    barcode_at_sale: string | null;
+    name_at_sale: string | null;
+    price_at_sale: number;
+    quantity: number;
+  }[];
+}
+
 // Use forwardRef to expose functions to parent
 const SaleManager = forwardRef((props, ref) => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
+  const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
 
   const addItem = (product: Product, quantity: number) => {
     // Check if item already exists in sale
@@ -81,6 +115,22 @@ const SaleManager = forwardRef((props, ref) => {
 
   const calculateTotal = () => {
     return items.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+  };
+
+  const fetchBusinessInfo = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("business_info")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error fetching business info:", error);
+      return null;
+    }
   };
 
   const completeSale = async () => {
@@ -154,6 +204,39 @@ const SaleManager = forwardRef((props, ref) => {
         }
       }
 
+      // Get the completed sale data with items
+      const { data: completedSaleData, error: completedSaleError } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('id', saleData.id)
+        .single();
+
+      if (completedSaleError) {
+        throw completedSaleError;
+      }
+
+      const { data: saleItemsData, error: saleItemsError } = await supabase
+        .from('sale_items')
+        .select('*')
+        .eq('sale_id', saleData.id);
+
+      if (saleItemsError) {
+        throw saleItemsError;
+      }
+
+      // Fetch business info for the receipt
+      const businessInfoData = await fetchBusinessInfo(user.id);
+      
+      // If we have business info, show the receipt
+      if (businessInfoData) {
+        setBusinessInfo(businessInfoData);
+        setCompletedSale({
+          ...completedSaleData,
+          items: saleItemsData || []
+        });
+        setShowReceiptModal(true);
+      }
+
       toast.success("Sale completed successfully!");
       setItems([]);
     } catch (error: any) {
@@ -175,25 +258,44 @@ const SaleManager = forwardRef((props, ref) => {
     }
   };
 
+  const closeReceiptModal = () => {
+    setShowReceiptModal(false);
+    setCompletedSale(null);
+  };
+
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>Current Sale</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <SaleTable 
-          items={items}
-          onUpdateQuantity={updateQuantity}
-          onRemoveItem={removeItem}
+    <>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>Current Sale</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SaleTable 
+            items={items}
+            onUpdateQuantity={updateQuantity}
+            onRemoveItem={removeItem}
+          />
+        </CardContent>
+        <SaleSummary
+          total={calculateTotal()}
+          isProcessing={isProcessing}
+          onCompleteSale={completeSale}
+          onCancelSale={cancelSale}
         />
-      </CardContent>
-      <SaleSummary
-        total={calculateTotal()}
-        isProcessing={isProcessing}
-        onCompleteSale={completeSale}
-        onCancelSale={cancelSale}
-      />
-    </Card>
+      </Card>
+
+      {/* Receipt Modal */}
+      {showReceiptModal && completedSale && businessInfo && (
+        <Dialog open={showReceiptModal} onOpenChange={closeReceiptModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Receipt</DialogTitle>
+            </DialogHeader>
+            <Receipt sale={completedSale} businessInfo={businessInfo} />
+          </DialogContent>
+        </Dialog>
+      )}
+    </>
   );
 });
 

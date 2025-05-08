@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp, Download, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,6 +9,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import Receipt from "@/components/receipt/Receipt";
 
 interface SaleItemData {
   id: string;
@@ -29,11 +31,27 @@ interface SaleData {
   isExpanded?: boolean;
 }
 
+interface BusinessInfo {
+  businessName: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  phone: string;
+  email: string;
+  website?: string;
+  taxId?: string;
+  thankYouMessage?: string;
+}
+
 const Sales = () => {
   const [sales, setSales] = useState<SaleData[]>([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [selectedSale, setSelectedSale] = useState<SaleData | null>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
 
   useEffect(() => {
     const fetchSales = async () => {
@@ -95,6 +113,33 @@ const Sales = () => {
     fetchSales();
   }, [user]);
 
+  // Fetch business info when needed
+  useEffect(() => {
+    const fetchBusinessInfo = async () => {
+      if (!user) return;
+
+      try {
+        const { data, error } = await supabase
+          .from("business_info")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (error) throw error;
+        
+        if (data) {
+          setBusinessInfo(data);
+        }
+      } catch (error) {
+        console.error("Error fetching business info:", error);
+      }
+    };
+
+    if (showReceiptModal && !businessInfo) {
+      fetchBusinessInfo();
+    }
+  }, [showReceiptModal, user, businessInfo]);
+
   const toggleSaleDetails = (index: number) => {
     setSales(prevSales => {
       const updatedSales = [...prevSales];
@@ -119,6 +164,16 @@ const Sales = () => {
       style: 'currency',
       currency: 'USD'
     }).format(amount);
+  };
+
+  const handleViewReceipt = (sale: SaleData) => {
+    setSelectedSale(sale);
+    setShowReceiptModal(true);
+  };
+
+  const closeReceiptModal = () => {
+    setShowReceiptModal(false);
+    setSelectedSale(null);
   };
 
   return (
@@ -155,6 +210,7 @@ const Sales = () => {
                     <TableHead>Transaction ID</TableHead>
                     <TableHead>Payment Method</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -171,10 +227,22 @@ const Sales = () => {
                         <TableCell>{sale.transaction_id || "N/A"}</TableCell>
                         <TableCell>{sale.payment_method || "Cash"}</TableCell>
                         <TableCell className="text-right font-medium">{formatCurrency(sale.total_amount)}</TableCell>
+                        <TableCell>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleViewReceipt(sale);
+                            }}
+                          >
+                            Receipt
+                          </Button>
+                        </TableCell>
                       </TableRow>
                       {sale.isExpanded && (
                         <TableRow key={`${sale.id}-details`}>
-                          <TableCell colSpan={5}>
+                          <TableCell colSpan={6}>
                             <div className="bg-gray-50 p-4 rounded-md">
                               <h4 className="font-medium mb-2">Sale Items:</h4>
                               {sale.items && sale.items.length > 0 ? (
@@ -226,6 +294,18 @@ const Sales = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Receipt Modal */}
+      {showReceiptModal && selectedSale && businessInfo && (
+        <Dialog open={showReceiptModal} onOpenChange={closeReceiptModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Sale Receipt</DialogTitle>
+            </DialogHeader>
+            <Receipt sale={selectedSale} businessInfo={businessInfo} />
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

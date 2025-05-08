@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Barcode } from "lucide-react";
 import { useIsMobile } from '@/hooks/use-mobile';
-import BarcodeScanner from "@/components/barcode/BarcodeScanner";
+// Import the main BarcodeScanner component, not the one in the barcode directory
+import BarcodeScanner from "@/components/BarcodeScanner";
 
 interface Product {
   id?: string;
@@ -173,7 +174,7 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Use the updated barcode scanner from components/barcode/BarcodeScanner.tsx */}
+      {/* Use the correct BarcodeScanner component */}
       <BarcodeScanner
         onDetected={handleBarcodeDetected}
         open={isScannerOpen}

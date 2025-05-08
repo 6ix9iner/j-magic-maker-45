@@ -48,6 +48,17 @@ const ProductForm = ({
     } as React.ChangeEvent<HTMLInputElement>;
     
     onInputChange(syntheticEvent);
+    
+    // Keep the scanner open for additional scans
+    // User can manually close when done
+    // setIsScannerOpen(false);
+  };
+
+  const handleOpenScanner = () => {
+    setIsScannerOpen(true);
+  };
+  
+  const handleCloseScanner = () => {
     setIsScannerOpen(false);
   };
 
@@ -90,7 +101,7 @@ const ProductForm = ({
               size="icon" 
               type="button"
               className="rounded-xl border-slate-300 bg-white hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-600 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200"
-              onClick={() => setIsScannerOpen(true)}
+              onClick={handleOpenScanner}
             >
               <Barcode className="h-4 w-4" />
             </Button>
@@ -173,10 +184,10 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Use the BarcodeDialog component instead of the direct BarcodeScanner */}
+      {/* Modified BarcodeDialog implementation */}
       <BarcodeDialog
         isOpen={isScannerOpen}
-        onClose={() => setIsScannerOpen(false)}
+        onClose={handleCloseScanner}
         onDetected={handleBarcodeDetected}
       />
     </>

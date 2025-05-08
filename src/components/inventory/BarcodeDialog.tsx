@@ -13,12 +13,17 @@ interface BarcodeDialogProps {
 const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   // Track whether to render the scanner to ensure clean mounting/unmounting
   const [shouldRenderScanner, setShouldRenderScanner] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
   const dialogOpenRef = useRef(false);
+  const scannerKeyRef = useRef(Date.now());
   
   // Track dialog open state for proper scanner initialization/cleanup
   useEffect(() => {
     dialogOpenRef.current = isOpen;
+    
+    // When dialog opens, generate a new key to force scanner remount
+    if (isOpen) {
+      scannerKeyRef.current = Date.now();
+    }
   }, [isOpen]);
   
   // Handle scanner mounting with a slight delay to ensure dialog is fully open
@@ -47,8 +52,10 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   const handleDetection = (code: string) => {
     console.log("Barcode detected in dialog:", code);
     onDetected(code);
-    // Close the dialog after detection to ensure scanner is properly cleaned up
-    onClose();
+    
+    // Instead of closing, we'll just update the dialog but leave it open
+    // This allows for multiple scans
+    // onClose();
   };
 
   return (
@@ -68,7 +75,6 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              ref={containerRef} 
               className="barcode-container relative overflow-hidden rounded-xl" 
               style={{ height: "350px" }}
             >
@@ -110,7 +116,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
               
               <BarcodeScanner 
                 onDetected={handleDetection} 
-                key={`scanner-instance-${Date.now()}`}
+                key={`scanner-instance-${scannerKeyRef.current}`}
               />
             </motion.div>
           )}

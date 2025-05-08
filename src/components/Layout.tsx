@@ -39,6 +39,10 @@ const Layout = () => {
     navigate('/auth');
   };
 
+  // Debug navigation
+  console.log("Current location:", location.pathname);
+  console.log("User authenticated:", !!user);
+
   // Get user initials for avatar
   const getUserInitials = () => {
     if (!user || !user.email) return '?';

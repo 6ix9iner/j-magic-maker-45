@@ -43,7 +43,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
               </Button>
             </div>
             
-            <div className="p-5 overflow-y-auto" style={{ height: 'calc(100vh - 80px)' }}>
+            <div className="p-5 overflow-y-auto" style={{ height: 'calc(100vh - 64px)' }}>
               {children}
             </div>
             

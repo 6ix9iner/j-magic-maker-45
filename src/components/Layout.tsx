@@ -2,18 +2,11 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { Home, BarChart3, Package, LogOut } from 'lucide-react';
+import { Home, BarChart3, Package, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import MobilePopover from '@/components/ui/mobile-popover';
 
 const Layout = () => {
@@ -25,7 +18,8 @@ const Layout = () => {
   const navItems = [
     { name: "Home", path: "/scanner", icon: Home },
     { name: "Inventory", path: "/inventory", icon: Package },
-    { name: "Dashboard", path: "/dashboard", icon: BarChart3 }
+    { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
+    { name: "Settings", path: "/settings", icon: Settings }
   ];
 
   const handleSignOut = async () => {
@@ -85,54 +79,6 @@ const Layout = () => {
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              {/* Desktop dropdown */}
-              <div className="hidden sm:block">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      className="rounded-full flex items-center gap-2 px-4 h-10 bg-gradient-to-r from-blue-900/20 to-purple-900/20 backdrop-blur-sm border border-white/20 text-white hover:bg-white/10 hover:text-white transition-colors"
-                    >
-                      <Avatar className="h-7 w-7 ring-2 ring-white/30 shadow-lg">
-                        <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium text-xs">
-                          {getUserInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <span className="text-sm font-medium">
-                        {user.email ? user.email.split('@')[0] : 'User'}
-                      </span>
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent 
-                    align="end" 
-                    className="w-64 p-3 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm border border-white/20 shadow-xl rounded-xl"
-                  >
-                    <div className="flex items-center gap-3 p-2 mb-2">
-                      <Avatar className="h-10 w-10 ring-2 ring-blue-500/20">
-                        <AvatarFallback className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium">
-                          {getUserInitials()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col">
-                        <p className="text-sm font-semibold">{user.email?.split('@')[0]}</p>
-                        <p className="text-xs text-muted-foreground">{user.email}</p>
-                      </div>
-                    </div>
-                    
-                    <DropdownMenuSeparator className="bg-slate-200 dark:bg-slate-700/50 my-2" />
-                    
-                    <DropdownMenuItem 
-                      className="cursor-pointer flex items-center gap-2 my-1 p-2 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-red-600 dark:text-red-500 transition-colors"
-                      onClick={handleSignOut}
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              
               {/* Mobile user button - Enhanced for better visibility */}
               <div className="sm:hidden">
                 <Button 
@@ -173,8 +119,7 @@ const Layout = () => {
                       variant="destructive" 
                       className="w-full shadow-lg rounded-xl"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Sign Out
+                      <span className="mr-2">Sign Out</span>
                     </Button>
                   </div>
                 </MobilePopover>

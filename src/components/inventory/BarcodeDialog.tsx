@@ -89,6 +89,8 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           scannerInstance.onUnduplicatedRead = (txt, result) => {
             console.log("Dialog barcode detected:", txt);
             onDetected(txt);
+            // Close the dialog after detection
+            onClose();
           };
           
           // Start scanning if container is ready
@@ -126,7 +128,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
       isMounted = false;
       cleanupScanner();
     };
-  }, [shouldRenderScanner]);
+  }, [shouldRenderScanner, onDetected, onClose]);
 
   // Clean up scanner resources
   const cleanupScanner = async () => {
@@ -165,15 +167,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     videoContainerCreated.current = false;
   };
 
-  // Create a handler that adapts onDetected to the expected interface
-  const handleDetection = (code: string) => {
-    console.log("Barcode detected in dialog:", code);
-    onDetected(code);
-    
-    // We don't close the dialog after detection, allowing for multiple scans
-    // User can manually close the dialog when done
-    // onClose();
-  };
+  // Remove the handleDetection function as we're handling detection directly in the scanner callback
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {

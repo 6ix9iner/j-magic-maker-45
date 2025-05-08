@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -58,10 +57,6 @@ const ProductForm = ({
     } as React.ChangeEvent<HTMLInputElement>;
     
     onInputChange(syntheticEvent);
-    
-    // Keep the scanner open for additional scans
-    // User can manually close when done
-    // setIsScannerOpen(false);
   };
 
   const handleOpenScanner = () => {
@@ -194,7 +189,7 @@ const ProductForm = ({
         </Button>
       </DialogFooter>
 
-      {/* Improved BarcodeDialog implementation */}
+      {/* Barcode Dialog with automatic closing after detection */}
       <BarcodeDialog
         isOpen={isScannerOpen}
         onClose={handleCloseScanner}

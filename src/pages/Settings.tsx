@@ -1,7 +1,7 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { LogOut, Settings as SettingsIcon, ShoppingCart, FileText } from 'lucide-react';
+import { LogOut, Settings as SettingsIcon, ShoppingCart, FileText, Moon, Sun, Laptop } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
@@ -12,14 +12,25 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from "@/components/ui/dropdown-menu";
+import { useToast } from '@/hooks/use-toast';
 
 const Settings = () => {
   const navigate = useNavigate();
   const { signOut } = useAuth();
+  const { toast } = useToast();
+  const [theme, setTheme] = useState('light'); // Default theme
 
   const handleSignOut = async () => {
     await signOut();
     navigate('/auth');
+  };
+
+  const handleThemeChange = (selectedTheme: string) => {
+    setTheme(selectedTheme);
+    toast({
+      title: "Theme Changed",
+      description: `Theme set to ${selectedTheme}`,
+    });
   };
 
   // Debug navigation
@@ -110,7 +121,7 @@ const Settings = () => {
                 </p>
               </div>
               
-              {/* Simple example dropdown using the proper structure */}
+              {/* Theme dropdown - Fixed structure */}
               <div>
                 <h3 className="text-sm font-medium mb-1">Theme</h3>
                 <DropdownMenu>
@@ -119,10 +130,28 @@ const Settings = () => {
                       Select Theme
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem>Light</DropdownMenuItem>
-                    <DropdownMenuItem>Dark</DropdownMenuItem>
-                    <DropdownMenuItem>System</DropdownMenuItem>
+                  <DropdownMenuContent className="w-40 bg-white dark:bg-slate-900 shadow-lg border border-slate-200 dark:border-slate-700">
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 cursor-pointer" 
+                      onClick={() => handleThemeChange('light')}
+                    >
+                      <Sun className="h-4 w-4" />
+                      <span>Light</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 cursor-pointer" 
+                      onClick={() => handleThemeChange('dark')}
+                    >
+                      <Moon className="h-4 w-4" />
+                      <span>Dark</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      className="flex items-center gap-2 cursor-pointer" 
+                      onClick={() => handleThemeChange('system')}
+                    >
+                      <Laptop className="h-4 w-4" />
+                      <span>System</span>
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>

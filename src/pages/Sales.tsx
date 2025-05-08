@@ -173,7 +173,7 @@ const Sales = () => {
                         <TableCell className="text-right font-medium">{formatCurrency(sale.total_amount)}</TableCell>
                       </TableRow>
                       {sale.isExpanded && (
-                        <TableRow>
+                        <TableRow key={`${sale.id}-details`}>
                           <TableCell colSpan={5}>
                             <div className="bg-gray-50 p-4 rounded-md">
                               <h4 className="font-medium mb-2">Sale Items:</h4>

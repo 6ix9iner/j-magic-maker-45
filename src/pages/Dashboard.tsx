@@ -7,6 +7,11 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsive
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { PackageAlert } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 
 interface SaleSummary {
   date: string;
@@ -20,15 +25,24 @@ interface ProductSale {
   total_revenue: number;
 }
 
+interface LowStockProduct {
+  id: string;
+  name: string;
+  stock_count: number;
+  barcode: string;
+}
+
 const Dashboard = () => {
   const [salesByDate, setSalesByDate] = useState<SaleSummary[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSale[]>([]);
   const [totalSales, setTotalSales] = useState<number>(0);
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [lowStockCount, setLowStockCount] = useState<number>(0);
+  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const isMobile = useIsMobile();
   const { user } = useAuth(); // Get the current authenticated user
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -126,14 +140,17 @@ const Dashboard = () => {
         setTotalProducts(productsCount || 0);
         
         // Fetch low stock products with user_id filter
-        const { count: lowStockProductsCount, error: lowStockError } = await supabase
+        const { data: lowStockProductsData, error: lowStockError } = await supabase
           .from('products')
-          .select('*', { count: 'exact', head: true })
+          .select('id, name, stock_count, barcode')
           .eq('user_id', user.id)
-          .lt('stock_count', 5);
+          .lt('stock_count', 5)
+          .order('stock_count', { ascending: true });
         
         if (lowStockError) throw lowStockError;
-        setLowStockCount(lowStockProductsCount || 0);
+        
+        setLowStockProducts(lowStockProductsData || []);
+        setLowStockCount(lowStockProductsData?.length || 0);
         
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
@@ -145,6 +162,10 @@ const Dashboard = () => {
 
     fetchDashboardData();
   }, [user]);
+
+  const navigateToInventory = () => {
+    navigate('/inventory');
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
@@ -184,17 +205,66 @@ const Dashboard = () => {
             </CardContent>
           </Card>
           
-          <Card className="col-span-1">
-            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Low Stock Alert</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-2xl font-bold text-red-500">{lowStockCount}</div>
-            </CardContent>
-            <CardFooter className="pt-0 px-3 sm:px-4 pb-3 sm:pb-4">
-              <span className="text-[10px] sm:text-xs text-muted-foreground">Products with less than 5 items</span>
-            </CardFooter>
-          </Card>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Card className="col-span-1 cursor-pointer hover:shadow-md transition-shadow">
+                <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
+                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1">
+                    Low Stock Alert
+                    <PackageAlert className="h-3.5 w-3.5 text-red-500" />
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
+                  <div className="text-lg sm:text-2xl font-bold text-red-500">{lowStockCount}</div>
+                </CardContent>
+                <CardFooter className="pt-0 px-3 sm:px-4 pb-3 sm:pb-4">
+                  <span className="text-[10px] sm:text-xs text-muted-foreground">Products with less than 5 items</span>
+                </CardFooter>
+              </Card>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 max-h-96 overflow-auto p-0" align="end">
+              <div className="p-4 border-b">
+                <h3 className="font-medium text-lg flex items-center gap-2">
+                  <PackageAlert className="h-4 w-4 text-red-500" />
+                  Low Stock Products
+                </h3>
+                <p className="text-sm text-muted-foreground">Products with less than 5 items in stock</p>
+              </div>
+              {lowStockProducts.length > 0 ? (
+                <div className="max-h-[300px] overflow-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead className="text-right">Stock</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {lowStockProducts.map(product => (
+                        <TableRow key={product.id}>
+                          <TableCell>{product.name}</TableCell>
+                          <TableCell className="text-right font-medium text-red-500">{product.stock_count}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              ) : (
+                <div className="p-4 text-center text-muted-foreground">
+                  {isLoading ? 'Loading products...' : 'No low stock products'}
+                </div>
+              )}
+              <div className="p-3 border-t">
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={navigateToInventory}
+                >
+                  Go to Inventory
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">

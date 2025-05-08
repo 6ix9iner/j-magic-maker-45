@@ -6,6 +6,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { 
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from "@/components/ui/dropdown-menu";
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -102,6 +108,23 @@ const Settings = () => {
                 <p className="text-sm text-muted-foreground">
                   Manage how you receive alerts and updates.
                 </p>
+              </div>
+              
+              {/* Simple example dropdown using the proper structure */}
+              <div>
+                <h3 className="text-sm font-medium mb-1">Theme</h3>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      Select Theme
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem>Light</DropdownMenuItem>
+                    <DropdownMenuItem>Dark</DropdownMenuItem>
+                    <DropdownMenuItem>System</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
           </CardContent>

@@ -36,6 +36,7 @@ interface LowStockProduct {
 interface CategorySale {
   category: string;
   value: number;
+  color?: string;
 }
 
 const Dashboard = () => {
@@ -57,7 +58,22 @@ const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+  // Category-specific colors
+  const CATEGORY_COLORS = {
+    'Electronics': '#0088FE',   // Blue
+    'Clothing': '#00C49F',      // Teal
+    'Food': '#FFBB28',          // Yellow
+    'Books': '#FF8042',         // Orange
+    'Home': '#8884d8',          // Purple
+    'Beauty': '#D946EF',        // Magenta
+    'Sports': '#22C55E',        // Green
+    'Toys': '#F97316',          // Bright Orange
+    'Health': '#0EA5E9',        // Ocean Blue
+    'Other': '#9F9EA1',         // Gray
+  };
+  
+  // Default colors for categories not in the map
+  const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#D946EF', '#22C55E', '#F97316', '#0EA5E9', '#9F9EA1'];
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -246,20 +262,25 @@ const Dashboard = () => {
           }
         }
         
-        // Convert to array format for the chart
+        // Convert to array format for the chart with assigned colors
         const categorySalesData = Array.from(categoryMap.entries())
-          .map(([category, value]) => ({ category, value }))
+          .map(([category, value]) => ({ 
+            category, 
+            value,
+            // Assign color based on category name or use default color if not found
+            color: CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] || DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)]
+          }))
           .sort((a, b) => b.value - a.value)
           .slice(0, 5); // Take top 5 categories
         
-        // If we still have no category data, use default mock data
+        // If we still have no category data, use default mock data with assigned colors
         if (categorySalesData.length === 0) {
           const mockCategories = [
-            { category: "Electronics", value: Math.floor(Math.random() * 1000) + 500 },
-            { category: "Clothing", value: Math.floor(Math.random() * 1000) + 300 },
-            { category: "Food", value: Math.floor(Math.random() * 1000) + 700 },
-            { category: "Books", value: Math.floor(Math.random() * 1000) + 200 },
-            { category: "Home", value: Math.floor(Math.random() * 1000) + 400 }
+            { category: "Electronics", value: Math.floor(Math.random() * 1000) + 500, color: CATEGORY_COLORS['Electronics'] },
+            { category: "Clothing", value: Math.floor(Math.random() * 1000) + 300, color: CATEGORY_COLORS['Clothing'] },
+            { category: "Food", value: Math.floor(Math.random() * 1000) + 700, color: CATEGORY_COLORS['Food'] },
+            { category: "Books", value: Math.floor(Math.random() * 1000) + 200, color: CATEGORY_COLORS['Books'] },
+            { category: "Home", value: Math.floor(Math.random() * 1000) + 400, color: CATEGORY_COLORS['Home'] }
           ];
           setCategorySales(mockCategories);
         } else {
@@ -638,9 +659,10 @@ const Dashboard = () => {
                             outerRadius={80}
                             fill="#8884d8"
                             dataKey="value"
+                            nameKey="category"
                           >
                             {categorySales.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              <Cell key={`cell-${index}`} fill={entry.color} />
                             ))}
                           </Pie>
                           <Tooltip content={<ChartTooltipContent />} />

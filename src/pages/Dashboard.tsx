@@ -8,11 +8,12 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertCircle, ChartPie, ChartLine, Bot } from "lucide-react";
+import { AlertCircle, ChartPie, ChartLine, Bot, Sparkles } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { generateAIInsights, generateChartRecommendations, SalesData } from '@/utils/geminiUtils';
 
 interface SaleSummary {
   date: string;
@@ -48,12 +49,10 @@ const Dashboard = () => {
   const [categorySales, setCategorySales] = useState<CategorySale[]>([]);
   const [monthlySalesTrend, setMonthlySalesTrend] = useState<SaleSummary[]>([]);
   const [aiInsights, setAiInsights] = useState<string[]>([
-    "Sales have increased by 15% compared to last month.",
-    "Top-selling product 'Organic Coffee' accounts for 23% of revenue.",
-    "Tuesday and Thursday are your best-performing sales days.",
-    "Consider restocking low inventory items to prevent missed sales opportunities.",
-    "Customer retention rate has improved by 8% this month."
+    "Loading AI insights...",
   ]);
+  const [chartRecommendation, setChartRecommendation] = useState<string>("");
+  const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const isMobile = useIsMobile();
   const { user } = useAuth();
@@ -192,11 +191,32 @@ const Dashboard = () => {
         });
         setMonthlySalesTrend(mockMonthlyTrend);
         
+        // Use the collected data to generate AI insights
+        setIsLoadingAI(true);
+        const salesDataForAI: SalesData = {
+          totalSales: totalSalesAmount,
+          totalProducts: productsCount || 0,
+          recentOrders: salesByDateData.length,
+          lowStockCount: lowStockProductsData?.length || 0,
+          salesByDate: Array.from(salesByDateMap.values()),
+          topProducts: topProductsList
+        };
+
+        // Generate insights in parallel
+        const [insights, recommendation] = await Promise.all([
+          generateAIInsights(salesDataForAI),
+          generateChartRecommendations(salesDataForAI)
+        ]);
+        
+        setAiInsights(insights);
+        setChartRecommendation(recommendation);
+        
       } catch (error: any) {
         console.error('Error fetching dashboard data:', error);
         toast.error('Failed to load dashboard data');
       } finally {
         setIsLoading(false);
+        setIsLoadingAI(false);
       }
     };
 
@@ -205,6 +225,33 @@ const Dashboard = () => {
 
   const navigateToInventory = () => {
     navigate('/inventory');
+  };
+
+  const refreshAIInsights = async () => {
+    if (!user) return;
+    
+    setIsLoadingAI(true);
+    try {
+      // Prepare data for AI analysis
+      const salesDataForAI: SalesData = {
+        totalSales,
+        totalProducts,
+        recentOrders: salesByDate.reduce((sum, day) => sum + day.count, 0),
+        lowStockCount,
+        salesByDate,
+        topProducts
+      };
+      
+      // Generate fresh AI insights
+      const insights = await generateAIInsights(salesDataForAI);
+      setAiInsights(insights);
+      toast.success("AI insights refreshed");
+    } catch (error) {
+      console.error("Failed to refresh AI insights:", error);
+      toast.error("Failed to refresh insights");
+    } finally {
+      setIsLoadingAI(false);
+    }
   };
 
   return (
@@ -474,29 +521,56 @@ const Dashboard = () => {
               <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                    <Bot className="h-5 w-5" />
-                    AI Monthly Insights
+                    <Sparkles className="h-5 w-5 text-yellow-500" />
+                    AI Insights
                   </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Data analysis provided by AI</CardDescription>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Powered by Google Gemini 2.0
+                  </CardDescription>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={refreshAIInsights}
+                  disabled={isLoadingAI}
+                >
+                  {isLoadingAI ? 'Analyzing...' : 'Refresh'}
+                </Button>
               </CardHeader>
               <CardContent className="px-4 sm:px-6 py-4">
                 <div className="space-y-4">
-                  {aiInsights.map((insight, index) => (
-                    <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-                      <div className="bg-blue-100 rounded-full p-1">
-                        <Bot className="h-5 w-5 text-blue-700" />
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-800">{insight}</p>
-                      </div>
+                  {isLoadingAI ? (
+                    <div className="flex flex-col items-center justify-center py-8">
+                      <div className="animate-spin h-8 w-8 mb-4 border-4 border-blue-500 border-t-transparent rounded-full"></div>
+                      <p className="text-muted-foreground">Analyzing your business data...</p>
                     </div>
-                  ))}
+                  ) : (
+                    aiInsights.map((insight, index) => (
+                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                        <div className="bg-blue-100 rounded-full p-1">
+                          <Bot className="h-5 w-5 text-blue-700" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-800">{insight}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
                 </div>
+
+                {chartRecommendation && (
+                  <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg">
+                    <h3 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
+                      <ChartLine className="h-4 w-4" />
+                      Chart Recommendation
+                    </h3>
+                    <p className="text-sm text-amber-700">{chartRecommendation}</p>
+                  </div>
+                )}
               </CardContent>
               <CardFooter className="px-4 sm:px-6 py-4 border-t">
                 <p className="text-xs text-muted-foreground">
-                  These insights are generated based on your sales data and industry trends.
+                  These insights are generated using Google's Gemini 2.0 AI based on your sales data.
                 </p>
               </CardFooter>
             </Card>

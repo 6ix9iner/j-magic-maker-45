@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -168,15 +167,104 @@ const Dashboard = () => {
         setLowStockProducts(lowStockProductsData || []);
         setLowStockCount(lowStockProductsData?.length || 0);
 
-        // Generate mock category sales data for pie chart
-        const mockCategories = [
-          { category: "Electronics", value: Math.floor(Math.random() * 1000) + 500 },
-          { category: "Clothing", value: Math.floor(Math.random() * 1000) + 300 },
-          { category: "Food", value: Math.floor(Math.random() * 1000) + 700 },
-          { category: "Books", value: Math.floor(Math.random() * 1000) + 200 },
-          { category: "Home", value: Math.floor(Math.random() * 1000) + 400 }
-        ];
-        setCategorySales(mockCategories);
+        // Fetch category sales data from the database
+        const { data: categoryData, error: categoryError } = await supabase
+          .from('sale_items')
+          .select(`
+            name_at_sale,
+            price_at_sale,
+            quantity,
+            sales!inner(user_id, created_at),
+            products!inner(category)
+          `)
+          .eq('sales.user_id', user.id)
+          .not('products.category', 'is', null);
+        
+        if (categoryError) throw categoryError;
+        
+        // Process category sales data
+        const categoryMap = new Map<string, number>();
+        
+        categoryData.forEach(item => {
+          const category = item.products.category;
+          if (!category) return; // Skip items without a category
+          
+          const saleAmount = parseFloat(item.price_at_sale.toString()) * item.quantity;
+          const existingAmount = categoryMap.get(category) || 0;
+          categoryMap.set(category, existingAmount + saleAmount);
+        });
+        
+        // If we don't have category data, try to get it from sale_items
+        if (categoryMap.size === 0) {
+          // Alternative approach: use sale items directly
+          const { data: saleItemsData, error: saleItemsError } = await supabase
+            .from('sale_items')
+            .select(`
+              name_at_sale,
+              price_at_sale,
+              quantity,
+              sale_id,
+              sales!inner(user_id)
+            `)
+            .eq('sales.user_id', user.id);
+          
+          if (saleItemsError) throw saleItemsError;
+          
+          // Try to extract categories from product names if available
+          const extractedCategories = new Map<string, number>();
+          
+          saleItemsData.forEach(item => {
+            // Simple category extraction based on product name
+            // This is a fallback method if proper categories aren't available
+            let category = "Other";
+            const name = item.name_at_sale?.toLowerCase() || "";
+            
+            // Basic category detection rules
+            if (name.includes("phone") || name.includes("laptop") || name.includes("computer") || name.includes("tablet")) {
+              category = "Electronics";
+            } else if (name.includes("shirt") || name.includes("pants") || name.includes("dress") || name.includes("jacket")) {
+              category = "Clothing";
+            } else if (name.includes("book") || name.includes("novel") || name.includes("textbook")) {
+              category = "Books";
+            } else if (name.includes("food") || name.includes("drink") || name.includes("snack")) {
+              category = "Food";
+            } else if (name.includes("furniture") || name.includes("chair") || name.includes("table") || name.includes("bed")) {
+              category = "Home";
+            }
+            
+            const saleAmount = parseFloat(item.price_at_sale.toString()) * item.quantity;
+            const existingAmount = extractedCategories.get(category) || 0;
+            extractedCategories.set(category, existingAmount + saleAmount);
+          });
+          
+          // Use extracted categories if we found any
+          if (extractedCategories.size > 0) {
+            categoryMap.clear();
+            extractedCategories.forEach((value, key) => {
+              categoryMap.set(key, value);
+            });
+          }
+        }
+        
+        // Convert to array format for the chart
+        const categorySalesData = Array.from(categoryMap.entries())
+          .map(([category, value]) => ({ category, value }))
+          .sort((a, b) => b.value - a.value)
+          .slice(0, 5); // Take top 5 categories
+        
+        // If we still have no category data, use default mock data
+        if (categorySalesData.length === 0) {
+          const mockCategories = [
+            { category: "Electronics", value: Math.floor(Math.random() * 1000) + 500 },
+            { category: "Clothing", value: Math.floor(Math.random() * 1000) + 300 },
+            { category: "Food", value: Math.floor(Math.random() * 1000) + 700 },
+            { category: "Books", value: Math.floor(Math.random() * 1000) + 200 },
+            { category: "Home", value: Math.floor(Math.random() * 1000) + 400 }
+          ];
+          setCategorySales(mockCategories);
+        } else {
+          setCategorySales(categorySalesData);
+        }
 
         // Fetch monthly sales data for the trend chart (last 6 months)
         const sixMonthsAgo = new Date();

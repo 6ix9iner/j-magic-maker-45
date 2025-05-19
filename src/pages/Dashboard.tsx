@@ -178,18 +178,67 @@ const Dashboard = () => {
         ];
         setCategorySales(mockCategories);
 
-        // Generate mock monthly sales trend for line chart
-        const currentMonth = new Date().getMonth();
-        const mockMonthlyTrend = Array.from({ length: 6 }, (_, i) => {
-          const monthIndex = (currentMonth - 5 + i) % 12;
-          const monthName = new Date(2023, monthIndex).toLocaleDateString('en-US', { month: 'short' });
-          return {
-            date: monthName,
-            total: Math.floor(Math.random() * 10000) + 5000,
-            count: Math.floor(Math.random() * 100) + 50
+        // Fetch monthly sales data for the trend chart (last 6 months)
+        const sixMonthsAgo = new Date();
+        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+        
+        const { data: monthlySalesData, error: monthlySalesError } = await supabase
+          .from('sales')
+          .select('created_at, total_amount')
+          .eq('user_id', user.id)
+          .gte('created_at', sixMonthsAgo.toISOString());
+        
+        if (monthlySalesError) throw monthlySalesError;
+        
+        // Process monthly sales data
+        const monthlySalesMap = new Map<string, SaleSummary>();
+        
+        monthlySalesData.forEach(sale => {
+          const saleDate = new Date(sale.created_at);
+          const monthKey = saleDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          const existingSummary = monthlySalesMap.get(monthKey) || { 
+            date: monthKey, 
+            total: 0, 
+            count: 0 
           };
+          
+          monthlySalesMap.set(monthKey, {
+            date: monthKey,
+            total: existingSummary.total + parseFloat(sale.total_amount.toString()),
+            count: existingSummary.count + 1
+          });
         });
-        setMonthlySalesTrend(mockMonthlyTrend);
+        
+        // Convert to array and sort chronologically
+        let monthlyTrendData = Array.from(monthlySalesMap.values());
+        
+        // If we have less than 6 months of data, fill in the missing months with zeros
+        const currentDate = new Date();
+        for (let i = 0; i < 6; i++) {
+          const monthDate = new Date(currentDate);
+          monthDate.setMonth(currentDate.getMonth() - i);
+          const monthKey = monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+          
+          if (!monthlySalesMap.has(monthKey)) {
+            monthlyTrendData.push({
+              date: monthKey,
+              total: 0,
+              count: 0
+            });
+          }
+        }
+        
+        // Sort by date (need to convert month abbreviation to date for proper sorting)
+        monthlyTrendData.sort((a, b) => {
+          const dateA = new Date(a.date);
+          const dateB = new Date(b.date);
+          return dateA.getTime() - dateB.getTime();
+        });
+        
+        // Take only the last 6 months
+        monthlyTrendData = monthlyTrendData.slice(-6);
+        
+        setMonthlySalesTrend(monthlyTrendData);
         
         // Use the collected data to generate AI insights
         setIsLoadingAI(true);

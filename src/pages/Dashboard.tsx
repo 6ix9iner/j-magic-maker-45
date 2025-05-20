@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,12 +8,16 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertCircle, ChartPie, ChartLine, Bot, Sparkles } from "lucide-react";
+import { AlertCircle, ChartPie, ChartLine, Bot, Sparkles, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { generateAIInsights, generateChartRecommendations, SalesData } from '@/utils/geminiUtils';
+import MetricCard from '@/components/dashboard/MetricCard';
+import ProfitLossChart from '@/components/dashboard/ProfitLossChart';
+import FinancialSummary from '@/components/dashboard/FinancialSummary';
+import { calculateProfitMetrics, estimateCosts, formatCurrency, FinancialMetrics } from '@/utils/financialUtils';
 
 interface SaleSummary {
   date: string;
@@ -39,6 +44,13 @@ interface CategorySale {
   color?: string;
 }
 
+interface ProfitLossData {
+  date: string;
+  revenue: number;
+  cost: number;
+  profit: number;
+}
+
 const Dashboard = () => {
   const [salesByDate, setSalesByDate] = useState<SaleSummary[]>([]);
   const [topProducts, setTopProducts] = useState<ProductSale[]>([]);
@@ -48,9 +60,14 @@ const Dashboard = () => {
   const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
   const [categorySales, setCategorySales] = useState<CategorySale[]>([]);
   const [monthlySalesTrend, setMonthlySalesTrend] = useState<SaleSummary[]>([]);
-  const [aiInsights, setAiInsights] = useState<string[]>([
-    "Loading AI insights...",
-  ]);
+  const [profitLossData, setProfitLossData] = useState<ProfitLossData[]>([]);
+  const [financialMetrics, setFinancialMetrics] = useState<FinancialMetrics>({
+    totalRevenue: 0,
+    totalCost: 0,
+    grossProfit: 0,
+    profitMargin: 0
+  });
+  const [aiInsights, setAiInsights] = useState<string[]>(["Loading AI insights..."]);
   const [chartRecommendation, setChartRecommendation] = useState<string>("");
   const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -349,6 +366,27 @@ const Dashboard = () => {
         
         setMonthlySalesTrend(monthlyTrendData);
         
+        // Calculate profit/loss data
+        const profitLossItems: ProfitLossData[] = monthlyTrendData.map(item => {
+          const revenue = item.total;
+          const cost = estimateCosts(revenue);
+          return {
+            date: item.date,
+            revenue,
+            cost,
+            profit: revenue - cost
+          };
+        });
+        
+        setProfitLossData(profitLossItems);
+        
+        // Calculate overall financial metrics
+        const currentMonthRevenue = profitLossItems.length > 0 ? profitLossItems[profitLossItems.length - 1].revenue : 0;
+        const previousMonthRevenue = profitLossItems.length > 1 ? profitLossItems[profitLossItems.length - 2].revenue : undefined;
+        const totalCost = estimateCosts(totalSalesAmount);
+        
+        setFinancialMetrics(calculateProfitMetrics(totalSalesAmount, totalCost, previousMonthRevenue));
+        
         // Use the collected data to generate AI insights
         setIsLoadingAI(true);
         const salesDataForAI: SalesData = {
@@ -422,50 +460,43 @@ const Dashboard = () => {
           </p>
         </header>
 
+        {/* Top metrics section - now with profit/loss */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
-          <Card className="col-span-1">
-            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Sales</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-2xl font-bold">${totalSales.toFixed(2)}</div>
-            </CardContent>
-          </Card>
+          <MetricCard 
+            title="Total Sales"
+            value={formatCurrency(totalSales)}
+            icon={DollarSign}
+          />
           
-          <Card className="col-span-1">
-            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Total Products</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-2xl font-bold">{totalProducts}</div>
-            </CardContent>
-          </Card>
+          <MetricCard 
+            title="Gross Profit"
+            value={formatCurrency(financialMetrics.grossProfit)}
+            icon={TrendingUp}
+            iconColor={financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"}
+            valueClassName={financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
+          />
           
-          <Card className="col-span-1">
-            <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Recent Orders</CardTitle>
-            </CardHeader>
-            <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-              <div className="text-lg sm:text-2xl font-bold">{salesByDate.length}</div>
-            </CardContent>
-          </Card>
+          <MetricCard 
+            title="Profit Margin"
+            value={`${financialMetrics.profitMargin.toFixed(1)}%`}
+            icon={financialMetrics.profitMargin >= 0 ? TrendingUp : TrendingDown}
+            iconColor={financialMetrics.profitMargin >= 0 ? "text-green-500" : "text-red-500"}
+            valueClassName={financialMetrics.profitMargin >= 0 ? "text-green-600" : "text-red-600"}
+          />
           
           <Popover>
             <PopoverTrigger asChild>
-              <Card className="col-span-1 cursor-pointer hover:shadow-md transition-shadow">
-                <CardHeader className="pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-                  <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1">
-                    Low Stock Alert
-                    <AlertCircle className="h-3.5 w-3.5 text-red-500" />
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4">
-                  <div className="text-lg sm:text-2xl font-bold text-red-500">{lowStockCount}</div>
-                </CardContent>
-                <CardFooter className="pt-0 px-3 sm:px-4 pb-3 sm:pb-4">
-                  <span className="text-[10px] sm:text-xs text-muted-foreground">Products with less than 5 items</span>
-                </CardFooter>
-              </Card>
+              <div className="contents">
+                <MetricCard 
+                  title="Low Stock Alert"
+                  value={lowStockCount}
+                  icon={AlertCircle}
+                  iconColor="text-red-500"
+                  valueClassName="text-red-500"
+                  description="Products with less than 5 items"
+                  onClick={() => {}} // This makes the card clickable
+                />
+              </div>
             </PopoverTrigger>
             <PopoverContent className="w-80 max-h-96 overflow-auto p-0" align="end">
               <div className="p-4 border-b">
@@ -513,9 +544,10 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="weekly" className="w-full mb-6">
-          <TabsList className="mb-4">
+          <TabsList className="mb-4 overflow-auto flex flex-nowrap">
             <TabsTrigger value="weekly">Weekly Analysis</TabsTrigger>
             <TabsTrigger value="monthly">Monthly Analysis</TabsTrigger>
+            <TabsTrigger value="financial">Financial Analysis</TabsTrigger>
             <TabsTrigger value="insights">AI Insights</TabsTrigger>
           </TabsList>
 
@@ -672,6 +704,17 @@ const Dashboard = () => {
                   </div>
                 </CardContent>
               </Card>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="financial" className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+              <div className="col-span-1 lg:col-span-2">
+                <ProfitLossChart data={profitLossData} title="Revenue vs. Cost" description="Monthly breakdown" />
+              </div>
+              <div className="col-span-1">
+                <FinancialSummary metrics={financialMetrics} />
+              </div>
             </div>
           </TabsContent>
 

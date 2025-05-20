@@ -7,11 +7,9 @@ import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 interface FinancialSummaryProps {
   metrics: FinancialMetrics;
-  className?: string;
-  compact?: boolean;
 }
 
-const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics, className = '', compact = false }) => {
+const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics }) => {
   const isProfit = metrics.grossProfit >= 0;
   
   const renderIndicator = (value: number) => {
@@ -28,10 +26,10 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics, className 
   };
 
   return (
-    <Card className={`w-full h-full shadow-sm ${className}`}>
-      <CardHeader className={`${compact ? 'px-3 py-2' : 'px-4 py-3'} flex items-center justify-between bg-gradient-to-r from-slate-50 to-slate-100 border-b`}>
-        <CardTitle className={`${compact ? 'text-base' : 'text-lg'} flex items-center`}>
-          <DollarSign className="h-4 w-4 mr-1 text-emerald-500" />
+    <Card className="w-full h-full">
+      <CardHeader className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+        <CardTitle className="text-lg flex items-center">
+          <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
           Financial Summary
         </CardTitle>
         <div className={`flex items-center ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
@@ -48,7 +46,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics, className 
       <CardContent className="p-0">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50">
+            <TableRow className="bg-muted/30">
               <TableHead>Metric</TableHead>
               <TableHead className="text-right">Value</TableHead>
               <TableHead className="w-[40px]"></TableHead>
@@ -65,7 +63,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics, className 
               <TableCell className="text-right">{formatCurrency(metrics.totalCost)}</TableCell>
               <TableCell></TableCell>
             </TableRow>
-            <TableRow className="bg-slate-50">
+            <TableRow className="bg-muted/20">
               <TableCell className="font-medium">Gross Profit</TableCell>
               <TableCell className={`text-right font-medium ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                 {formatCurrency(metrics.grossProfit)}
@@ -74,7 +72,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics, className 
                 {renderIndicator(metrics.grossProfit)}
               </TableCell>
             </TableRow>
-            <TableRow className="bg-slate-50">
+            <TableRow className="bg-muted/20">
               <TableCell className="font-medium">Profit Margin</TableCell>
               <TableCell className={`text-right ${isProfit ? 'text-green-600' : 'text-red-600'}`}>
                 {formatPercentage(metrics.profitMargin)}

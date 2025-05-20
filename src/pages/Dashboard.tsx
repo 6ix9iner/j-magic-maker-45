@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,7 +7,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertCircle, ChartPie, ChartLine, Bot, Sparkles, TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { AlertCircle, ChartPie, ChartLine, Bot, Sparkles, TrendingUp, TrendingDown, DollarSign, Calendar, InfoIcon, BarChart as BarChartIcon, ArrowUpRight, LayoutGrid } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -423,6 +422,10 @@ const Dashboard = () => {
     navigate('/inventory');
   };
 
+  const navigateToSales = () => {
+    navigate('/sales');
+  };
+
   const refreshAIInsights = async () => {
     if (!user) return;
     
@@ -450,22 +453,47 @@ const Dashboard = () => {
     }
   };
 
+  // Get current day and month for the welcome message
+  const today = new Date();
+  const currentDay = today.toLocaleDateString('en-US', { weekday: 'long' });
+  const currentMonth = today.toLocaleDateString('en-US', { month: 'long' });
+  const currentDate = today.getDate();
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
       <div className="w-full max-w-7xl mx-auto">
-        <header className="mb-4 sm:mb-6 md:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600">
-            Overview of your inventory and sales
-          </p>
+        <header className="mb-4 sm:mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              Dashboard
+              <span className="block sm:hidden text-sm font-normal text-gray-500 mt-1">{currentDay}, {currentMonth} {currentDate}</span>
+            </h1>
+            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 hidden sm:block">
+              {currentDay}, {currentMonth} {currentDate}
+            </p>
+          </div>
+          
+          <div className="flex items-center gap-2 mt-2 sm:mt-0 self-end">
+            <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI}>
+              <Sparkles className="h-4 w-4 mr-1" />
+              {isLoadingAI ? 'Analyzing...' : 'Get AI Insights'}
+            </Button>
+            
+            <Button variant="outline" size="sm" onClick={navigateToInventory}>
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Inventory
+            </Button>
+          </div>
         </header>
 
-        {/* Top metrics section - now with profit/loss */}
+        {/* Strategic KPI Section - Using a horizontal card layout for better data scanning */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
           <MetricCard 
             title="Total Sales"
             value={formatCurrency(totalSales)}
             icon={DollarSign}
+            iconColor="text-green-500"
+            highPriority={true}
           />
           
           <MetricCard 
@@ -474,6 +502,13 @@ const Dashboard = () => {
             icon={TrendingUp}
             iconColor={financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"}
             valueClassName={financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
+            trend={
+              financialMetrics.revenueGrowth !== undefined ? {
+                value: Math.round(financialMetrics.revenueGrowth * 10) / 10,
+                isPositive: financialMetrics.revenueGrowth >= 0
+              } : undefined
+            }
+            highPriority={true}
           />
           
           <MetricCard 
@@ -493,8 +528,8 @@ const Dashboard = () => {
                   icon={AlertCircle}
                   iconColor="text-red-500"
                   valueClassName="text-red-500"
-                  description="Products with less than 5 items"
-                  onClick={() => {}} // This makes the card clickable
+                  description={lowStockCount > 0 ? "Action needed" : "All items stocked"}
+                  onClick={() => {}} 
                 />
               </div>
             </PopoverTrigger>
@@ -543,12 +578,65 @@ const Dashboard = () => {
           </Popover>
         </div>
 
+        {/* Additional KPIs for more context - Second-tier metrics */}
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+          <MetricCard 
+            title="Total Products"
+            value={totalProducts}
+            icon={LayoutGrid}
+            description="Active inventory items"
+          />
+          
+          <MetricCard 
+            title="Recent Orders"
+            value={salesByDate.reduce((sum, day) => sum + day.count, 0)}
+            icon={Calendar}
+            description="Last 7 days"
+          />
+          
+          <MetricCard 
+            title="Avg. Order Value"
+            value={formatCurrency(
+              salesByDate.length > 0 
+                ? totalSales / salesByDate.reduce((sum, day) => sum + day.count, 0) 
+                : 0
+            )}
+            icon={DollarSign}
+            description="Last 7 days"
+          />
+        </div>
+
+        {/* Quick insights card - highlighting AI findings */}
+        {aiInsights.length > 0 && !isLoadingAI && (
+          <Card className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-amber-500" />
+                Quick Insights
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-sm text-gray-700 font-medium">
+                {aiInsights[0]}
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => {
+                document.getElementById('insights-tab')?.click();
+              }}>
+                View all insights
+                <ArrowUpRight className="h-3 w-3 ml-1" />
+              </Button>
+            </CardFooter>
+          </Card>
+        )}
+
         <Tabs defaultValue="weekly" className="w-full mb-6">
-          <TabsList className="mb-4 overflow-auto flex flex-nowrap">
+          <TabsList className="mb-4 overflow-auto flex flex-nowrap bg-white/50 backdrop-blur-sm p-1">
             <TabsTrigger value="weekly">Weekly Analysis</TabsTrigger>
             <TabsTrigger value="monthly">Monthly Analysis</TabsTrigger>
             <TabsTrigger value="financial">Financial Analysis</TabsTrigger>
-            <TabsTrigger value="insights">AI Insights</TabsTrigger>
+            <TabsTrigger id="insights-tab" value="insights">AI Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="weekly" className="space-y-4">
@@ -568,12 +656,12 @@ const Dashboard = () => {
                       >
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={salesByDate}>
-                            <CartesianGrid strokeDasharray="3 3" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
                             <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
                             <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
                             <Tooltip content={<ChartTooltipContent />} />
                             <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Bar dataKey="total" name="Sales ($)" fill="#2563eb" />
+                            <Bar dataKey="total" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </ChartContainer>
@@ -601,7 +689,7 @@ const Dashboard = () => {
                       >
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={topProducts} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
                             <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
                             <YAxis 
                               dataKey="product_name" 
@@ -611,7 +699,7 @@ const Dashboard = () => {
                             />
                             <Tooltip content={<ChartTooltipContent />} />
                             <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" />
+                            <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" radius={[0, 4, 4, 0]} />
                           </BarChart>
                         </ResponsiveContainer>
                       </ChartContainer>
@@ -645,7 +733,7 @@ const Dashboard = () => {
                     >
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={monthlySalesTrend}>
-                          <CartesianGrid strokeDasharray="3 3" />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
                           <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
                           <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
                           <Tooltip content={<ChartTooltipContent />} />
@@ -657,6 +745,7 @@ const Dashboard = () => {
                             stroke="#8884d8" 
                             strokeWidth={2} 
                             activeDot={{ r: 8 }} 
+                            dot={{ r: 4 }}
                           />
                         </LineChart>
                       </ResponsiveContainer>
@@ -688,7 +777,7 @@ const Dashboard = () => {
                             cy="50%"
                             labelLine={true}
                             label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={80}
+                            outerRadius={isMobile ? 70 : 80}
                             fill="#8884d8"
                             dataKey="value"
                             nameKey="category"

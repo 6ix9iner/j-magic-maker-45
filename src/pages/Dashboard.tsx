@@ -76,20 +76,20 @@ const Dashboard = () => {
 
   // Category-specific colors
   const CATEGORY_COLORS = {
-    'Electronics': '#0088FE',   // Blue
-    'Clothing': '#00C49F',      // Teal
-    'Food': '#FFBB28',          // Yellow
-    'Books': '#FF8042',         // Orange
-    'Home': '#8884d8',          // Purple
-    'Beauty': '#D946EF',        // Magenta
-    'Sports': '#22C55E',        // Green
-    'Toys': '#F97316',          // Bright Orange
-    'Health': '#0EA5E9',        // Ocean Blue
-    'Other': '#9F9EA1',         // Gray
+    'Electronics': '#06b6d4',   // Cyan-500
+    'Clothing': '#14b8a6',      // Teal-500
+    'Food': '#f97316',          // Orange-500
+    'Books': '#8b5cf6',         // Violet-500
+    'Home': '#6366f1',          // Indigo-500
+    'Beauty': '#d946ef',        // Fuchsia-500
+    'Sports': '#22c55e',        // Green-500
+    'Toys': '#f59e0b',          // Amber-500
+    'Health': '#0ea5e9',        // Sky-500
+    'Other': '#64748b',         // Slate-500
   };
   
   // Default colors for categories not in the map
-  const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#D946EF', '#22C55E', '#F97316', '#0EA5E9', '#9F9EA1'];
+  const DEFAULT_COLORS = ['#06b6d4', '#14b8a6', '#f97316', '#8b5cf6', '#6366f1', '#d946ef', '#22c55e', '#f59e0b', '#0ea5e9', '#64748b'];
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -460,48 +460,49 @@ const Dashboard = () => {
   const currentDate = today.getDate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
-      <div className="w-full max-w-7xl mx-auto">
-        <header className="mb-4 sm:mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 py-6 px-4 sm:py-8 sm:px-6">
+      <div className="w-full max-w-7xl mx-auto space-y-6">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 flex items-center">
               Dashboard
-              <span className="block sm:hidden text-sm font-normal text-gray-500 mt-1">{currentDay}, {currentMonth} {currentDate}</span>
+              <span className="ml-3 text-sm font-normal text-slate-500 hidden sm:inline-block">{currentDay}, {currentMonth} {currentDate}</span>
             </h1>
-            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 hidden sm:block">
+            <p className="mt-1 text-sm text-slate-500 sm:hidden">
               {currentDay}, {currentMonth} {currentDate}
             </p>
           </div>
           
-          <div className="flex items-center gap-2 mt-2 sm:mt-0 self-end">
-            <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI}>
-              <Sparkles className="h-4 w-4 mr-1" />
-              {isLoadingAI ? 'Analyzing...' : 'Get AI Insights'}
+          <div className="flex items-center gap-2 mt-3 sm:mt-0 self-end sm:self-auto">
+            <Button variant="outline" size="sm" className="bg-white hover:bg-slate-50" onClick={refreshAIInsights} disabled={isLoadingAI}>
+              <Sparkles className="h-4 w-4 mr-1.5 text-amber-500" />
+              {isLoadingAI ? 'Analyzing...' : 'AI Insights'}
             </Button>
             
-            <Button variant="outline" size="sm" onClick={navigateToInventory}>
-              <LayoutGrid className="h-4 w-4 mr-1" />
+            <Button variant="outline" size="sm" className="bg-white hover:bg-slate-50" onClick={navigateToInventory}>
+              <LayoutGrid className="h-4 w-4 mr-1.5 text-emerald-500" />
               Inventory
             </Button>
           </div>
         </header>
 
-        {/* Key Performance Metrics Section */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        {/* Main Dashboard Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <MetricCard 
             title="Total Sales"
             value={formatCurrency(totalSales)}
             icon={DollarSign}
-            iconColor="text-green-500"
+            iconColor="text-emerald-500"
             highPriority={true}
+            className="bg-white"
           />
           
           <MetricCard 
-            title="Gross Profit"
+            title="Profit"
             value={formatCurrency(financialMetrics.grossProfit)}
             icon={TrendingUp}
-            iconColor={financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"}
-            valueClassName={financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
+            iconColor={financialMetrics.grossProfit >= 0 ? "text-emerald-500" : "text-rose-500"}
+            valueClassName={financialMetrics.grossProfit >= 0 ? "text-emerald-600" : "text-rose-600"}
             trend={
               financialMetrics.revenueGrowth !== undefined ? {
                 value: Math.round(financialMetrics.revenueGrowth * 10) / 10,
@@ -509,14 +510,16 @@ const Dashboard = () => {
               } : undefined
             }
             highPriority={true}
+            className="bg-white"
           />
           
           <MetricCard 
             title="Profit Margin"
             value={`${financialMetrics.profitMargin.toFixed(1)}%`}
             icon={financialMetrics.profitMargin >= 0 ? TrendingUp : TrendingDown}
-            iconColor={financialMetrics.profitMargin >= 0 ? "text-green-500" : "text-red-500"}
-            valueClassName={financialMetrics.profitMargin >= 0 ? "text-green-600" : "text-red-600"}
+            iconColor={financialMetrics.profitMargin >= 0 ? "text-emerald-500" : "text-rose-500"}
+            valueClassName={financialMetrics.profitMargin >= 0 ? "text-emerald-600" : "text-rose-600"}
+            className="bg-white"
           />
           
           <Popover>
@@ -526,20 +529,21 @@ const Dashboard = () => {
                   title="Low Stock Alert"
                   value={lowStockCount}
                   icon={AlertCircle}
-                  iconColor="text-red-500"
-                  valueClassName="text-red-500"
-                  description={lowStockCount > 0 ? "Action needed" : "All items stocked"}
+                  iconColor="text-rose-500"
+                  valueClassName={lowStockCount > 0 ? "text-rose-600" : "text-slate-600"}
+                  description={lowStockCount > 0 ? "Items need attention" : "All items stocked"}
                   onClick={() => {}} 
+                  className="bg-white border-l-[3px] border-l-rose-500"
                 />
               </div>
             </PopoverTrigger>
-            <PopoverContent className="w-80 max-h-96 overflow-auto p-0" align="end">
-              <div className="p-4 border-b">
+            <PopoverContent className="w-80 max-h-96 overflow-auto p-0 shadow-lg" align="end">
+              <div className="p-4 border-b bg-slate-50">
                 <h3 className="font-medium text-lg flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <AlertCircle className="h-4 w-4 text-rose-500" />
                   Low Stock Products
                 </h3>
-                <p className="text-sm text-muted-foreground">Products with less than 5 items in stock</p>
+                <p className="text-sm text-slate-500">Products with less than 5 items in stock</p>
               </div>
               {lowStockProducts.length > 0 ? (
                 <div className="max-h-[300px] overflow-auto">
@@ -554,46 +558,46 @@ const Dashboard = () => {
                       {lowStockProducts.map(product => (
                         <TableRow key={product.id}>
                           <TableCell>{product.name}</TableCell>
-                          <TableCell className="text-right font-medium text-red-500">{product.stock_count}</TableCell>
+                          <TableCell className="text-right font-medium text-rose-500">{product.stock_count}</TableCell>
                         </TableRow>
                       ))}
                     </TableBody>
                   </Table>
                 </div>
               ) : (
-                <div className="p-4 text-center text-muted-foreground">
+                <div className="p-4 text-center text-slate-400">
                   {isLoading ? 'Loading products...' : 'No low stock products'}
                 </div>
               )}
-              <div className="p-3 border-t">
+              <div className="p-3 border-t bg-slate-50">
                 <Button 
                   variant="outline" 
-                  className="w-full"
+                  className="w-full bg-white hover:bg-slate-50"
                   onClick={navigateToInventory}
                 >
-                  Go to Inventory
+                  Manage Inventory
                 </Button>
               </div>
             </PopoverContent>
           </Popover>
         </div>
 
-        {/* Quick insights card */}
+        {/* AI Insights Card */}
         {aiInsights.length > 0 && !isLoadingAI && (
-          <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
+          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100 shadow-sm hover:shadow-md transition-all duration-200">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+              <CardTitle className="text-base flex items-center gap-2 text-indigo-700">
                 <Sparkles className="h-4 w-4 text-amber-500" />
-                AI Insights
+                AI Business Insight
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-sm text-gray-700 font-medium">
+              <div className="text-sm text-indigo-800 font-medium">
                 {aiInsights[0]}
               </div>
             </CardContent>
             <CardFooter>
-              <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => {
+              <Button variant="ghost" size="sm" className="ml-auto text-xs text-indigo-600 hover:text-indigo-800 hover:bg-blue-100" onClick={() => {
                 document.getElementById('insights-tab')?.click();
               }}>
                 View all insights
@@ -603,104 +607,107 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Integrated Dashboard Content */}
+        {/* Main Dashboard Content */}
         <div className="space-y-6">
-          {/* First Row: Sales Performance Overview */}
+          {/* Combined Performance View */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            {/* Recent Sales Trend */}
-            <Card className="col-span-1 lg:col-span-2">
-              <CardHeader className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-lg">Recent Sales Performance</CardTitle>
-                    <CardDescription>Last 7 days</CardDescription>
+            {/* Overview Charts */}
+            <Card className="col-span-1 lg:col-span-2 shadow-sm hover:shadow-md transition-all duration-200 bg-white overflow-hidden">
+              <CardHeader className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+                <Tabs defaultValue="weekly" className="w-full">
+                  <div className="flex justify-between items-center">
+                    <CardTitle className="text-lg text-slate-800">Sales Performance</CardTitle>
+                    <TabsList className="bg-slate-200/70">
+                      <TabsTrigger value="weekly" className="text-xs px-3">Weekly</TabsTrigger>
+                      <TabsTrigger value="monthly" className="text-xs px-3">Monthly</TabsTrigger>
+                    </TabsList>
                   </div>
-                  <BarChartIcon className="h-5 w-5 text-muted-foreground" />
-                </div>
+                  
+                  <TabsContent value="weekly" className="mt-2 mb-0">
+                    <CardDescription className="text-sm text-slate-500">Last 7 days sales activity</CardDescription>
+                  </TabsContent>
+                  
+                  <TabsContent value="monthly" className="mt-2 mb-0">
+                    <CardDescription className="text-sm text-slate-500">6-month revenue trend</CardDescription>
+                  </TabsContent>
+                </Tabs>
               </CardHeader>
+              
               <CardContent className="pt-4 px-3 pb-4">
-                <div className="h-[250px] w-full">
-                  {salesByDate.length > 0 ? (
-                    <ChartContainer config={{ sales: { color: "#2563eb" } }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={salesByDate}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                          <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Tooltip content={<ChartTooltipContent />} />
-                          <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Bar dataKey="total" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
-                      {isLoading ? 'Loading data...' : 'No sales data available'}
+                <Tabs defaultValue="weekly" className="w-full">
+                  <TabsContent value="weekly" className="mt-0">
+                    <div className="h-[250px] w-full">
+                      {salesByDate.length > 0 ? (
+                        <ChartContainer config={{ sales: { color: "#3b82f6" } }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={salesByDate}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                              <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12, fill: "#64748b" }} />
+                              <YAxis tick={{ fontSize: isMobile ? 10 : 12, fill: "#64748b" }} />
+                              <Tooltip content={<ChartTooltipContent />} />
+                              <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                              <Bar dataKey="total" name="Sales ($)" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-slate-400">
+                          {isLoading ? 'Loading data...' : 'No sales data available'}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="monthly" className="mt-0">
+                    <div className="h-[250px] w-full">
+                      <ChartContainer config={{ trend: { color: "#8b5cf6" } }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={monthlySalesTrend}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                            <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12, fill: "#64748b" }} />
+                            <YAxis tick={{ fontSize: isMobile ? 10 : 12, fill: "#64748b" }} />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                            <Line 
+                              type="monotone" 
+                              dataKey="total" 
+                              name="Monthly Revenue ($)" 
+                              stroke="#8b5cf6" 
+                              strokeWidth={2} 
+                              activeDot={{ r: 8 }} 
+                              dot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </ChartContainer>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
             
             {/* Financial Summary */}
-            <Card className="col-span-1">
-              <FinancialSummary metrics={financialMetrics} compact={true} />
+            <Card className="col-span-1 bg-white">
+              <FinancialSummary metrics={financialMetrics} compact={isMobile} />
             </Card>
           </div>
           
-          {/* Second Row: Long-term Analysis and Categories */}
+          {/* Secondary Analysis Row */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Monthly Performance Trend */}
-            <Card>
-              <CardHeader className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+            {/* Categories Distribution */}
+            <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+              <CardHeader className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-lg">Monthly Performance</CardTitle>
-                    <CardDescription>Revenue trend over 6 months</CardDescription>
+                    <CardTitle className="text-lg text-slate-800">Sales by Category</CardTitle>
+                    <CardDescription className="text-sm text-slate-500">Product category breakdown</CardDescription>
                   </div>
-                  <ChartLine className="h-5 w-5 text-muted-foreground" />
+                  <ChartPie className="h-5 w-5 text-violet-500" />
                 </div>
               </CardHeader>
               <CardContent className="pt-4 px-3 pb-4">
                 <div className="h-[250px] w-full">
-                  <ChartContainer config={{ trend: { color: "#8884d8" } }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={monthlySalesTrend}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                        <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                        <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                        <Line 
-                          type="monotone" 
-                          dataKey="total" 
-                          name="Monthly Revenue ($)" 
-                          stroke="#8884d8" 
-                          strokeWidth={2} 
-                          activeDot={{ r: 8 }} 
-                          dot={{ r: 4 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </ChartContainer>
-                </div>
-              </CardContent>
-            </Card>
-            
-            {/* Category Distribution */}
-            <Card>
-              <CardHeader className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-lg">Sales by Category</CardTitle>
-                    <CardDescription>Product category distribution</CardDescription>
-                  </div>
-                  <ChartPie className="h-5 w-5 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4 px-3 pb-4">
-                <div className="h-[250px] w-full">
-                  <ChartContainer config={{ category: { color: "#10b981" } }}>
+                  <ChartContainer config={{ category: { color: "#8b5cf6" } }}>
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -725,35 +732,16 @@ const Dashboard = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
-          
-          {/* Third Row: Revenue/Cost Analysis and Top Products */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            {/* Profit Loss Analysis */}
-            <Card>
-              <CardHeader className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <CardTitle className="text-lg">Revenue vs. Cost Analysis</CardTitle>
-                    <CardDescription>Monthly profit/loss breakdown</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4 px-3 pb-4">
-                <div className="h-[250px] w-full">
-                  <ProfitLossChart data={profitLossData} />
-                </div>
-              </CardContent>
-            </Card>
             
             {/* Top Products */}
-            <Card>
-              <CardHeader className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+            <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+              <CardHeader className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
                 <div className="flex justify-between items-center">
                   <div>
-                    <CardTitle className="text-lg">Top Products</CardTitle>
-                    <CardDescription>By revenue</CardDescription>
+                    <CardTitle className="text-lg text-slate-800">Top Products</CardTitle>
+                    <CardDescription className="text-sm text-slate-500">Best selling items by revenue</CardDescription>
                   </div>
+                  <BarChartIcon className="h-5 w-5 text-emerald-500" />
                 </div>
               </CardHeader>
               <CardContent className="pt-4 px-3 pb-4">
@@ -762,13 +750,13 @@ const Dashboard = () => {
                     <ChartContainer config={{ revenue: { color: "#10b981" } }}>
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={topProducts} layout="vertical">
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                          <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                          <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12, fill: "#64748b" }} />
                           <YAxis 
                             dataKey="product_name" 
                             type="category" 
                             width={isMobile ? 80 : 150} 
-                            tick={{ fontSize: isMobile ? 9 : 12 }}
+                            tick={{ fontSize: isMobile ? 9 : 12, fill: "#64748b" }}
                           />
                           <Tooltip content={<ChartTooltipContent />} />
                           <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
@@ -777,7 +765,7 @@ const Dashboard = () => {
                       </ResponsiveContainer>
                     </ChartContainer>
                   ) : (
-                    <div className="h-full flex items-center justify-center text-muted-foreground">
+                    <div className="h-full flex items-center justify-center text-slate-400">
                       {isLoading ? 'Loading data...' : 'No product data available'}
                     </div>
                   )}
@@ -785,22 +773,40 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Profit/Loss Analysis */}
+          <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+            <CardHeader className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b">
+              <div className="flex justify-between items-center">
+                <div>
+                  <CardTitle className="text-lg text-slate-800">Revenue vs. Cost Analysis</CardTitle>
+                  <CardDescription className="text-sm text-slate-500">Monthly profit/loss breakdown</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 px-3 pb-4">
+              <div className="h-[300px] w-full">
+                <ProfitLossChart data={profitLossData} />
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         {/* AI Insights Section */}
-        <Card className="mt-6">
-          <CardHeader className="px-4 py-3 bg-gradient-to-r from-gray-50 to-gray-100 border-b" id="insights-tab">
+        <Card className="bg-white shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden">
+          <CardHeader className="px-4 py-3 bg-gradient-to-r from-slate-50 to-slate-100 border-b" id="insights-tab">
             <div className="flex justify-between items-center">
               <div>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-yellow-500" />
-                  Detailed AI Insights
+                <CardTitle className="text-lg flex items-center gap-2 text-slate-800">
+                  <Sparkles className="h-5 w-5 text-amber-500" />
+                  AI Business Insights
                 </CardTitle>
-                <CardDescription>Powered by Google Gemini 2.0</CardDescription>
+                <CardDescription className="text-sm text-slate-500">Powered by Google Gemini AI</CardDescription>
               </div>
               <Button 
                 variant="outline" 
                 size="sm" 
+                className="bg-white hover:bg-slate-50"
                 onClick={refreshAIInsights}
                 disabled={isLoadingAI}
               >
@@ -813,16 +819,16 @@ const Dashboard = () => {
               {isLoadingAI ? (
                 <div className="flex flex-col items-center justify-center py-8">
                   <div className="animate-spin h-8 w-8 mb-4 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                  <p className="text-muted-foreground">Analyzing your business data...</p>
+                  <p className="text-slate-500">Analyzing your business data...</p>
                 </div>
               ) : (
                 aiInsights.map((insight, index) => (
                   <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-                    <div className="bg-blue-100 rounded-full p-1 flex-shrink-0">
-                      <Bot className="h-5 w-5 text-blue-700" />
+                    <div className="bg-blue-100 rounded-full p-1.5 flex-shrink-0">
+                      <Bot className="h-4 w-4 text-blue-700" />
                     </div>
                     <div>
-                      <p className="text-sm text-gray-800">{insight}</p>
+                      <p className="text-sm text-slate-800">{insight}</p>
                     </div>
                   </div>
                 ))
@@ -839,9 +845,9 @@ const Dashboard = () => {
               </div>
             )}
           </CardContent>
-          <CardFooter className="px-4 py-3 border-t">
-            <p className="text-xs text-muted-foreground">
-              These insights are generated using Google's Gemini 2.0 AI based on your sales data.
+          <CardFooter className="px-4 py-3 border-t bg-slate-50">
+            <p className="text-xs text-slate-500">
+              These insights are generated using Google's Gemini AI based on your sales data.
             </p>
           </CardFooter>
         </Card>

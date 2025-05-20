@@ -426,6 +426,7 @@ const Dashboard = () => {
     navigate('/sales');
   };
 
+  // Update the generateInsights function to be more dynamic
   const refreshAIInsights = async () => {
     if (!user) return;
     
@@ -606,198 +607,15 @@ const Dashboard = () => {
           />
         </div>
 
-        {/* Quick insights card - highlighting AI findings */}
-        {aiInsights.length > 0 && !isLoadingAI && (
-          <Card className="mb-4 sm:mb-6 md:mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-100">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-amber-500" />
-                Quick Insights
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-gray-700 font-medium">
-                {aiInsights[0]}
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Button variant="ghost" size="sm" className="ml-auto text-xs" onClick={() => {
-                document.getElementById('insights-tab')?.click();
-              }}>
-                View all insights
-                <ArrowUpRight className="h-3 w-3 ml-1" />
-              </Button>
-            </CardFooter>
-          </Card>
-        )}
-
-        <Tabs defaultValue="weekly" className="w-full mb-6">
+        <Tabs defaultValue="financial" className="w-full mb-6">
           <TabsList className="mb-4 overflow-auto flex flex-nowrap bg-white/50 backdrop-blur-sm p-1">
-            <TabsTrigger value="weekly">Weekly Analysis</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly Analysis</TabsTrigger>
             <TabsTrigger value="financial">Financial Analysis</TabsTrigger>
-            <TabsTrigger id="insights-tab" value="insights">AI Insights</TabsTrigger>
+            <TabsTrigger value="insights" id="insights-tab">AI Insights</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="weekly" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-              <Card className="col-span-1 w-full">
-                <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2">
-                  <CardTitle className="text-lg sm:text-xl">Sales Last 7 Days</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-                  <div className="h-[300px] w-full">
-                    {salesByDate.length > 0 ? (
-                      <ChartContainer 
-                        config={{
-                          sales: { color: "#2563eb" },
-                        }}
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={salesByDate}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                            <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                            <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Bar dataKey="total" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground">
-                        {isLoading ? 'Loading data...' : 'No sales data available'}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="col-span-1 w-full">
-                <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2">
-                  <CardTitle className="text-lg sm:text-xl">Top Products</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">By revenue</CardDescription>
-                </CardHeader>
-                <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-                  <div className="h-[300px] w-full">
-                    {topProducts.length > 0 ? (
-                      <ChartContainer 
-                        config={{
-                          revenue: { color: "#10b981" },
-                        }}
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={topProducts} layout="vertical">
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                            <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                            <YAxis 
-                              dataKey="product_name" 
-                              type="category" 
-                              width={isMobile ? 80 : 150} 
-                              tick={{ fontSize: isMobile ? 9 : 12 }}
-                            />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" radius={[0, 4, 4, 0]} />
-                          </BarChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    ) : (
-                      <div className="h-full flex items-center justify-center text-muted-foreground">
-                        {isLoading ? 'Loading data...' : 'No product data available'}
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="monthly" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 md:gap-8">
-              <Card className="col-span-1 w-full">
-                <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Monthly Sales Trend</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Last 6 months</CardDescription>
-                  </div>
-                  <ChartLine className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-                  <div className="h-[300px] w-full">
-                    <ChartContainer 
-                      config={{
-                        trend: { color: "#8884d8" },
-                      }}
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={monthlySalesTrend}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                          <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Tooltip content={<ChartTooltipContent />} />
-                          <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                          <Line 
-                            type="monotone" 
-                            dataKey="total" 
-                            name="Monthly Revenue ($)" 
-                            stroke="#8884d8" 
-                            strokeWidth={2} 
-                            activeDot={{ r: 8 }} 
-                            dot={{ r: 4 }}
-                          />
-                        </LineChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="col-span-1 w-full">
-                <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 flex flex-row items-center justify-between">
-                  <div>
-                    <CardTitle className="text-lg sm:text-xl">Sales by Category</CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Product category distribution</CardDescription>
-                  </div>
-                  <ChartPie className="h-5 w-5 text-muted-foreground" />
-                </CardHeader>
-                <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-                  <div className="h-[300px] w-full">
-                    <ChartContainer 
-                      config={{
-                        category: { color: "#10b981" },
-                      }}
-                    >
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={categorySales}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={true}
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            outerRadius={isMobile ? 70 : 80}
-                            fill="#8884d8"
-                            dataKey="value"
-                            nameKey="category"
-                          >
-                            {categorySales.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <Tooltip content={<ChartTooltipContent />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </ChartContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="financial" className="space-y-4">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
+          <TabsContent value="financial" className="space-y-6">
+            {/* Financial Analysis Overview */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
               <div className="col-span-1 lg:col-span-2">
                 <ProfitLossChart data={profitLossData} title="Revenue vs. Cost" description="Monthly breakdown" />
               </div>
@@ -805,27 +623,198 @@ const Dashboard = () => {
                 <FinancialSummary metrics={financialMetrics} />
               </div>
             </div>
+
+            {/* Weekly Analysis Section */}
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                <Calendar className="mr-2 h-5 w-5 text-primary" />
+                Weekly Analysis
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-blue-100">
+                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-blue-50 to-blue-100/50">
+                    <CardTitle className="text-lg sm:text-xl flex items-center">
+                      <BarChartIcon className="h-5 w-5 mr-2 text-blue-500" />
+                      Sales Last 7 Days
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
+                    <div className="h-[280px] w-full">
+                      {salesByDate.length > 0 ? (
+                        <ChartContainer 
+                          config={{
+                            sales: { color: "#2563eb" },
+                          }}
+                        >
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={salesByDate}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
+                              <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                              <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
+                              <Tooltip content={<ChartTooltipContent />} />
+                              <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                              <Bar dataKey="total" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          {isLoading ? 'Loading data...' : 'No sales data available'}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-green-100">
+                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-green-50 to-green-100/50">
+                    <CardTitle className="text-lg sm:text-xl flex items-center">
+                      <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
+                      Top Products
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">By revenue this week</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
+                    <div className="h-[280px] w-full">
+                      {topProducts.length > 0 ? (
+                        <ChartContainer 
+                          config={{
+                            revenue: { color: "#10b981" },
+                          }}
+                        >
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={topProducts} layout="vertical">
+                              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
+                              <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                              <YAxis 
+                                dataKey="product_name" 
+                                type="category" 
+                                width={isMobile ? 80 : 150} 
+                                tick={{ fontSize: isMobile ? 9 : 12 }}
+                              />
+                              <Tooltip content={<ChartTooltipContent />} />
+                              <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                              <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" radius={[0, 4, 4, 0]} />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </ChartContainer>
+                      ) : (
+                        <div className="h-full flex items-center justify-center text-muted-foreground">
+                          {isLoading ? 'Loading data...' : 'No product data available'}
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+
+            {/* Monthly Analysis Section */}
+            <div>
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
+                <ChartLine className="mr-2 h-5 w-5 text-purple-500" />
+                Monthly Analysis
+              </h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-purple-100">
+                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50">
+                    <CardTitle className="text-lg sm:text-xl flex items-center">
+                      <ChartLine className="h-5 w-5 mr-2 text-purple-500" />
+                      Monthly Sales Trend
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Last 6 months</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
+                    <div className="h-[280px] w-full">
+                      <ChartContainer 
+                        config={{
+                          trend: { color: "#8b5cf6" },
+                        }}
+                      >
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={monthlySalesTrend}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
+                            <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                            <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
+                            <Tooltip content={<ChartTooltipContent />} />
+                            <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
+                            <Line 
+                              type="monotone" 
+                              dataKey="total" 
+                              name="Monthly Revenue ($)" 
+                              stroke="#8b5cf6" 
+                              strokeWidth={2} 
+                              activeDot={{ r: 8 }} 
+                              dot={{ r: 4 }}
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </ChartContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-amber-100">
+                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50">
+                    <CardTitle className="text-lg sm:text-xl flex items-center">
+                      <ChartPie className="h-5 w-5 mr-2 text-amber-500" />
+                      Sales by Category
+                    </CardTitle>
+                    <CardDescription className="text-xs sm:text-sm">Product category distribution</CardDescription>
+                  </CardHeader>
+                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
+                    <div className="h-[280px] w-full">
+                      <ChartContainer 
+                        config={{
+                          category: { color: "#10b981" },
+                        }}
+                      >
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie
+                              data={categorySales}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={true}
+                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={isMobile ? 70 : 80}
+                              fill="#8884d8"
+                              dataKey="value"
+                              nameKey="category"
+                            >
+                              {categorySales.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<ChartTooltipContent />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </ChartContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
 
           <TabsContent value="insights">
-            <Card>
-              <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 flex flex-row items-center justify-between">
+            <Card className="shadow-sm hover:shadow-md transition-shadow">
+              <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 flex flex-row items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100/50 border-b border-blue-100">
                 <div>
                   <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-yellow-500" />
+                    <Sparkles className="h-5 w-5 text-amber-500" />
                     AI Insights
                   </CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">
-                    Powered by Google Gemini 2.0
-                  </CardDescription>
                 </div>
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={refreshAIInsights}
                   disabled={isLoadingAI}
+                  className="bg-white hover:bg-blue-50"
                 >
-                  {isLoadingAI ? 'Analyzing...' : 'Refresh'}
+                  {isLoadingAI ? 'Analyzing...' : 'Refresh Insights'}
                 </Button>
               </CardHeader>
               <CardContent className="px-4 sm:px-6 py-4">
@@ -838,7 +827,7 @@ const Dashboard = () => {
                   ) : (
                     aiInsights.map((insight, index) => (
                       <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-                        <div className="bg-blue-100 rounded-full p-1">
+                        <div className="bg-blue-100 rounded-full p-1 flex-shrink-0">
                           <Bot className="h-5 w-5 text-blue-700" />
                         </div>
                         <div>
@@ -848,22 +837,7 @@ const Dashboard = () => {
                     ))
                   )}
                 </div>
-
-                {chartRecommendation && (
-                  <div className="mt-6 p-4 bg-amber-50 border border-amber-100 rounded-lg">
-                    <h3 className="font-medium text-amber-800 mb-2 flex items-center gap-2">
-                      <ChartLine className="h-4 w-4" />
-                      Chart Recommendation
-                    </h3>
-                    <p className="text-sm text-amber-700">{chartRecommendation}</p>
-                  </div>
-                )}
               </CardContent>
-              <CardFooter className="px-4 sm:px-6 py-4 border-t">
-                <p className="text-xs text-muted-foreground">
-                  These insights are generated using Google's Gemini 2.0 AI based on your sales data.
-                </p>
-              </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>

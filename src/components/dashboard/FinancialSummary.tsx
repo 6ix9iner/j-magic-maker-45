@@ -7,9 +7,11 @@ import { TrendingUp, TrendingDown, DollarSign } from 'lucide-react';
 
 interface FinancialSummaryProps {
   metrics: FinancialMetrics;
+  className?: string;
+  compact?: boolean;
 }
 
-const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics }) => {
+const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics, className = '', compact = false }) => {
   const isProfit = metrics.grossProfit >= 0;
   
   const renderIndicator = (value: number) => {
@@ -26,9 +28,9 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics }) => {
   };
 
   return (
-    <Card className="w-full h-full">
-      <CardHeader className="px-4 py-3 flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b">
-        <CardTitle className="text-lg flex items-center">
+    <Card className={`w-full h-full ${className}`}>
+      <CardHeader className={`${compact ? 'px-3 py-2' : 'px-4 py-3'} flex items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b`}>
+        <CardTitle className={`${compact ? 'text-base' : 'text-lg'} flex items-center`}>
           <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
           Financial Summary
         </CardTitle>

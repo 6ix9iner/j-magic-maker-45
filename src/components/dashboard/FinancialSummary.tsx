@@ -49,7 +49,7 @@ const FinancialSummary: React.FC<FinancialSummaryProps> = ({ metrics }) => {
             <TableRow className="bg-muted/30">
               <TableHead>Metric</TableHead>
               <TableHead className="text-right">Value</TableHead>
-              <TableHead width="40px"></TableHead>
+              <TableHead className="w-[40px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

@@ -35,7 +35,7 @@ const MobilePopover = ({
         damping: 25,
         stiffness: 300
       }}>
-            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex justify-between items-center bg-slate-950">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-4 flex justify-between items-center bg-[#0a0c0e]">
               <h3 className="font-semibold text-white text-lg tracking-tight">{title}</h3>
               <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full text-white hover:bg-white/20 transition-colors" onClick={onClose}>
                 <X className="h-4 w-4" />

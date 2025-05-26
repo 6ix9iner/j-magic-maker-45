@@ -58,7 +58,7 @@ const Layout = () => {
     }} transition={{
       duration: 0.5
     }}>
-        <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto bg-[#0e1011]">
+        <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto bg-gray-50">
           <motion.div className="flex items-center" initial={{
           x: -20,
           opacity: 0

@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
+import ProductCard from './ProductCard';
 
 interface Product {
   id: string;
@@ -38,13 +37,18 @@ const ProductList = ({
     );
   });
 
+  // Sort products by name
+  const sortedProducts = filteredProducts.sort((a, b) => 
+    a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+  );
+
   if (isLoading) {
     return (
       <div className="text-center py-8 text-muted-foreground">Loading products...</div>
     );
   }
 
-  if (filteredProducts.length === 0) {
+  if (sortedProducts.length === 0) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         {searchTerm ? 'No products match your search' : 'No products found'}
@@ -53,43 +57,14 @@ const ProductList = ({
   }
 
   return (
-    <div className="overflow-x-auto">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Barcode</TableHead>
-            <TableHead>Price</TableHead>
-            <TableHead>Cost</TableHead>
-            <TableHead>Stock</TableHead>
-            <TableHead>Category</TableHead>
-            <TableHead>Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProducts.map((product) => (
-            <TableRow key={product.id}>
-              <TableCell>{product.name}</TableCell>
-              <TableCell>{product.barcode}</TableCell>
-              <TableCell>${parseFloat(product.price.toString()).toFixed(2)}</TableCell>
-              <TableCell>${parseFloat(product.purchase_price.toString()).toFixed(2)}</TableCell>
-              <TableCell className={product.stock_count < 5 ? "text-red-500 font-medium" : ""}>
-                {product.stock_count}
-              </TableCell>
-              <TableCell>{product.category || '-'}</TableCell>
-              <TableCell>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => onEditProduct(product)}
-                >
-                  Edit
-                </Button>
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <div className="space-y-3">
+      {sortedProducts.map((product) => (
+        <ProductCard
+          key={product.id}
+          product={product}
+          onClick={() => onEditProduct(product)}
+        />
+      ))}
     </div>
   );
 };

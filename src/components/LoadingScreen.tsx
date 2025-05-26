@@ -22,7 +22,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
   
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-blue-900 to-indigo-900"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
@@ -34,8 +34,8 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
         className="relative mb-8"
       >
         <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg flex items-center justify-center">
-          <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-900 to-indigo-900 flex items-center justify-center">
-            <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-300 bg-clip-text text-transparent">II</span>
+          <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
+            <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">II</span>
           </div>
         </div>
         <motion.div 
@@ -54,14 +54,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
         transition={{ delay: 0.3, duration: 0.6 }}
         className="flex flex-col items-center"
       >
-        <h1 className="text-2xl font-bold text-white mb-2">Insight Inventory</h1>
-        <p className="text-blue-200 text-sm mb-6">Powering smarter business decisions</p>
+        <h1 className="text-2xl font-bold text-gray-800 mb-2">Insight Inventory</h1>
+        <p className="text-gray-600 text-sm mb-6">Powering smarter business decisions</p>
         
         <motion.div 
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
         >
-          <Loader size={36} className="text-blue-300" />
+          <Loader size={36} className="text-blue-500" />
         </motion.div>
       </motion.div>
     </motion.div>

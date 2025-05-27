@@ -56,7 +56,7 @@ const Index = () => {
         }} transition={{
           delay: 0.2
         }}>
-              <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white bg-black/0">
+              <div className="p-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white bg-black">
                 <h2 className="font-medium text-lg">Scan Barcode</h2>
                 <p className="text-sm opacity-90">Position a barcode within the frame</p>
               </div>

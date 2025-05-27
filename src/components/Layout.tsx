@@ -139,7 +139,7 @@ const Layout = () => {
       </main>
       
       {/* Bottom Tab Navigation - Enhanced for better visibility */}
-      {user && <motion.nav className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-700 to-indigo-700 border-t border-white/20 shadow-2xl h-16 z-40" initial={{
+      {user && <motion.nav initial={{
       y: 20,
       opacity: 0
     }} animate={{
@@ -147,7 +147,7 @@ const Layout = () => {
       opacity: 1
     }} transition={{
       duration: 0.5
-    }}>
+    }} className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-700 to-indigo-700 border-t border-white/20 shadow-2xl h-16 z-40 bg-[#070807]/0">
           <div className="flex justify-around items-center h-full max-w-xl mx-auto px-2">
             {navItems.map((item, index) => {
           const isActive = location.pathname === item.path;

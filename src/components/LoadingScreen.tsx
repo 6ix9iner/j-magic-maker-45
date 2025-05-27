@@ -33,9 +33,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative mb-8"
       >
-        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-blue-400 to-indigo-500 shadow-lg flex items-center justify-center">
+        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-black to-gray-800 shadow-lg flex items-center justify-center">
           <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
-            <span className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-500 bg-clip-text text-transparent">II</span>
+            <span className="text-3xl font-bold bg-gradient-to-r from-black to-gray-800 bg-clip-text text-transparent">II</span>
           </div>
         </div>
         <motion.div 
@@ -44,7 +44,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
-          <div className="absolute inset-0 rounded-full border-4 border-blue-400/30 animate-ping" />
+          <div className="absolute inset-0 rounded-full border-4 border-black/30 animate-ping" />
         </motion.div>
       </motion.div>
       
@@ -61,7 +61,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
         >
-          <Loader size={36} className="text-blue-500" />
+          <Loader size={36} className="text-black" />
         </motion.div>
       </motion.div>
     </motion.div>

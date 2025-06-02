@@ -1,4 +1,3 @@
-
 import React, { memo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
@@ -152,7 +151,7 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
 
   // Custom label function that's responsive
   const renderCustomLabel = ({ name, percent }: any) => {
-    const percentage = (percent * 100).toFixed(0);
+    const percentage = Number((percent * 100).toFixed(0));
     if (isMobile) {
       // On mobile, only show percentage if it's significant enough
       return percentage > 10 ? `${percentage}%` : '';

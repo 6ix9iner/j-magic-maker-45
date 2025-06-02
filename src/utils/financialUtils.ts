@@ -71,24 +71,63 @@ export const formatPercentage = (value: number): string => {
 };
 
 /**
- * Calculate actual costs from sale items using purchase prices
+ * Calculate actual costs from sale items using purchase prices with better error handling
  */
 export const calculateActualCosts = async (saleItems: any[], supabase: any): Promise<number> => {
   let totalCost = 0;
   
+  // Group sale items by product_id to reduce database queries
+  const productQuantityMap = new Map<string, number>();
+  
   for (const item of saleItems) {
-    // Get the product's purchase price
-    const { data: product, error } = await supabase
-      .from('products')
-      .select('purchase_price')
-      .eq('id', item.product_id)
-      .single();
-    
-    if (product && !error) {
-      totalCost += parseFloat(product.purchase_price.toString()) * item.quantity;
+    if (!item.product_id) {
+      console.warn('Sale item missing product_id:', item);
+      continue;
     }
+    
+    const existingQuantity = productQuantityMap.get(item.product_id) || 0;
+    productQuantityMap.set(item.product_id, existingQuantity + (item.quantity || 0));
   }
   
+  console.log('Product quantities map:', Array.from(productQuantityMap.entries()));
+  
+  // Fetch all products at once
+  const productIds = Array.from(productQuantityMap.keys());
+  
+  if (productIds.length === 0) {
+    console.log('No valid product IDs found');
+    return 0;
+  }
+  
+  const { data: products, error } = await supabase
+    .from('products')
+    .select('id, purchase_price')
+    .in('id', productIds);
+  
+  if (error) {
+    console.error('Error fetching products for cost calculation:', error);
+    return 0;
+  }
+  
+  if (!products || products.length === 0) {
+    console.log('No products found for cost calculation');
+    return 0;
+  }
+  
+  console.log('Products fetched for cost calculation:', products);
+  
+  // Calculate total cost
+  for (const product of products) {
+    const quantity = productQuantityMap.get(product.id) || 0;
+    const purchasePrice = parseFloat(product.purchase_price?.toString() || '0');
+    const productCost = purchasePrice * quantity;
+    
+    console.log(`Product ${product.id}: quantity=${quantity}, purchasePrice=$${purchasePrice}, cost=$${productCost}`);
+    
+    totalCost += productCost;
+  }
+  
+  console.log('Total calculated cost:', totalCost);
   return totalCost;
 };
 

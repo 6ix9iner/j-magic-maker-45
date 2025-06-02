@@ -151,11 +151,12 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       .eq('user_id', userId)
       .gte('created_at', sixMonthsAgo.toISOString());
 
-    // Process monthly sales data
+    // Process monthly sales data with proper date formatting
     const monthlySalesMap = new Map<string, SaleSummary>();
     monthlySalesData?.forEach(sale => {
       const saleDate = new Date(sale.created_at);
-      const monthKey = saleDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      // Ensure we get consistent month formatting
+      const monthKey = `${saleDate.toLocaleDateString('en-US', { month: 'short' })} ${saleDate.getFullYear()}`;
       const existing = monthlySalesMap.get(monthKey) || { date: monthKey, total: 0, count: 0 };
       monthlySalesMap.set(monthKey, {
         date: monthKey,
@@ -164,22 +165,20 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       });
     });
 
-    let monthlyTrendData = Array.from(monthlySalesMap.values());
-    
-    // Fill in missing months with zeros
+    // Create array of last 6 months with consistent formatting
+    const monthlyTrendData: SaleSummary[] = [];
     const currentDate = new Date();
-    for (let i = 0; i < 6; i++) {
+    
+    for (let i = 5; i >= 0; i--) {
       const monthDate = new Date(currentDate);
       monthDate.setMonth(currentDate.getMonth() - i);
-      const monthKey = monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+      const monthKey = `${monthDate.toLocaleDateString('en-US', { month: 'short' })} ${monthDate.getFullYear()}`;
       
-      if (!monthlySalesMap.has(monthKey)) {
-        monthlyTrendData.push({ date: monthKey, total: 0, count: 0 });
-      }
+      const existingData = monthlySalesMap.get(monthKey);
+      monthlyTrendData.push(existingData || { date: monthKey, total: 0, count: 0 });
     }
 
-    monthlyTrendData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-    monthlyTrendData = monthlyTrendData.slice(-6);
+    console.log('Monthly trend data with consistent formatting:', monthlyTrendData);
 
     console.log('Processing profitability data...');
     
@@ -192,33 +191,52 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       // Continue with empty array if profitability calculation fails
     }
     
-    // Calculate actual costs for profit/loss data
+    // Calculate actual costs for profit/loss data with better error handling
     const profitLossItems: ProfitLossData[] = [];
     for (const monthData of monthlyTrendData) {
       const revenue = monthData.total;
-      const monthStart = new Date(monthData.date);
-      const monthEnd = new Date(monthStart);
-      monthEnd.setMonth(monthEnd.getMonth() + 1);
+      
+      // Parse the month string properly
+      const [monthName, year] = monthData.date.split(' ');
+      const monthIndex = new Date(`${monthName} 1, ${year}`).getMonth();
+      
+      const monthStart = new Date(parseInt(year), monthIndex, 1);
+      const monthEnd = new Date(parseInt(year), monthIndex + 1, 1);
+      
+      console.log(`Processing month: ${monthData.date}, Start: ${monthStart.toISOString()}, End: ${monthEnd.toISOString()}`);
       
       try {
-        const { data: monthSaleItems } = await supabase
+        const { data: monthSaleItems, error: saleItemsError } = await supabase
           .from('sale_items')
           .select(`quantity, product_id, sales!inner(created_at, user_id)`)
           .eq('sales.user_id', userId)
           .gte('sales.created_at', monthStart.toISOString())
           .lt('sales.created_at', monthEnd.toISOString());
         
-        let actualCost = 0;
-        if (monthSaleItems) {
-          actualCost = await calculateActualCosts(monthSaleItems, supabase);
+        if (saleItemsError) {
+          console.error('Error fetching sale items for month:', monthData.date, saleItemsError);
+          throw saleItemsError;
         }
+        
+        let actualCost = 0;
+        if (monthSaleItems && monthSaleItems.length > 0) {
+          console.log(`Found ${monthSaleItems.length} sale items for ${monthData.date}`);
+          actualCost = await calculateActualCosts(monthSaleItems, supabase);
+          console.log(`Calculated cost for ${monthData.date}: $${actualCost}`);
+        } else {
+          console.log(`No sale items found for ${monthData.date}`);
+        }
+        
+        const profit = revenue - actualCost;
         
         profitLossItems.push({
           date: monthData.date,
           revenue,
           cost: actualCost,
-          profit: revenue - actualCost
+          profit
         });
+        
+        console.log(`Month ${monthData.date}: Revenue=$${revenue}, Cost=$${actualCost}, Profit=$${profit}`);
       } catch (error) {
         console.error('Error calculating costs for month:', monthData.date, error);
         // Add month with zero cost if calculation fails
@@ -231,6 +249,8 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       }
     }
 
+    console.log('Final profit/loss data:', profitLossItems);
+
     // Calculate overall financial metrics with error handling
     let totalActualCost = 0;
     try {
@@ -239,8 +259,9 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
         .select(`quantity, product_id, sales!inner(user_id)`)
         .eq('sales.user_id', userId);
       
-      if (allSaleItems) {
+      if (allSaleItems && allSaleItems.length > 0) {
         totalActualCost = await calculateActualCosts(allSaleItems, supabase);
+        console.log('Total actual cost calculated:', totalActualCost);
       }
     } catch (error) {
       console.error('Error calculating total actual cost:', error);
@@ -304,7 +325,8 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       totalProducts: result.totalProducts,
       lowStockCount: result.lowStockCount,
       salesByDateCount: result.salesByDate.length,
-      topProductsCount: result.topProducts.length
+      topProductsCount: result.topProducts.length,
+      profitLossDataCount: result.profitLossData.length
     });
 
     return result;

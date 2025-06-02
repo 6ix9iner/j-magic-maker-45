@@ -16,7 +16,7 @@ import { generateAIInsights, generateChartRecommendations, SalesData } from '@/u
 import MetricCard from '@/components/dashboard/MetricCard';
 import ProfitLossChart from '@/components/dashboard/ProfitLossChart';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
-import { calculateProfitMetrics, calculateActualCosts, formatCurrency, FinancialMetrics } from '@/utils/financialUtils';
+import { calculateProfitMetrics, calculateActualCosts, calculateProductProfitability, formatCurrency, FinancialMetrics, ProductProfitability } from '@/utils/financialUtils';
 
 interface SaleSummary {
   date: string;
@@ -66,6 +66,7 @@ const Dashboard = () => {
     grossProfit: 0,
     profitMargin: 0
   });
+  const [productProfitability, setProductProfitability] = useState<ProductProfitability[]>([]);
   const [aiInsights, setAiInsights] = useState<string[]>(["Loading AI insights..."]);
   const [chartRecommendation, setChartRecommendation] = useState<string>("");
   const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
@@ -365,6 +366,10 @@ const Dashboard = () => {
         
         setMonthlySalesTrend(monthlyTrendData);
         
+        // Calculate product-level profitability
+        const profitabilityData = await calculateProductProfitability(supabase, user.id);
+        setProductProfitability(profitabilityData);
+        
         // Calculate actual profit/loss data using real purchase prices
         const profitLossItems: ProfitLossData[] = [];
         
@@ -422,7 +427,7 @@ const Dashboard = () => {
         
         setFinancialMetrics(calculateProfitMetrics(totalSalesAmount, totalActualCost, previousMonthRevenue));
         
-        // Use the collected data to generate AI insights
+        // Enhanced AI insights with comprehensive financial data
         setIsLoadingAI(true);
         const salesDataForAI: SalesData = {
           totalSales: totalSalesAmount,
@@ -430,7 +435,13 @@ const Dashboard = () => {
           recentOrders: salesByDateData.length,
           lowStockCount: lowStockProductsData?.length || 0,
           salesByDate: Array.from(salesByDateMap.values()),
-          topProducts: topProductsList
+          topProducts: topProductsList,
+          // Enhanced financial data for AI analysis
+          totalCosts: totalActualCost,
+          grossProfit: totalSalesAmount - totalActualCost,
+          profitMargin: totalSalesAmount > 0 ? ((totalSalesAmount - totalActualCost) / totalSalesAmount) * 100 : 0,
+          profitLossData: profitLossItems,
+          productProfitability: profitabilityData
         };
 
         // Generate insights in parallel
@@ -468,20 +479,28 @@ const Dashboard = () => {
     
     setIsLoadingAI(true);
     try {
-      // Prepare data for AI analysis
+      // Get fresh product profitability data
+      const freshProfitabilityData = await calculateProductProfitability(supabase, user.id);
+      
+      // Prepare enhanced data for AI analysis
       const salesDataForAI: SalesData = {
         totalSales,
         totalProducts,
         recentOrders: salesByDate.reduce((sum, day) => sum + day.count, 0),
         lowStockCount,
         salesByDate,
-        topProducts
+        topProducts,
+        totalCosts: financialMetrics.totalCost,
+        grossProfit: financialMetrics.grossProfit,
+        profitMargin: financialMetrics.profitMargin,
+        profitLossData,
+        productProfitability: freshProfitabilityData
       };
       
       // Generate fresh AI insights
       const insights = await generateAIInsights(salesDataForAI);
       setAiInsights(insights);
-      toast.success("AI insights refreshed");
+      toast.success("AI insights refreshed with latest profit/loss data");
     } catch (error) {
       console.error("Failed to refresh AI insights:", error);
       toast.error("Failed to refresh insights");

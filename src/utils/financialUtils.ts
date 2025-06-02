@@ -12,6 +12,15 @@ export interface FinancialMetrics {
   previousPeriodRevenue?: number;
 }
 
+export interface ProductProfitability {
+  product_name: string;
+  total_quantity: number;
+  total_revenue: number;
+  total_cost: number;
+  profit: number;
+  profit_margin: number;
+}
+
 /**
  * Calculate gross profit and profit margin from revenue and cost
  */
@@ -81,6 +90,91 @@ export const calculateActualCosts = async (saleItems: any[], supabase: any): Pro
   }
   
   return totalCost;
+};
+
+/**
+ * Calculate profitability for individual products
+ */
+export const calculateProductProfitability = async (supabase: any, userId: string): Promise<ProductProfitability[]> => {
+  try {
+    // Get all sale items with product details for the user
+    const { data: saleItems, error } = await supabase
+      .from('sale_items')
+      .select(`
+        name_at_sale,
+        quantity,
+        price_at_sale,
+        product_id,
+        sales!inner(user_id)
+      `)
+      .eq('sales.user_id', userId);
+
+    if (error) {
+      console.error('Error fetching sale items:', error);
+      return [];
+    }
+
+    // Group by product and calculate profitability
+    const productMap = new Map<string, {
+      name: string;
+      totalQuantity: number;
+      totalRevenue: number;
+      totalCost: number;
+      productId: string;
+    }>();
+
+    // First pass: aggregate sales data
+    for (const item of saleItems) {
+      const productName = item.name_at_sale;
+      const existing = productMap.get(productName) || {
+        name: productName,
+        totalQuantity: 0,
+        totalRevenue: 0,
+        totalCost: 0,
+        productId: item.product_id
+      };
+
+      existing.totalQuantity += item.quantity;
+      existing.totalRevenue += parseFloat(item.price_at_sale.toString()) * item.quantity;
+      
+      productMap.set(productName, existing);
+    }
+
+    // Second pass: get purchase prices and calculate costs
+    const profitabilityData: ProductProfitability[] = [];
+    
+    for (const [productName, data] of productMap.entries()) {
+      // Get the product's purchase price
+      const { data: product, error: productError } = await supabase
+        .from('products')
+        .select('purchase_price')
+        .eq('id', data.productId)
+        .single();
+
+      let totalCost = 0;
+      if (product && !productError) {
+        totalCost = parseFloat(product.purchase_price.toString()) * data.totalQuantity;
+      }
+
+      const profit = data.totalRevenue - totalCost;
+      const profitMargin = data.totalRevenue > 0 ? (profit / data.totalRevenue) * 100 : 0;
+
+      profitabilityData.push({
+        product_name: productName,
+        total_quantity: data.totalQuantity,
+        total_revenue: data.totalRevenue,
+        total_cost: totalCost,
+        profit,
+        profit_margin: profitMargin
+      });
+    }
+
+    // Sort by profit (highest first)
+    return profitabilityData.sort((a, b) => b.profit - a.profit);
+  } catch (error) {
+    console.error('Error calculating product profitability:', error);
+    return [];
+  }
 };
 
 /**

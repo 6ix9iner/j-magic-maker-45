@@ -6,6 +6,15 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const API_KEY = "AIzaSyA4R-hv8YurDE3t-kIcHPgQaq5imQ3kQKI";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
+export interface ProductProfitability {
+  product_name: string;
+  total_quantity: number;
+  total_revenue: number;
+  total_cost: number;
+  profit: number;
+  profit_margin: number;
+}
+
 export interface SalesData {
   totalSales: number;
   totalProducts: number;
@@ -13,10 +22,16 @@ export interface SalesData {
   lowStockCount: number;
   salesByDate: Array<{date: string; total: number; count: number}>;
   topProducts: Array<{product_name: string; total_quantity: number; total_revenue: number}>;
+  // Enhanced financial data
+  totalCosts: number;
+  grossProfit: number;
+  profitMargin: number;
+  profitLossData: Array<{date: string; revenue: number; cost: number; profit: number}>;
+  productProfitability: ProductProfitability[];
 }
 
 /**
- * Generate AI insights based on sales and inventory data
+ * Generate comprehensive AI insights including both business overview and profit/loss analysis
  */
 export const generateAIInsights = async (salesData: SalesData): Promise<string[]> => {
   try {
@@ -27,21 +42,31 @@ export const generateAIInsights = async (salesData: SalesData): Promise<string[]
     const dataString = JSON.stringify(salesData, null, 2);
     
     const prompt = `
-    You are a business analytics AI that helps retail store owners understand their sales data.
+    You are a comprehensive business analytics AI that helps retail store owners understand their complete business performance.
     
-    Please analyze the following sales and inventory data:
+    Please analyze the following sales, inventory, and financial data:
     
     ${dataString}
     
-    Provide exactly 5 short, actionable insights based on this data. Each insight should be a single sentence focused on:
-    1. Sales trends
-    2. Top products
-    3. Inventory management
-    4. Business opportunities
-    5. Customer behavior
+    Provide exactly 8 actionable insights covering these areas:
     
-    Format your response as a JSON array of strings with no additional explanation or text outside the array.
-    Example: ["Insight 1", "Insight 2", "Insight 3", "Insight 4", "Insight 5"]
+    1-2 insights on OVERALL BUSINESS PERFORMANCE (sales trends, growth, customer behavior)
+    3-4 insights on PROFITABILITY & FINANCIAL HEALTH (profit margins, cost management, profitable products)
+    5-6 insights on INVENTORY & OPERATIONS (stock levels, product performance, operational efficiency)
+    7-8 insights on STRATEGIC RECOMMENDATIONS (specific actions to improve business, focus areas)
+    
+    Focus on:
+    - Overall business health and trends
+    - Product-level profit analysis (which products are most/least profitable)
+    - Loss-making products or negative trends that need immediate attention
+    - Revenue vs cost patterns and efficiency
+    - Inventory management insights
+    - Specific actionable recommendations with numbers when possible
+    
+    Each insight should be practical, specific, and include actual numbers from the data when relevant.
+    
+    Format your response as a JSON array of exactly 8 strings with no additional explanation or text outside the array.
+    Example: ["Business insight with numbers", "Profit analysis insight", "Loss prevention insight", "Inventory insight", "Growth recommendation", "Cost optimization tip", "Product focus suggestion", "Strategic next step"]
     `;
     
     // Generate content
@@ -55,27 +80,35 @@ export const generateAIInsights = async (salesData: SalesData): Promise<string[]
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const insights = JSON.parse(jsonMatch[0]);
-        return Array.isArray(insights) ? insights.slice(0, 5) : [];
+        return Array.isArray(insights) ? insights.slice(0, 8) : [];
       }
       return [];
     } catch (error) {
       console.error("Failed to parse AI insights:", error);
+      // Enhanced fallback insights covering both business overview and profit/loss
       return [
-        "Sales have increased by 15% compared to last month.",
-        "Top-selling product accounts for 23% of total revenue.",
-        "Consider restocking low inventory items to prevent missed sales opportunities.",
-        "Tuesday and Thursday are your best-performing sales days.",
-        "Customer retention rate has improved by 8% this month."
+        `Your business generated $${salesData.totalSales.toFixed(2)} in total sales with a ${salesData.profitMargin.toFixed(1)}% profit margin.`,
+        `Gross profit stands at $${salesData.grossProfit.toFixed(2)} from $${salesData.totalCosts.toFixed(2)} in costs.`,
+        `${salesData.productProfitability.length > 0 && salesData.productProfitability[0].profit > 0 ? `${salesData.productProfitability[0].product_name} is your most profitable product with $${salesData.productProfitability[0].profit.toFixed(2)} profit.` : 'Review product profitability to identify top performers.'}`,
+        `${salesData.productProfitability.filter(p => p.profit < 0).length > 0 ? `${salesData.productProfitability.filter(p => p.profit < 0).length} products are currently losing money and need review.` : 'All products are currently profitable.'}`,
+        `You have ${salesData.lowStockCount} low-stock items that need restocking attention.`,
+        `Recent sales show ${salesData.recentOrders} orders with an average of $${(salesData.totalSales / Math.max(salesData.recentOrders, 1)).toFixed(2)} per transaction.`,
+        `Focus on promoting high-margin products to maximize profitability.`,
+        "Consider analyzing monthly profit trends to identify seasonal patterns and optimize inventory."
       ];
     }
   } catch (error) {
     console.error("Error generating AI insights:", error);
+    // Enhanced fallback insights covering both business overview and profit/loss
     return [
-      "Sales have increased by 15% compared to last month.",
-      "Top-selling product accounts for 23% of total revenue.",
-      "Consider restocking low inventory items to prevent missed sales opportunities.",
-      "Tuesday and Thursday are your best-performing sales days.",
-      "Customer retention rate has improved by 8% this month."
+      `Your business generated $${salesData.totalSales.toFixed(2)} in total sales with a ${salesData.profitMargin.toFixed(1)}% profit margin.`,
+      `Gross profit stands at $${salesData.grossProfit.toFixed(2)} from $${salesData.totalCosts.toFixed(2)} in costs.`,
+      `${salesData.productProfitability.length > 0 && salesData.productProfitability[0].profit > 0 ? `${salesData.productProfitability[0].product_name} is your most profitable product with $${salesData.productProfitability[0].profit.toFixed(2)} profit.` : 'Review product profitability to identify top performers.'}`,
+      `${salesData.productProfitability.filter(p => p.profit < 0).length > 0 ? `${salesData.productProfitability.filter(p => p.profit < 0).length} products are currently losing money and need review.` : 'All products are currently profitable.'}`,
+      `You have ${salesData.lowStockCount} low-stock items that need restocking attention.`,
+      `Recent sales show ${salesData.recentOrders} orders with an average of $${(salesData.totalSales / Math.max(salesData.recentOrders, 1)).toFixed(2)} per transaction.`,
+      `Focus on promoting high-margin products to maximize profitability.`,
+      "Consider analyzing monthly profit trends to identify seasonal patterns and optimize inventory."
     ];
   }
 };
@@ -90,11 +123,11 @@ export const generateChartRecommendations = async (salesData: SalesData): Promis
     const dataString = JSON.stringify(salesData, null, 2);
     
     const prompt = `
-    You are a data visualization expert. Based on the following sales data:
+    You are a data visualization expert. Based on the following sales and financial data:
     
     ${dataString}
     
-    Suggest ONE specific chart type (beyond what might already be shown) that would be most valuable to add to this retail dashboard. Explain in 1-2 sentences why this visualization would be valuable.
+    Suggest ONE specific chart type (beyond what might already be shown) that would be most valuable to add to this retail dashboard. Focus on charts that would help identify profit/loss patterns, product profitability, or financial trends.
     
     Keep your response under 100 characters.
     `;
@@ -106,6 +139,6 @@ export const generateChartRecommendations = async (salesData: SalesData): Promis
     return text.length > 100 ? text.substring(0, 100) + "..." : text;
   } catch (error) {
     console.error("Error generating chart recommendations:", error);
-    return "Consider adding a heat map to visualize sales by day and time to identify peak hours for staffing optimization.";
+    return "Add a product profitability scatter plot to identify which items drive the most profit per sale.";
   }
 };

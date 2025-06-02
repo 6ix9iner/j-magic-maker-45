@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -16,22 +15,29 @@ import OptimizedCharts from '@/components/dashboard/OptimizedCharts';
 import { formatCurrency } from '@/utils/financialUtils';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useAIInsights } from '@/hooks/useAIInsights';
-
 const Dashboard = () => {
-  const { user } = useAuth();
+  const {
+    user
+  } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading, error, refetch } = useDashboardData(user);
-  const { aiInsights, isLoadingAI, generateInsights } = useAIInsights();
-
+  const {
+    data,
+    isLoading,
+    error,
+    refetch
+  } = useDashboardData(user);
+  const {
+    aiInsights,
+    isLoadingAI,
+    generateInsights
+  } = useAIInsights();
   const navigateToInventory = () => {
     navigate('/inventory');
   };
-
   const refreshAIInsights = async () => {
     if (!user) return;
     await generateInsights(data);
   };
-
   const handleRetry = () => {
     console.log('Retrying dashboard data fetch...');
     refetch();
@@ -39,14 +45,17 @@ const Dashboard = () => {
 
   // Get current day and month for the welcome message
   const today = new Date();
-  const currentDay = today.toLocaleDateString('en-US', { weekday: 'long' });
-  const currentMonth = today.toLocaleDateString('en-US', { month: 'long' });
+  const currentDay = today.toLocaleDateString('en-US', {
+    weekday: 'long'
+  });
+  const currentMonth = today.toLocaleDateString('en-US', {
+    month: 'long'
+  });
   const currentDate = today.getDate();
 
   // Show error state if there's an error
   if (error && !isLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
+    return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
         <div className="w-full max-w-7xl mx-auto">
           <div className="flex flex-col items-center justify-center h-96 space-y-4">
             <AlertCircle className="h-16 w-16 text-red-500" />
@@ -60,12 +69,9 @@ const Dashboard = () => {
             </Button>
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
+  return <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
       <div className="w-full max-w-7xl mx-auto">
         <header className="mb-4 sm:mb-6 md:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center">
           <div>
@@ -89,60 +95,28 @@ const Dashboard = () => {
               Inventory
             </Button>
 
-            {error && (
-              <Button variant="outline" size="sm" onClick={handleRetry}>
+            {error && <Button variant="outline" size="sm" onClick={handleRetry}>
                 <RefreshCw className="h-4 w-4 mr-1" />
                 Retry
-              </Button>
-            )}
+              </Button>}
           </div>
         </header>
 
         {/* Strategic KPI Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
-          <MetricCard 
-            title="Total Sales"
-            value={formatCurrency(data.totalSales)}
-            icon={DollarSign}
-            iconColor="text-green-500"
-            highPriority={true}
-          />
+          <MetricCard title="Total Sales" value={formatCurrency(data.totalSales)} icon={DollarSign} iconColor="text-green-500" highPriority={true} />
           
-          <MetricCard 
-            title="Gross Profit"
-            value={formatCurrency(data.financialMetrics.grossProfit)}
-            icon={TrendingUp}
-            iconColor={data.financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"}
-            valueClassName={data.financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
-            trend={
-              data.financialMetrics.revenueGrowth !== undefined ? {
-                value: Math.round(data.financialMetrics.revenueGrowth * 10) / 10,
-                isPositive: data.financialMetrics.revenueGrowth >= 0
-              } : undefined
-            }
-            highPriority={true}
-          />
+          <MetricCard title="Gross Profit" value={formatCurrency(data.financialMetrics.grossProfit)} icon={TrendingUp} iconColor={data.financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"} valueClassName={data.financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"} trend={data.financialMetrics.revenueGrowth !== undefined ? {
+          value: Math.round(data.financialMetrics.revenueGrowth * 10) / 10,
+          isPositive: data.financialMetrics.revenueGrowth >= 0
+        } : undefined} highPriority={true} />
           
-          <MetricCard 
-            title="Profit Margin"
-            value={`${data.financialMetrics.profitMargin.toFixed(1)}%`}
-            icon={data.financialMetrics.profitMargin >= 0 ? TrendingUp : TrendingDown}
-            iconColor={data.financialMetrics.profitMargin >= 0 ? "text-green-500" : "text-red-500"}
-            valueClassName={data.financialMetrics.profitMargin >= 0 ? "text-green-600" : "text-red-600"}
-          />
+          <MetricCard title="Profit Margin" value={`${data.financialMetrics.profitMargin.toFixed(1)}%`} icon={data.financialMetrics.profitMargin >= 0 ? TrendingUp : TrendingDown} iconColor={data.financialMetrics.profitMargin >= 0 ? "text-green-500" : "text-red-500"} valueClassName={data.financialMetrics.profitMargin >= 0 ? "text-green-600" : "text-red-600"} />
           
           <Popover>
             <PopoverTrigger asChild>
               <div className="contents">
-                <MetricCard 
-                  title="Low Stock Alert"
-                  value={data.lowStockCount}
-                  icon={AlertCircle}
-                  iconColor="text-red-500"
-                  valueClassName="text-red-500"
-                  description={data.lowStockCount > 0 ? "Action needed" : "All items stocked"}
-                  onClick={() => {}} 
-                />
+                <MetricCard title="Low Stock Alert" value={data.lowStockCount} icon={AlertCircle} iconColor="text-red-500" valueClassName="text-red-500" description={data.lowStockCount > 0 ? "Action needed" : "All items stocked"} onClick={() => {}} />
               </div>
             </PopoverTrigger>
             <PopoverContent className="w-80 max-h-96 overflow-auto p-0" align="end">
@@ -153,8 +127,7 @@ const Dashboard = () => {
                 </h3>
                 <p className="text-sm text-muted-foreground">Products with less than 5 items in stock</p>
               </div>
-              {data.lowStockProducts.length > 0 ? (
-                <div className="max-h-[300px] overflow-auto">
+              {data.lowStockProducts.length > 0 ? <div className="max-h-[300px] overflow-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -163,26 +136,17 @@ const Dashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {data.lowStockProducts.map(product => (
-                        <TableRow key={product.id}>
+                      {data.lowStockProducts.map(product => <TableRow key={product.id}>
                           <TableCell>{product.name}</TableCell>
                           <TableCell className="text-right font-medium text-red-500">{product.stock_count}</TableCell>
-                        </TableRow>
-                      ))}
+                        </TableRow>)}
                     </TableBody>
                   </Table>
-                </div>
-              ) : (
-                <div className="p-4 text-center text-muted-foreground">
+                </div> : <div className="p-4 text-center text-muted-foreground">
                   {isLoading ? 'Loading products...' : 'No low stock products'}
-                </div>
-              )}
+                </div>}
               <div className="p-3 border-t">
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={navigateToInventory}
-                >
+                <Button variant="outline" className="w-full" onClick={navigateToInventory}>
                   Go to Inventory
                 </Button>
               </div>
@@ -192,30 +156,11 @@ const Dashboard = () => {
 
         {/* Additional KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
-          <MetricCard 
-            title="Total Products"
-            value={data.totalProducts}
-            icon={LayoutGrid}
-            description="Active inventory items"
-          />
+          <MetricCard title="Total Products" value={data.totalProducts} icon={LayoutGrid} description="Active inventory items" />
           
-          <MetricCard 
-            title="Recent Orders"
-            value={data.salesByDate.reduce((sum, day) => sum + day.count, 0)}
-            icon={Calendar}
-            description="Last 7 days"
-          />
+          <MetricCard title="Recent Orders" value={data.salesByDate.reduce((sum, day) => sum + day.count, 0)} icon={Calendar} description="Last 7 days" />
           
-          <MetricCard 
-            title="Avg. Order Value"
-            value={formatCurrency(
-              data.salesByDate.length > 0 
-                ? data.totalSales / data.salesByDate.reduce((sum, day) => sum + day.count, 0) 
-                : 0
-            )}
-            icon={DollarSign}
-            description="Last 7 days"
-          />
+          <MetricCard title="Avg. Order Value" value={formatCurrency(data.salesByDate.length > 0 ? data.totalSales / data.salesByDate.reduce((sum, day) => sum + day.count, 0) : 0)} icon={DollarSign} description="Last 7 days" />
         </div>
 
         <Tabs defaultValue="financial" className="w-full mb-6">
@@ -241,20 +186,12 @@ const Dashboard = () => {
                 <Calendar className="mr-2 h-5 w-5 text-primary" />
                 Weekly Analysis
               </h2>
-              <OptimizedCharts
-                salesByDate={data.salesByDate}
-                topProducts={data.topProducts}
-                monthlySalesTrend={data.monthlySalesTrend}
-                categorySales={data.categorySales}
-                isLoading={isLoading}
-              />
+              <OptimizedCharts salesByDate={data.salesByDate} topProducts={data.topProducts} monthlySalesTrend={data.monthlySalesTrend} categorySales={data.categorySales} isLoading={isLoading} />
             </div>
 
             {/* Monthly Analysis Section */}
             <div>
-              <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
-                Monthly Analysis
-              </h2>
+              <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center"></h2>
               {/* Charts are now handled by OptimizedCharts component */}
             </div>
           </TabsContent>
@@ -268,43 +205,29 @@ const Dashboard = () => {
                     AI Insights
                   </CardTitle>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={refreshAIInsights}
-                  disabled={isLoadingAI}
-                  className="bg-white hover:bg-blue-50"
-                >
+                <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI} className="bg-white hover:bg-blue-50">
                   {isLoadingAI ? 'Analyzing...' : 'Refresh Insights'}
                 </Button>
               </CardHeader>
               <CardContent className="px-4 sm:px-6 py-4">
                 <div className="space-y-4">
-                  {isLoadingAI ? (
-                    <div className="flex flex-col items-center justify-center py-8">
+                  {isLoadingAI ? <div className="flex flex-col items-center justify-center py-8">
                       <div className="animate-spin h-8 w-8 mb-4 border-4 border-blue-500 border-t-transparent rounded-full"></div>
                       <p className="text-muted-foreground">Analyzing your business data...</p>
-                    </div>
-                  ) : (
-                    aiInsights.map((insight, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
+                    </div> : aiInsights.map((insight, index) => <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
                         <div className="bg-blue-100 rounded-full p-1 flex-shrink-0">
                           <Sparkles className="h-5 w-5 text-blue-700" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-800">{insight}</p>
                         </div>
-                      </div>
-                    ))
-                  )}
+                      </div>)}
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Dashboard;

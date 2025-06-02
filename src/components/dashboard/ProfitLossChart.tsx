@@ -24,6 +24,14 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
   description = "Monthly breakdown"
 }) => {
   const isMobile = useIsMobile();
+  
+  // Additional mobile detection for real devices
+  const isRealMobile = typeof window !== 'undefined' && (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.innerWidth <= 768
+  );
+  
+  const isMobileDevice = isMobile || isRealMobile;
 
   // Custom tooltip formatter for currency values
   const formatTooltipValue = (value: number) => formatCurrency(value);
@@ -44,10 +52,10 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
       // Validate the date
       if (isNaN(date.getTime())) {
         // If date parsing fails, return the original value truncated for mobile
-        return isMobile ? value.substring(0, 3) : value;
+        return isMobileDevice ? value.substring(0, 3) : value;
       }
       
-      if (isMobile) {
+      if (isMobileDevice) {
         // Show only month abbreviation on mobile
         return date.toLocaleDateString('en-US', { month: 'short' });
       }
@@ -56,7 +64,7 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
       return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
     } catch (error) {
       console.error('Date formatting error:', error, 'for value:', value);
-      return isMobile ? value.substring(0, 3) : value;
+      return isMobileDevice ? value.substring(0, 3) : value;
     }
   };
 
@@ -69,15 +77,15 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
 
   return (
     <Card className="w-full h-full">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 flex flex-row items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b">
+      <CardHeader className={`px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 flex flex-row items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b ${isMobileDevice ? 'px-2 pt-2 pb-1' : ''}`}>
         <div>
-          <CardTitle className="text-lg sm:text-xl">{title}</CardTitle>
-          <CardDescription className="text-xs sm:text-sm">{description}</CardDescription>
+          <CardTitle className={`text-lg sm:text-xl ${isMobileDevice ? 'text-base' : ''}`}>{title}</CardTitle>
+          <CardDescription className={`text-xs sm:text-sm ${isMobileDevice ? 'text-xs' : ''}`}>{description}</CardDescription>
         </div>
         <ChartBar className="h-5 w-5 text-muted-foreground" />
       </CardHeader>
-      <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
-        <div className="h-[300px] w-full">
+      <CardContent className={`pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6 ${isMobileDevice ? 'px-1 pt-1 pb-2' : ''}`}>
+        <div className={`h-[300px] w-full ${isMobileDevice ? 'h-[250px]' : ''}`}>
           {validData.length > 0 ? (
             <ChartContainer
               config={{
@@ -90,30 +98,30 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
                 <BarChart 
                   data={validData} 
                   margin={{ 
-                    top: 20, 
-                    right: isMobile ? 5 : 30, 
-                    left: isMobile ? 5 : 20, 
-                    bottom: isMobile ? 25 : 5 
+                    top: isMobileDevice ? 10 : 20, 
+                    right: isMobileDevice ? 2 : 30, 
+                    left: isMobileDevice ? 2 : 20, 
+                    bottom: isMobileDevice ? 35 : 5 
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: isMobile ? 8 : 12 }}
+                    tick={{ fontSize: isMobileDevice ? 7 : 12 }}
                     tickFormatter={formatXAxisLabel}
                     interval={0}
-                    angle={isMobile ? -45 : 0}
-                    textAnchor={isMobile ? 'end' : 'middle'}
-                    height={isMobile ? 50 : 30}
+                    angle={isMobileDevice ? -45 : 0}
+                    textAnchor={isMobileDevice ? 'end' : 'middle'}
+                    height={isMobileDevice ? 60 : 30}
                   />
                   <YAxis 
-                    tick={{ fontSize: isMobile ? 8 : 12 }}
-                    width={isMobile ? 35 : 60}
+                    tick={{ fontSize: isMobileDevice ? 7 : 12 }}
+                    width={isMobileDevice ? 30 : 60}
                     tickFormatter={(value) => {
                       // Abbreviate large numbers with K/M suffix
                       if (Math.abs(value) >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
                       if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(0)}K`;
-                      return `$${value}`;
+                      return isMobileDevice ? `$${Math.round(value)}` : `$${value}`;
                     }}
                   />
                   <Tooltip 
@@ -121,10 +129,12 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
                     formatter={formatTooltipValue}
                     labelFormatter={(value) => formatXAxisLabel(value)}
                   />
-                  <Legend 
-                    wrapperStyle={{ fontSize: isMobile ? 8 : 12 }}
-                    iconType="circle"
-                  />
+                  {!isMobileDevice && (
+                    <Legend 
+                      wrapperStyle={{ fontSize: 12 }}
+                      iconType="circle"
+                    />
+                  )}
                   <ReferenceLine y={0} stroke="#000" strokeWidth={1} />
                   <Bar 
                     dataKey="revenue" 

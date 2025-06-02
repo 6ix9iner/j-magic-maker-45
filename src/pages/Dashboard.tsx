@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertCircle, Sparkles, TrendingUp, TrendingDown, DollarSign, Calendar, LayoutGrid } from "lucide-react";
+import { AlertCircle, Sparkles, TrendingUp, TrendingDown, DollarSign, Calendar, LayoutGrid, RefreshCw } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
@@ -20,7 +20,7 @@ import { useAIInsights } from '@/hooks/useAIInsights';
 const Dashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { data, isLoading } = useDashboardData(user);
+  const { data, isLoading, error, refetch } = useDashboardData(user);
   const { aiInsights, isLoadingAI, generateInsights } = useAIInsights();
 
   const navigateToInventory = () => {
@@ -32,11 +32,37 @@ const Dashboard = () => {
     await generateInsights(data);
   };
 
+  const handleRetry = () => {
+    console.log('Retrying dashboard data fetch...');
+    refetch();
+  };
+
   // Get current day and month for the welcome message
   const today = new Date();
   const currentDay = today.toLocaleDateString('en-US', { weekday: 'long' });
   const currentMonth = today.toLocaleDateString('en-US', { month: 'long' });
   const currentDate = today.getDate();
+
+  // Show error state if there's an error
+  if (error && !isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-col items-center justify-center h-96 space-y-4">
+            <AlertCircle className="h-16 w-16 text-red-500" />
+            <h2 className="text-xl font-semibold text-gray-900">Failed to Load Dashboard</h2>
+            <p className="text-gray-600 text-center max-w-md">
+              We're having trouble loading your dashboard data. Please check your connection and try again.
+            </p>
+            <Button onClick={handleRetry} className="flex items-center gap-2">
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-4 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
@@ -62,6 +88,13 @@ const Dashboard = () => {
               <LayoutGrid className="h-4 w-4 mr-1" />
               Inventory
             </Button>
+
+            {error && (
+              <Button variant="outline" size="sm" onClick={handleRetry}>
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Retry
+              </Button>
+            )}
           </div>
         </header>
 

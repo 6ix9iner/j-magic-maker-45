@@ -51,6 +51,8 @@ export interface DashboardData {
 }
 
 const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
+  console.log('Fetching dashboard data for user:', userId);
+  
   try {
     // Parallel queries for better performance
     const [
@@ -89,7 +91,19 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
         .not('products.category', 'is', null)
     ]);
 
-    if (salesData.error) throw salesData.error;
+    console.log('API responses received:', {
+      salesData: salesData.data?.length || 0,
+      salesByDateData: salesByDateData.data?.length || 0,
+      topProductsData: topProductsData.data?.length || 0,
+      productsCount: productsCount.count,
+      lowStockProductsData: lowStockProductsData.data?.length || 0,
+      categoryData: categoryData.data?.length || 0
+    });
+
+    if (salesData.error) {
+      console.error('Sales data error:', salesData.error);
+      throw salesData.error;
+    }
     
     // Process data efficiently
     const totalSalesAmount = salesData.data?.reduce((sum, sale) => 
@@ -167,8 +181,16 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
     monthlyTrendData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
     monthlyTrendData = monthlyTrendData.slice(-6);
 
-    // Calculate profitability and financial metrics
-    const profitabilityData = await calculateProductProfitability(supabase, userId);
+    console.log('Processing profitability data...');
+    
+    // Calculate profitability and financial metrics with error handling
+    let profitabilityData: ProductProfitability[] = [];
+    try {
+      profitabilityData = await calculateProductProfitability(supabase, userId);
+    } catch (error) {
+      console.error('Error calculating profitability:', error);
+      // Continue with empty array if profitability calculation fails
+    }
     
     // Calculate actual costs for profit/loss data
     const profitLossItems: ProfitLossData[] = [];
@@ -178,35 +200,51 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       const monthEnd = new Date(monthStart);
       monthEnd.setMonth(monthEnd.getMonth() + 1);
       
-      const { data: monthSaleItems } = await supabase
-        .from('sale_items')
-        .select(`quantity, product_id, sales!inner(created_at, user_id)`)
-        .eq('sales.user_id', userId)
-        .gte('sales.created_at', monthStart.toISOString())
-        .lt('sales.created_at', monthEnd.toISOString());
-      
-      let actualCost = 0;
-      if (monthSaleItems) {
-        actualCost = await calculateActualCosts(monthSaleItems, supabase);
+      try {
+        const { data: monthSaleItems } = await supabase
+          .from('sale_items')
+          .select(`quantity, product_id, sales!inner(created_at, user_id)`)
+          .eq('sales.user_id', userId)
+          .gte('sales.created_at', monthStart.toISOString())
+          .lt('sales.created_at', monthEnd.toISOString());
+        
+        let actualCost = 0;
+        if (monthSaleItems) {
+          actualCost = await calculateActualCosts(monthSaleItems, supabase);
+        }
+        
+        profitLossItems.push({
+          date: monthData.date,
+          revenue,
+          cost: actualCost,
+          profit: revenue - actualCost
+        });
+      } catch (error) {
+        console.error('Error calculating costs for month:', monthData.date, error);
+        // Add month with zero cost if calculation fails
+        profitLossItems.push({
+          date: monthData.date,
+          revenue,
+          cost: 0,
+          profit: revenue
+        });
       }
-      
-      profitLossItems.push({
-        date: monthData.date,
-        revenue,
-        cost: actualCost,
-        profit: revenue - actualCost
-      });
     }
 
-    // Calculate overall financial metrics
-    const { data: allSaleItems } = await supabase
-      .from('sale_items')
-      .select(`quantity, product_id, sales!inner(user_id)`)
-      .eq('sales.user_id', userId);
-    
+    // Calculate overall financial metrics with error handling
     let totalActualCost = 0;
-    if (allSaleItems) {
-      totalActualCost = await calculateActualCosts(allSaleItems, supabase);
+    try {
+      const { data: allSaleItems } = await supabase
+        .from('sale_items')
+        .select(`quantity, product_id, sales!inner(user_id)`)
+        .eq('sales.user_id', userId);
+      
+      if (allSaleItems) {
+        totalActualCost = await calculateActualCosts(allSaleItems, supabase);
+      }
+    } catch (error) {
+      console.error('Error calculating total actual cost:', error);
+      // Continue with zero cost if calculation fails
     }
     
     const currentMonthRevenue = profitLossItems.length > 0 ? profitLossItems[profitLossItems.length - 1].revenue : 0;
@@ -247,7 +285,7 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
-    return {
+    const result = {
       salesByDate: Array.from(salesByDateMap.values()),
       topProducts: topProductsList,
       totalSales: totalSalesAmount,
@@ -261,15 +299,28 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
       productProfitability: profitabilityData
     };
 
+    console.log('Dashboard data successfully processed:', {
+      totalSales: result.totalSales,
+      totalProducts: result.totalProducts,
+      lowStockCount: result.lowStockCount,
+      salesByDateCount: result.salesByDate.length,
+      topProductsCount: result.topProducts.length
+    });
+
+    return result;
+
   } catch (error: any) {
     console.error('Error fetching dashboard data:', error);
-    toast.error('Failed to load dashboard data');
+    // Don't show toast error on mobile to avoid UI issues
+    if (typeof window !== 'undefined' && window.innerWidth > 768) {
+      toast.error('Failed to load some dashboard data');
+    }
     throw error;
   }
 };
 
 export const useDashboardData = (user: any) => {
-  const { data, isLoading, refetch } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboardData', user?.id],
     queryFn: () => fetchDashboardData(user.id),
     enabled: !!user,
@@ -277,6 +328,12 @@ export const useDashboardData = (user: any) => {
     gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes (renamed from cacheTime)
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
     refetchOnMount: false, // Don't refetch on component mount if data exists
+    retry: (failureCount, error) => {
+      console.log('Retry attempt:', failureCount, 'Error:', error);
+      // Retry up to 2 times for network errors
+      return failureCount < 2;
+    },
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
   });
 
   const defaultData: DashboardData = {
@@ -298,9 +355,15 @@ export const useDashboardData = (user: any) => {
     productProfitability: []
   };
 
+  // Log error for debugging
+  if (error) {
+    console.error('Dashboard data query error:', error);
+  }
+
   return { 
     data: data || defaultData, 
     isLoading, 
+    error,
     refetch 
   };
 };

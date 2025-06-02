@@ -28,6 +28,16 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
   // Custom tooltip formatter for currency values
   const formatTooltipValue = (value: number) => formatCurrency(value);
 
+  // Custom label formatter for better mobile display
+  const formatXAxisLabel = (value: string) => {
+    if (isMobile) {
+      // Show only month abbreviation on mobile
+      const date = new Date(value);
+      return date.toLocaleDateString('en-US', { month: 'short' });
+    }
+    return value;
+  };
+
   return (
     <Card className="w-full h-full">
       <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 flex flex-row items-center justify-between bg-gradient-to-r from-gray-50 to-gray-100 border-b">
@@ -48,11 +58,25 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
               }}
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <BarChart 
+                  data={data} 
+                  margin={{ 
+                    top: 20, 
+                    right: isMobile ? 10 : 30, 
+                    left: isMobile ? 10 : 20, 
+                    bottom: isMobile ? 20 : 5 
+                  }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                  <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <XAxis 
+                    dataKey="date" 
+                    tick={{ fontSize: isMobile ? 9 : 12 }}
+                    tickFormatter={formatXAxisLabel}
+                    interval={isMobile ? 1 : 0}
+                  />
                   <YAxis 
-                    tick={{ fontSize: isMobile ? 10 : 12 }}
+                    tick={{ fontSize: isMobile ? 9 : 12 }}
+                    width={isMobile ? 40 : 60}
                     tickFormatter={(value) => {
                       // Abbreviate large numbers with K/M suffix
                       if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
@@ -65,7 +89,7 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
                     formatter={formatTooltipValue}
                   />
                   <Legend 
-                    wrapperStyle={{ fontSize: isMobile ? 10 : 12 }}
+                    wrapperStyle={{ fontSize: isMobile ? 9 : 12 }}
                     iconType="circle"
                   />
                   <ReferenceLine y={0} stroke="#000" strokeWidth={1} />
@@ -73,21 +97,21 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
                     dataKey="revenue" 
                     name="Revenue" 
                     fill="#22c55e"
-                    radius={[4, 4, 0, 0]}
+                    radius={[2, 2, 0, 0]}
                     fillOpacity={0.8}
                   />
                   <Bar 
                     dataKey="cost" 
                     name="Cost" 
                     fill="#ef4444"
-                    radius={[4, 4, 0, 0]} 
+                    radius={[2, 2, 0, 0]} 
                     fillOpacity={0.8}
                   />
                   <Bar 
                     dataKey="profit" 
                     name="Profit" 
                     fill="#3b82f6"
-                    radius={[4, 4, 0, 0]}
+                    radius={[2, 2, 0, 0]}
                     fillOpacity={0.8}
                   />
                 </BarChart>

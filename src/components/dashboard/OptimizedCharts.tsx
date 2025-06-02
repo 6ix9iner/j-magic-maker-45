@@ -16,7 +16,7 @@ interface OptimizedChartsProps {
 }
 
 const LoadingSkeleton = memo(() => (
-  <div className="h-[280px] w-full flex items-center justify-center">
+  <div className="h-[260px] w-full flex items-center justify-center">
     <div className="animate-pulse bg-gray-200 dark:bg-gray-700 h-full w-full rounded"></div>
   </div>
 ));
@@ -28,15 +28,15 @@ const SalesChart = memo(({ salesByDate, isLoading }: { salesByDate: SaleSummary[
   
   return (
     <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-blue-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-blue-50 to-blue-100/50">
+      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-blue-50 to-blue-100/50">
         <CardTitle className="text-lg sm:text-xl flex items-center">
           <BarChartIcon className="h-5 w-5 mr-2 text-blue-500" />
           Sales Last 7 Days
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
       </CardHeader>
-      <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-        <div className="h-[280px] w-full">
+      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+        <div className="h-[260px] w-full">
           {salesByDate.length > 0 ? (
             <ChartContainer config={{ sales: { color: "#2563eb" } }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -67,15 +67,15 @@ const TopProductsChart = memo(({ topProducts, isLoading }: { topProducts: Produc
   
   return (
     <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-green-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-green-50 to-green-100/50">
+      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-green-50 to-green-100/50">
         <CardTitle className="text-lg sm:text-xl flex items-center">
           <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
           Top Products
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">By revenue this week</CardDescription>
       </CardHeader>
-      <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-        <div className="h-[280px] w-full">
+      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+        <div className="h-[260px] w-full">
           {topProducts.length > 0 ? (
             <ChartContainer config={{ revenue: { color: "#10b981" } }}>
               <ResponsiveContainer width="100%" height="100%">
@@ -111,15 +111,15 @@ const MonthlyTrendChart = memo(({ monthlySalesTrend, isLoading }: { monthlySales
   
   return (
     <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-purple-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50">
+      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50">
         <CardTitle className="text-lg sm:text-xl flex items-center">
           <ChartLine className="h-5 w-5 mr-2 text-purple-500" />
           Monthly Sales Trend
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">Last 6 months</CardDescription>
       </CardHeader>
-      <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-        <div className="h-[280px] w-full">
+      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+        <div className="h-[260px] w-full">
           <ChartContainer config={{ trend: { color: "#8b5cf6" } }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlySalesTrend}>
@@ -149,18 +149,30 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
   const isMobile = useIsMobile();
   
   if (isLoading) return <LoadingSkeleton />;
+
+  // Custom label function that's responsive
+  const renderCustomLabel = ({ name, percent }: any) => {
+    const percentage = (percent * 100).toFixed(0);
+    if (isMobile) {
+      // On mobile, only show percentage if it's significant enough
+      return percentage > 10 ? `${percentage}%` : '';
+    }
+    // On desktop, show both name and percentage, but truncate long names
+    const truncatedName = name.length > 12 ? `${name.substring(0, 12)}...` : name;
+    return `${truncatedName}: ${percentage}%`;
+  };
   
   return (
     <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-amber-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50">
+      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50">
         <CardTitle className="text-lg sm:text-xl flex items-center">
           <ChartPie className="h-5 w-5 mr-2 text-amber-500" />
           Sales by Category
         </CardTitle>
         <CardDescription className="text-xs sm:text-sm">Product category distribution</CardDescription>
       </CardHeader>
-      <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-        <div className="h-[280px] w-full">
+      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+        <div className="h-[260px] w-full">
           <ChartContainer config={{ category: { color: "#10b981" } }}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -168,18 +180,27 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
                   data={categorySales}
                   cx="50%"
                   cy="50%"
-                  labelLine={true}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={isMobile ? 70 : 80}
+                  labelLine={false}
+                  label={renderCustomLabel}
+                  outerRadius={isMobile ? 60 : 75}
+                  innerRadius={isMobile ? 20 : 25}
                   fill="#8884d8"
                   dataKey="value"
                   nameKey="category"
+                  style={{ 
+                    fontSize: isMobile ? '10px' : '12px',
+                    fontWeight: '500',
+                    fill: '#374151'
+                  }}
                 >
                   {categorySales.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#ffffff" strokeWidth={2} />
                   ))}
                 </Pie>
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <ChartTooltip 
+                  content={<ChartTooltipContent />} 
+                  formatter={(value, name) => [`$${value.toLocaleString()}`, name]}
+                />
               </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
@@ -197,7 +218,7 @@ const OptimizedCharts: React.FC<OptimizedChartsProps> = memo(({
   isLoading 
 }) => {
   return (
-    <>
+    <div className="space-y-4 sm:space-y-6">
       {/* Weekly Analysis Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <SalesChart salesByDate={salesByDate} isLoading={isLoading} />
@@ -205,11 +226,11 @@ const OptimizedCharts: React.FC<OptimizedChartsProps> = memo(({
       </div>
 
       {/* Monthly Analysis Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mt-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
         <MonthlyTrendChart monthlySalesTrend={monthlySalesTrend} isLoading={isLoading} />
         <CategoryChart categorySales={categorySales} isLoading={isLoading} />
       </div>
-    </>
+    </div>
   );
 });
 

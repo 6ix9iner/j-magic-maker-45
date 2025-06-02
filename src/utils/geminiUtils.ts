@@ -31,7 +31,7 @@ export interface SalesData {
 }
 
 /**
- * Generate AI insights based on sales and inventory data with profit/loss analysis
+ * Generate comprehensive AI insights including both business overview and profit/loss analysis
  */
 export const generateAIInsights = async (salesData: SalesData): Promise<string[]> => {
   try {
@@ -42,23 +42,31 @@ export const generateAIInsights = async (salesData: SalesData): Promise<string[]
     const dataString = JSON.stringify(salesData, null, 2);
     
     const prompt = `
-    You are a business analytics AI that helps retail store owners understand their sales data and profitability.
+    You are a comprehensive business analytics AI that helps retail store owners understand their complete business performance.
     
-    Please analyze the following comprehensive sales, inventory, and financial data:
+    Please analyze the following sales, inventory, and financial data:
     
     ${dataString}
     
-    Focus on providing actionable insights about:
-    1. Overall profitability and financial health
-    2. Product-level profit analysis (which products are most/least profitable)
-    3. Loss-making products or trends that need attention
-    4. Revenue vs cost trends over time
-    5. Specific recommendations for improving profitability
+    Provide exactly 8 actionable insights covering these areas:
     
-    Provide exactly 5 short, actionable insights. Each insight should be a single sentence that's practical and specific. Include actual numbers when relevant (profit margins, specific products, amounts).
+    1-2 insights on OVERALL BUSINESS PERFORMANCE (sales trends, growth, customer behavior)
+    3-4 insights on PROFITABILITY & FINANCIAL HEALTH (profit margins, cost management, profitable products)
+    5-6 insights on INVENTORY & OPERATIONS (stock levels, product performance, operational efficiency)
+    7-8 insights on STRATEGIC RECOMMENDATIONS (specific actions to improve business, focus areas)
     
-    Format your response as a JSON array of strings with no additional explanation or text outside the array.
-    Example: ["Your business has a healthy 25% profit margin overall", "Product X is your most profitable with 40% margin", "Consider discontinuing Product Y as it's losing $50 per sale", "Monthly profits are trending upward by 15%", "Focus on promoting high-margin products like Product Z"]
+    Focus on:
+    - Overall business health and trends
+    - Product-level profit analysis (which products are most/least profitable)
+    - Loss-making products or negative trends that need immediate attention
+    - Revenue vs cost patterns and efficiency
+    - Inventory management insights
+    - Specific actionable recommendations with numbers when possible
+    
+    Each insight should be practical, specific, and include actual numbers from the data when relevant.
+    
+    Format your response as a JSON array of exactly 8 strings with no additional explanation or text outside the array.
+    Example: ["Business insight with numbers", "Profit analysis insight", "Loss prevention insight", "Inventory insight", "Growth recommendation", "Cost optimization tip", "Product focus suggestion", "Strategic next step"]
     `;
     
     // Generate content
@@ -72,29 +80,35 @@ export const generateAIInsights = async (salesData: SalesData): Promise<string[]
       const jsonMatch = text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         const insights = JSON.parse(jsonMatch[0]);
-        return Array.isArray(insights) ? insights.slice(0, 5) : [];
+        return Array.isArray(insights) ? insights.slice(0, 8) : [];
       }
       return [];
     } catch (error) {
       console.error("Failed to parse AI insights:", error);
-      // Enhanced fallback insights with profit/loss focus
+      // Enhanced fallback insights covering both business overview and profit/loss
       return [
-        `Your business shows a ${salesData.profitMargin.toFixed(1)}% profit margin with $${salesData.grossProfit.toFixed(2)} gross profit.`,
-        `${salesData.productProfitability.length > 0 ? salesData.productProfitability[0].product_name : 'Top product'} is your most profitable item.`,
-        `Consider reviewing products with negative margins to improve overall profitability.`,
-        `Monthly profit trends ${salesData.profitLossData.length > 1 && salesData.profitLossData[salesData.profitLossData.length - 1].profit > salesData.profitLossData[salesData.profitLossData.length - 2].profit ? 'are improving' : 'need attention'}.`,
-        "Focus on promoting high-margin products to maximize profitability."
+        `Your business generated $${salesData.totalSales.toFixed(2)} in total sales with a ${salesData.profitMargin.toFixed(1)}% profit margin.`,
+        `Gross profit stands at $${salesData.grossProfit.toFixed(2)} from $${salesData.totalCosts.toFixed(2)} in costs.`,
+        `${salesData.productProfitability.length > 0 && salesData.productProfitability[0].profit > 0 ? `${salesData.productProfitability[0].product_name} is your most profitable product with $${salesData.productProfitability[0].profit.toFixed(2)} profit.` : 'Review product profitability to identify top performers.'}`,
+        `${salesData.productProfitability.filter(p => p.profit < 0).length > 0 ? `${salesData.productProfitability.filter(p => p.profit < 0).length} products are currently losing money and need review.` : 'All products are currently profitable.'}`,
+        `You have ${salesData.lowStockCount} low-stock items that need restocking attention.`,
+        `Recent sales show ${salesData.recentOrders} orders with an average of $${(salesData.totalSales / Math.max(salesData.recentOrders, 1)).toFixed(2)} per transaction.`,
+        `Focus on promoting high-margin products to maximize profitability.`,
+        "Consider analyzing monthly profit trends to identify seasonal patterns and optimize inventory."
       ];
     }
   } catch (error) {
     console.error("Error generating AI insights:", error);
-    // Enhanced fallback insights with profit/loss focus
+    // Enhanced fallback insights covering both business overview and profit/loss
     return [
-      `Your business shows a ${salesData.profitMargin.toFixed(1)}% profit margin with $${salesData.grossProfit.toFixed(2)} gross profit.`,
-      `${salesData.productProfitability.length > 0 ? salesData.productProfitability[0].product_name : 'Top product'} is your most profitable item.`,
-      `Consider reviewing products with negative margins to improve overall profitability.`,
-      `Monthly profit trends ${salesData.profitLossData.length > 1 && salesData.profitLossData[salesData.profitLossData.length - 1].profit > salesData.profitLossData[salesData.profitLossData.length - 2].profit ? 'are improving' : 'need attention'}.`,
-      "Focus on promoting high-margin products to maximize profitability."
+      `Your business generated $${salesData.totalSales.toFixed(2)} in total sales with a ${salesData.profitMargin.toFixed(1)}% profit margin.`,
+      `Gross profit stands at $${salesData.grossProfit.toFixed(2)} from $${salesData.totalCosts.toFixed(2)} in costs.`,
+      `${salesData.productProfitability.length > 0 && salesData.productProfitability[0].profit > 0 ? `${salesData.productProfitability[0].product_name} is your most profitable product with $${salesData.productProfitability[0].profit.toFixed(2)} profit.` : 'Review product profitability to identify top performers.'}`,
+      `${salesData.productProfitability.filter(p => p.profit < 0).length > 0 ? `${salesData.productProfitability.filter(p => p.profit < 0).length} products are currently losing money and need review.` : 'All products are currently profitable.'}`,
+      `You have ${salesData.lowStockCount} low-stock items that need restocking attention.`,
+      `Recent sales show ${salesData.recentOrders} orders with an average of $${(salesData.totalSales / Math.max(salesData.recentOrders, 1)).toFixed(2)} per transaction.`,
+      `Focus on promoting high-margin products to maximize profitability.`,
+      "Consider analyzing monthly profit trends to identify seasonal patterns and optimize inventory."
     ];
   }
 };

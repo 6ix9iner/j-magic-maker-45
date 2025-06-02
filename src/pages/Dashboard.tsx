@@ -1,512 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+
+import React from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { AlertCircle, ChartPie, ChartLine, Bot, Sparkles, TrendingUp, TrendingDown, DollarSign, Calendar, InfoIcon, BarChart as BarChartIcon, ArrowUpRight, LayoutGrid } from "lucide-react";
+import { AlertCircle, Sparkles, TrendingUp, TrendingDown, DollarSign, Calendar, LayoutGrid } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { generateAIInsights, generateChartRecommendations, SalesData } from '@/utils/geminiUtils';
 import MetricCard from '@/components/dashboard/MetricCard';
 import ProfitLossChart from '@/components/dashboard/ProfitLossChart';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
-import { calculateProfitMetrics, calculateActualCosts, calculateProductProfitability, formatCurrency, FinancialMetrics, ProductProfitability } from '@/utils/financialUtils';
-
-interface SaleSummary {
-  date: string;
-  total: number;
-  count: number;
-}
-
-interface ProductSale {
-  product_name: string;
-  total_quantity: number;
-  total_revenue: number;
-}
-
-interface LowStockProduct {
-  id: string;
-  name: string;
-  stock_count: number;
-  barcode: string;
-}
-
-interface CategorySale {
-  category: string;
-  value: number;
-  color?: string;
-}
-
-interface ProfitLossData {
-  date: string;
-  revenue: number;
-  cost: number;
-  profit: number;
-}
+import OptimizedCharts from '@/components/dashboard/OptimizedCharts';
+import { formatCurrency } from '@/utils/financialUtils';
+import { useDashboardData } from '@/hooks/useDashboardData';
+import { useAIInsights } from '@/hooks/useAIInsights';
 
 const Dashboard = () => {
-  const [salesByDate, setSalesByDate] = useState<SaleSummary[]>([]);
-  const [topProducts, setTopProducts] = useState<ProductSale[]>([]);
-  const [totalSales, setTotalSales] = useState<number>(0);
-  const [totalProducts, setTotalProducts] = useState<number>(0);
-  const [lowStockCount, setLowStockCount] = useState<number>(0);
-  const [lowStockProducts, setLowStockProducts] = useState<LowStockProduct[]>([]);
-  const [categorySales, setCategorySales] = useState<CategorySale[]>([]);
-  const [monthlySalesTrend, setMonthlySalesTrend] = useState<SaleSummary[]>([]);
-  const [profitLossData, setProfitLossData] = useState<ProfitLossData[]>([]);
-  const [financialMetrics, setFinancialMetrics] = useState<FinancialMetrics>({
-    totalRevenue: 0,
-    totalCost: 0,
-    grossProfit: 0,
-    profitMargin: 0
-  });
-  const [productProfitability, setProductProfitability] = useState<ProductProfitability[]>([]);
-  const [aiInsights, setAiInsights] = useState<string[]>(["Loading AI insights..."]);
-  const [chartRecommendation, setChartRecommendation] = useState<string>("");
-  const [isLoadingAI, setIsLoadingAI] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const isMobile = useIsMobile();
   const { user } = useAuth();
   const navigate = useNavigate();
-
-  // Category-specific colors
-  const CATEGORY_COLORS = {
-    'Electronics': '#0088FE',   // Blue
-    'Clothing': '#00C49F',      // Teal
-    'Food': '#FFBB28',          // Yellow
-    'Books': '#FF8042',         // Orange
-    'Home': '#8884d8',          // Purple
-    'Beauty': '#D946EF',        // Magenta
-    'Sports': '#22C55E',        // Green
-    'Toys': '#F97316',          // Bright Orange
-    'Health': '#0EA5E9',        // Ocean Blue
-    'Other': '#9F9EA1',         // Gray
-  };
-  
-  // Default colors for categories not in the map
-  const DEFAULT_COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#D946EF', '#22C55E', '#F97316', '#0EA5E9', '#9F9EA1'];
-
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      if (!user) return;
-      
-      setIsLoading(true);
-      try {
-        // Fetch total sales count and amount with user_id filter
-        const { data: salesData, error: salesError } = await supabase
-          .from('sales')
-          .select('total_amount')
-          .eq('user_id', user.id);
-        
-        if (salesError) throw salesError;
-        
-        // Calculate total sales
-        const totalSalesAmount = salesData.reduce((sum, sale) => sum + parseFloat(sale.total_amount.toString()), 0);
-        setTotalSales(totalSalesAmount);
-        
-        // Fetch sales by date for the chart (last 7 days) with user_id filter
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        
-        const { data: salesByDateData, error: salesByDateError } = await supabase
-          .from('sales')
-          .select('created_at, total_amount')
-          .eq('user_id', user.id)
-          .gte('created_at', sevenDaysAgo.toISOString());
-        
-        if (salesByDateError) throw salesByDateError;
-        
-        // Process sales by date
-        const salesByDateMap = new Map<string, SaleSummary>();
-        
-        salesByDateData.forEach(sale => {
-          const date = new Date(sale.created_at).toLocaleDateString();
-          const existingSummary = salesByDateMap.get(date) || { date, total: 0, count: 0 };
-          
-          salesByDateMap.set(date, {
-            date,
-            total: existingSummary.total + parseFloat(sale.total_amount.toString()),
-            count: existingSummary.count + 1
-          });
-        });
-        
-        setSalesByDate(Array.from(salesByDateMap.values()));
-        
-        // Fetch top selling products with user_id filter (through sales)
-        const { data: topProductsData, error: topProductsError } = await supabase
-          .from('sale_items')
-          .select(`
-            name_at_sale,
-            quantity,
-            price_at_sale,
-            sale_id,
-            sales!inner(user_id)
-          `)
-          .eq('sales.user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(50);
-        
-        if (topProductsError) throw topProductsError;
-        
-        // Process top products
-        const productMap = new Map<string, ProductSale>();
-        
-        topProductsData.forEach(item => {
-          const productName = item.name_at_sale;
-          const existingProduct = productMap.get(productName) || { 
-            product_name: productName, 
-            total_quantity: 0, 
-            total_revenue: 0 
-          };
-          
-          productMap.set(productName, {
-            product_name: productName,
-            total_quantity: existingProduct.total_quantity + item.quantity,
-            total_revenue: existingProduct.total_revenue + (parseFloat(item.price_at_sale.toString()) * item.quantity)
-          });
-        });
-        
-        const topProductsList = Array.from(productMap.values())
-          .sort((a, b) => b.total_revenue - a.total_revenue)
-          .slice(0, 5);
-          
-        setTopProducts(topProductsList);
-        
-        // Fetch products count with user_id filter
-        const { count: productsCount, error: productsCountError } = await supabase
-          .from('products')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', user.id);
-        
-        if (productsCountError) throw productsCountError;
-        setTotalProducts(productsCount || 0);
-        
-        // Fetch low stock products with user_id filter
-        const { data: lowStockProductsData, error: lowStockError } = await supabase
-          .from('products')
-          .select('id, name, stock_count, barcode')
-          .eq('user_id', user.id)
-          .lt('stock_count', 5)
-          .order('stock_count', { ascending: true });
-        
-        if (lowStockError) throw lowStockError;
-        
-        setLowStockProducts(lowStockProductsData || []);
-        setLowStockCount(lowStockProductsData?.length || 0);
-
-        // Fetch category sales data from the database
-        const { data: categoryData, error: categoryError } = await supabase
-          .from('sale_items')
-          .select(`
-            name_at_sale,
-            price_at_sale,
-            quantity,
-            sales!inner(user_id, created_at),
-            products!inner(category)
-          `)
-          .eq('sales.user_id', user.id)
-          .not('products.category', 'is', null);
-        
-        if (categoryError) throw categoryError;
-        
-        // Process category sales data
-        const categoryMap = new Map<string, number>();
-        
-        categoryData.forEach(item => {
-          const category = item.products.category;
-          if (!category) return; // Skip items without a category
-          
-          const saleAmount = parseFloat(item.price_at_sale.toString()) * item.quantity;
-          const existingAmount = categoryMap.get(category) || 0;
-          categoryMap.set(category, existingAmount + saleAmount);
-        });
-        
-        // If we don't have category data, try to get it from sale_items
-        if (categoryMap.size === 0) {
-          // Alternative approach: use sale items directly
-          const { data: saleItemsData, error: saleItemsError } = await supabase
-            .from('sale_items')
-            .select(`
-              name_at_sale,
-              price_at_sale,
-              quantity,
-              sale_id,
-              sales!inner(user_id)
-            `)
-            .eq('sales.user_id', user.id);
-          
-          if (saleItemsError) throw saleItemsError;
-          
-          // Try to extract categories from product names if available
-          const extractedCategories = new Map<string, number>();
-          
-          saleItemsData.forEach(item => {
-            // Simple category extraction based on product name
-            // This is a fallback method if proper categories aren't available
-            let category = "Other";
-            const name = item.name_at_sale?.toLowerCase() || "";
-            
-            // Basic category detection rules
-            if (name.includes("phone") || name.includes("laptop") || name.includes("computer") || name.includes("tablet")) {
-              category = "Electronics";
-            } else if (name.includes("shirt") || name.includes("pants") || name.includes("dress") || name.includes("jacket")) {
-              category = "Clothing";
-            } else if (name.includes("book") || name.includes("novel") || name.includes("textbook")) {
-              category = "Books";
-            } else if (name.includes("food") || name.includes("drink") || name.includes("snack")) {
-              category = "Food";
-            } else if (name.includes("furniture") || name.includes("chair") || name.includes("table") || name.includes("bed")) {
-              category = "Home";
-            }
-            
-            const saleAmount = parseFloat(item.price_at_sale.toString()) * item.quantity;
-            const existingAmount = extractedCategories.get(category) || 0;
-            extractedCategories.set(category, existingAmount + saleAmount);
-          });
-          
-          // Use extracted categories if we found any
-          if (extractedCategories.size > 0) {
-            categoryMap.clear();
-            extractedCategories.forEach((value, key) => {
-              categoryMap.set(key, value);
-            });
-          }
-        }
-        
-        // Convert to array format for the chart with assigned colors
-        const categorySalesData = Array.from(categoryMap.entries())
-          .map(([category, value]) => ({ 
-            category, 
-            value,
-            // Assign color based on category name or use default color if not found
-            color: CATEGORY_COLORS[category as keyof typeof CATEGORY_COLORS] || DEFAULT_COLORS[Math.floor(Math.random() * DEFAULT_COLORS.length)]
-          }))
-          .sort((a, b) => b.value - a.value)
-          .slice(0, 5); // Take top 5 categories
-        
-        // If we still have no category data, use default mock data with assigned colors
-        if (categorySalesData.length === 0) {
-          const mockCategories = [
-            { category: "Electronics", value: Math.floor(Math.random() * 1000) + 500, color: CATEGORY_COLORS['Electronics'] },
-            { category: "Clothing", value: Math.floor(Math.random() * 1000) + 300, color: CATEGORY_COLORS['Clothing'] },
-            { category: "Food", value: Math.floor(Math.random() * 1000) + 700, color: CATEGORY_COLORS['Food'] },
-            { category: "Books", value: Math.floor(Math.random() * 1000) + 200, color: CATEGORY_COLORS['Books'] },
-            { category: "Home", value: Math.floor(Math.random() * 1000) + 400, color: CATEGORY_COLORS['Home'] }
-          ];
-          setCategorySales(mockCategories);
-        } else {
-          setCategorySales(categorySalesData);
-        }
-
-        // Fetch monthly sales data for the trend chart (last 6 months)
-        const sixMonthsAgo = new Date();
-        sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-        
-        const { data: monthlySalesData, error: monthlySalesError } = await supabase
-          .from('sales')
-          .select('created_at, total_amount')
-          .eq('user_id', user.id)
-          .gte('created_at', sixMonthsAgo.toISOString());
-        
-        if (monthlySalesError) throw monthlySalesError;
-        
-        // Process monthly sales data
-        const monthlySalesMap = new Map<string, SaleSummary>();
-        
-        monthlySalesData.forEach(sale => {
-          const saleDate = new Date(sale.created_at);
-          const monthKey = saleDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-          const existingSummary = monthlySalesMap.get(monthKey) || { 
-            date: monthKey, 
-            total: 0, 
-            count: 0 
-          };
-          
-          monthlySalesMap.set(monthKey, {
-            date: monthKey,
-            total: existingSummary.total + parseFloat(sale.total_amount.toString()),
-            count: existingSummary.count + 1
-          });
-        });
-        
-        // Convert to array and sort chronologically
-        let monthlyTrendData = Array.from(monthlySalesMap.values());
-        
-        // If we have less than 6 months of data, fill in the missing months with zeros
-        const currentDate = new Date();
-        for (let i = 0; i < 6; i++) {
-          const monthDate = new Date(currentDate);
-          monthDate.setMonth(currentDate.getMonth() - i);
-          const monthKey = monthDate.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-          
-          if (!monthlySalesMap.has(monthKey)) {
-            monthlyTrendData.push({
-              date: monthKey,
-              total: 0,
-              count: 0
-            });
-          }
-        }
-        
-        // Sort by date (need to convert month abbreviation to date for proper sorting)
-        monthlyTrendData.sort((a, b) => {
-          const dateA = new Date(a.date);
-          const dateB = new Date(b.date);
-          return dateA.getTime() - dateB.getTime();
-        });
-        
-        // Take only the last 6 months
-        monthlyTrendData = monthlyTrendData.slice(-6);
-        
-        setMonthlySalesTrend(monthlyTrendData);
-        
-        // Calculate product-level profitability
-        const profitabilityData = await calculateProductProfitability(supabase, user.id);
-        setProductProfitability(profitabilityData);
-        
-        // Calculate actual profit/loss data using real purchase prices
-        const profitLossItems: ProfitLossData[] = [];
-        
-        for (const monthData of monthlyTrendData) {
-          const revenue = monthData.total;
-          
-          // Get all sale items for this month to calculate actual costs
-          const monthStart = new Date(monthData.date);
-          const monthEnd = new Date(monthStart);
-          monthEnd.setMonth(monthEnd.getMonth() + 1);
-          
-          const { data: monthSaleItems, error: monthSaleItemsError } = await supabase
-            .from('sale_items')
-            .select(`
-              quantity,
-              product_id,
-              sales!inner(created_at, user_id)
-            `)
-            .eq('sales.user_id', user.id)
-            .gte('sales.created_at', monthStart.toISOString())
-            .lt('sales.created_at', monthEnd.toISOString());
-          
-          let actualCost = 0;
-          if (monthSaleItems && !monthSaleItemsError) {
-            actualCost = await calculateActualCosts(monthSaleItems, supabase);
-          }
-          
-          profitLossItems.push({
-            date: monthData.date,
-            revenue,
-            cost: actualCost,
-            profit: revenue - actualCost
-          });
-        }
-        
-        setProfitLossData(profitLossItems);
-        
-        // Calculate overall financial metrics using actual costs
-        const { data: allSaleItems, error: allSaleItemsError } = await supabase
-          .from('sale_items')
-          .select(`
-            quantity,
-            product_id,
-            sales!inner(user_id)
-          `)
-          .eq('sales.user_id', user.id);
-        
-        let totalActualCost = 0;
-        if (allSaleItems && !allSaleItemsError) {
-          totalActualCost = await calculateActualCosts(allSaleItems, supabase);
-        }
-        
-        const currentMonthRevenue = profitLossItems.length > 0 ? profitLossItems[profitLossItems.length - 1].revenue : 0;
-        const previousMonthRevenue = profitLossItems.length > 1 ? profitLossItems[profitLossItems.length - 2].revenue : undefined;
-        
-        setFinancialMetrics(calculateProfitMetrics(totalSalesAmount, totalActualCost, previousMonthRevenue));
-        
-        // Enhanced AI insights with comprehensive financial data
-        setIsLoadingAI(true);
-        const salesDataForAI: SalesData = {
-          totalSales: totalSalesAmount,
-          totalProducts: productsCount || 0,
-          recentOrders: salesByDateData.length,
-          lowStockCount: lowStockProductsData?.length || 0,
-          salesByDate: Array.from(salesByDateMap.values()),
-          topProducts: topProductsList,
-          // Enhanced financial data for AI analysis
-          totalCosts: totalActualCost,
-          grossProfit: totalSalesAmount - totalActualCost,
-          profitMargin: totalSalesAmount > 0 ? ((totalSalesAmount - totalActualCost) / totalSalesAmount) * 100 : 0,
-          profitLossData: profitLossItems,
-          productProfitability: profitabilityData
-        };
-
-        // Generate insights in parallel
-        const [insights, recommendation] = await Promise.all([
-          generateAIInsights(salesDataForAI),
-          generateChartRecommendations(salesDataForAI)
-        ]);
-        
-        setAiInsights(insights);
-        setChartRecommendation(recommendation);
-        
-      } catch (error: any) {
-        console.error('Error fetching dashboard data:', error);
-        toast.error('Failed to load dashboard data');
-      } finally {
-        setIsLoading(false);
-        setIsLoadingAI(false);
-      }
-    };
-
-    fetchDashboardData();
-  }, [user]);
+  const { data, isLoading } = useDashboardData(user);
+  const { aiInsights, isLoadingAI, generateInsights } = useAIInsights();
 
   const navigateToInventory = () => {
     navigate('/inventory');
   };
 
-  const navigateToSales = () => {
-    navigate('/sales');
-  };
-
-  // Update the generateInsights function to be more dynamic
   const refreshAIInsights = async () => {
     if (!user) return;
-    
-    setIsLoadingAI(true);
-    try {
-      // Get fresh product profitability data
-      const freshProfitabilityData = await calculateProductProfitability(supabase, user.id);
-      
-      // Prepare enhanced data for AI analysis
-      const salesDataForAI: SalesData = {
-        totalSales,
-        totalProducts,
-        recentOrders: salesByDate.reduce((sum, day) => sum + day.count, 0),
-        lowStockCount,
-        salesByDate,
-        topProducts,
-        totalCosts: financialMetrics.totalCost,
-        grossProfit: financialMetrics.grossProfit,
-        profitMargin: financialMetrics.profitMargin,
-        profitLossData,
-        productProfitability: freshProfitabilityData
-      };
-      
-      // Generate fresh AI insights
-      const insights = await generateAIInsights(salesDataForAI);
-      setAiInsights(insights);
-      toast.success("AI insights refreshed with latest profit/loss data");
-    } catch (error) {
-      console.error("Failed to refresh AI insights:", error);
-      toast.error("Failed to refresh insights");
-    } finally {
-      setIsLoadingAI(false);
-    }
+    await generateInsights(data);
   };
 
   // Get current day and month for the welcome message
@@ -542,11 +65,11 @@ const Dashboard = () => {
           </div>
         </header>
 
-        {/* Strategic KPI Section - Using a horizontal card layout for better data scanning */}
+        {/* Strategic KPI Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6 mb-4 sm:mb-6 md:mb-8">
           <MetricCard 
             title="Total Sales"
-            value={formatCurrency(totalSales)}
+            value={formatCurrency(data.totalSales)}
             icon={DollarSign}
             iconColor="text-green-500"
             highPriority={true}
@@ -554,14 +77,14 @@ const Dashboard = () => {
           
           <MetricCard 
             title="Gross Profit"
-            value={formatCurrency(financialMetrics.grossProfit)}
+            value={formatCurrency(data.financialMetrics.grossProfit)}
             icon={TrendingUp}
-            iconColor={financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"}
-            valueClassName={financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
+            iconColor={data.financialMetrics.grossProfit >= 0 ? "text-green-500" : "text-red-500"}
+            valueClassName={data.financialMetrics.grossProfit >= 0 ? "text-green-600" : "text-red-600"}
             trend={
-              financialMetrics.revenueGrowth !== undefined ? {
-                value: Math.round(financialMetrics.revenueGrowth * 10) / 10,
-                isPositive: financialMetrics.revenueGrowth >= 0
+              data.financialMetrics.revenueGrowth !== undefined ? {
+                value: Math.round(data.financialMetrics.revenueGrowth * 10) / 10,
+                isPositive: data.financialMetrics.revenueGrowth >= 0
               } : undefined
             }
             highPriority={true}
@@ -569,10 +92,10 @@ const Dashboard = () => {
           
           <MetricCard 
             title="Profit Margin"
-            value={`${financialMetrics.profitMargin.toFixed(1)}%`}
-            icon={financialMetrics.profitMargin >= 0 ? TrendingUp : TrendingDown}
-            iconColor={financialMetrics.profitMargin >= 0 ? "text-green-500" : "text-red-500"}
-            valueClassName={financialMetrics.profitMargin >= 0 ? "text-green-600" : "text-red-600"}
+            value={`${data.financialMetrics.profitMargin.toFixed(1)}%`}
+            icon={data.financialMetrics.profitMargin >= 0 ? TrendingUp : TrendingDown}
+            iconColor={data.financialMetrics.profitMargin >= 0 ? "text-green-500" : "text-red-500"}
+            valueClassName={data.financialMetrics.profitMargin >= 0 ? "text-green-600" : "text-red-600"}
           />
           
           <Popover>
@@ -580,11 +103,11 @@ const Dashboard = () => {
               <div className="contents">
                 <MetricCard 
                   title="Low Stock Alert"
-                  value={lowStockCount}
+                  value={data.lowStockCount}
                   icon={AlertCircle}
                   iconColor="text-red-500"
                   valueClassName="text-red-500"
-                  description={lowStockCount > 0 ? "Action needed" : "All items stocked"}
+                  description={data.lowStockCount > 0 ? "Action needed" : "All items stocked"}
                   onClick={() => {}} 
                 />
               </div>
@@ -597,7 +120,7 @@ const Dashboard = () => {
                 </h3>
                 <p className="text-sm text-muted-foreground">Products with less than 5 items in stock</p>
               </div>
-              {lowStockProducts.length > 0 ? (
+              {data.lowStockProducts.length > 0 ? (
                 <div className="max-h-[300px] overflow-auto">
                   <Table>
                     <TableHeader>
@@ -607,7 +130,7 @@ const Dashboard = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {lowStockProducts.map(product => (
+                      {data.lowStockProducts.map(product => (
                         <TableRow key={product.id}>
                           <TableCell>{product.name}</TableCell>
                           <TableCell className="text-right font-medium text-red-500">{product.stock_count}</TableCell>
@@ -634,18 +157,18 @@ const Dashboard = () => {
           </Popover>
         </div>
 
-        {/* Additional KPIs for more context - Second-tier metrics */}
+        {/* Additional KPIs */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
           <MetricCard 
             title="Total Products"
-            value={totalProducts}
+            value={data.totalProducts}
             icon={LayoutGrid}
             description="Active inventory items"
           />
           
           <MetricCard 
             title="Recent Orders"
-            value={salesByDate.reduce((sum, day) => sum + day.count, 0)}
+            value={data.salesByDate.reduce((sum, day) => sum + day.count, 0)}
             icon={Calendar}
             description="Last 7 days"
           />
@@ -653,8 +176,8 @@ const Dashboard = () => {
           <MetricCard 
             title="Avg. Order Value"
             value={formatCurrency(
-              salesByDate.length > 0 
-                ? totalSales / salesByDate.reduce((sum, day) => sum + day.count, 0) 
+              data.salesByDate.length > 0 
+                ? data.totalSales / data.salesByDate.reduce((sum, day) => sum + day.count, 0) 
                 : 0
             )}
             icon={DollarSign}
@@ -672,10 +195,10 @@ const Dashboard = () => {
             {/* Financial Analysis Overview */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 mb-6">
               <div className="col-span-1 lg:col-span-2">
-                <ProfitLossChart data={profitLossData} title="Revenue vs. Cost" description="Monthly breakdown" />
+                <ProfitLossChart data={data.profitLossData} title="Revenue vs. Cost" description="Monthly breakdown" />
               </div>
               <div className="col-span-1">
-                <FinancialSummary metrics={financialMetrics} />
+                <FinancialSummary metrics={data.financialMetrics} />
               </div>
             </div>
 
@@ -685,171 +208,21 @@ const Dashboard = () => {
                 <Calendar className="mr-2 h-5 w-5 text-primary" />
                 Weekly Analysis
               </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-blue-100">
-                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-blue-50 to-blue-100/50">
-                    <CardTitle className="text-lg sm:text-xl flex items-center">
-                      <BarChartIcon className="h-5 w-5 mr-2 text-blue-500" />
-                      Sales Last 7 Days
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-                    <div className="h-[280px] w-full">
-                      {salesByDate.length > 0 ? (
-                        <ChartContainer 
-                          config={{
-                            sales: { color: "#2563eb" },
-                          }}
-                        >
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={salesByDate}>
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                              <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                              <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                              <Tooltip content={<ChartTooltipContent />} />
-                              <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                              <Bar dataKey="total" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </ChartContainer>
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-muted-foreground">
-                          {isLoading ? 'Loading data...' : 'No sales data available'}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-green-100">
-                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-green-50 to-green-100/50">
-                    <CardTitle className="text-lg sm:text-xl flex items-center">
-                      <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
-                      Top Products
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">By revenue this week</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-                    <div className="h-[280px] w-full">
-                      {topProducts.length > 0 ? (
-                        <ChartContainer 
-                          config={{
-                            revenue: { color: "#10b981" },
-                          }}
-                        >
-                          <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={topProducts} layout="vertical">
-                              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                              <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                              <YAxis 
-                                dataKey="product_name" 
-                                type="category" 
-                                width={isMobile ? 80 : 150} 
-                                tick={{ fontSize: isMobile ? 9 : 12 }}
-                              />
-                              <Tooltip content={<ChartTooltipContent />} />
-                              <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                              <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" radius={[0, 4, 4, 0]} />
-                            </BarChart>
-                          </ResponsiveContainer>
-                        </ChartContainer>
-                      ) : (
-                        <div className="h-full flex items-center justify-center text-muted-foreground">
-                          {isLoading ? 'Loading data...' : 'No product data available'}
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              <OptimizedCharts
+                salesByDate={data.salesByDate}
+                topProducts={data.topProducts}
+                monthlySalesTrend={data.monthlySalesTrend}
+                categorySales={data.categorySales}
+                isLoading={isLoading}
+              />
             </div>
 
             {/* Monthly Analysis Section */}
             <div>
               <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
-                <ChartLine className="mr-2 h-5 w-5 text-purple-500" />
                 Monthly Analysis
               </h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-purple-100">
-                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50">
-                    <CardTitle className="text-lg sm:text-xl flex items-center">
-                      <ChartLine className="h-5 w-5 mr-2 text-purple-500" />
-                      Monthly Sales Trend
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Last 6 months</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-                    <div className="h-[280px] w-full">
-                      <ChartContainer 
-                        config={{
-                          trend: { color: "#8b5cf6" },
-                        }}
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={monthlySalesTrend}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                            <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                            <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Tooltip content={<ChartTooltipContent />} />
-                            <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
-                            <Line 
-                              type="monotone" 
-                              dataKey="total" 
-                              name="Monthly Revenue ($)" 
-                              stroke="#8b5cf6" 
-                              strokeWidth={2} 
-                              activeDot={{ r: 8 }} 
-                              dot={{ r: 4 }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-amber-100">
-                  <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-1 sm:pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50">
-                    <CardTitle className="text-lg sm:text-xl flex items-center">
-                      <ChartPie className="h-5 w-5 mr-2 text-amber-500" />
-                      Sales by Category
-                    </CardTitle>
-                    <CardDescription className="text-xs sm:text-sm">Product category distribution</CardDescription>
-                  </CardHeader>
-                  <CardContent className="pt-3 sm:pt-4 px-3 sm:px-4 pb-3 sm:pb-6">
-                    <div className="h-[280px] w-full">
-                      <ChartContainer 
-                        config={{
-                          category: { color: "#10b981" },
-                        }}
-                      >
-                        <ResponsiveContainer width="100%" height="100%">
-                          <PieChart>
-                            <Pie
-                              data={categorySales}
-                              cx="50%"
-                              cy="50%"
-                              labelLine={true}
-                              label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                              outerRadius={isMobile ? 70 : 80}
-                              fill="#8884d8"
-                              dataKey="value"
-                              nameKey="category"
-                            >
-                              {categorySales.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                            </Pie>
-                            <Tooltip content={<ChartTooltipContent />} />
-                          </PieChart>
-                        </ResponsiveContainer>
-                      </ChartContainer>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
+              {/* Charts are now handled by OptimizedCharts component */}
             </div>
           </TabsContent>
 
@@ -883,7 +256,7 @@ const Dashboard = () => {
                     aiInsights.map((insight, index) => (
                       <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
                         <div className="bg-blue-100 rounded-full p-1 flex-shrink-0">
-                          <Bot className="h-5 w-5 text-blue-700" />
+                          <Sparkles className="h-5 w-5 text-blue-700" />
                         </div>
                         <div>
                           <p className="text-sm text-gray-800">{insight}</p>

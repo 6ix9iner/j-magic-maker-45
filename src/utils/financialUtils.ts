@@ -62,13 +62,25 @@ export const formatPercentage = (value: number): string => {
 };
 
 /**
- * Calculate monthly costs (mock data - in a real app, this would come from the database)
- * This function provides estimated costs based on revenue to simulate COGS
+ * Calculate actual costs from sale items using purchase prices
  */
-export const estimateCosts = (revenue: number): number => {
-  // For demonstration, assume COGS is approximately 60% of revenue
-  // In a real application, this would be fetched from actual cost data
-  return revenue * 0.6;
+export const calculateActualCosts = async (saleItems: any[], supabase: any): Promise<number> => {
+  let totalCost = 0;
+  
+  for (const item of saleItems) {
+    // Get the product's purchase price
+    const { data: product, error } = await supabase
+      .from('products')
+      .select('purchase_price')
+      .eq('id', item.product_id)
+      .single();
+    
+    if (product && !error) {
+      totalCost += parseFloat(product.purchase_price.toString()) * item.quantity;
+    }
+  }
+  
+  return totalCost;
 };
 
 /**
@@ -79,4 +91,3 @@ export const getProfitLossColor = (value: number): string => {
   if (value < 0) return 'text-red-600';
   return 'text-gray-600';
 };
-

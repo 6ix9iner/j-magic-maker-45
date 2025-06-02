@@ -16,7 +16,7 @@ import { generateAIInsights, generateChartRecommendations, SalesData } from '@/u
 import MetricCard from '@/components/dashboard/MetricCard';
 import ProfitLossChart from '@/components/dashboard/ProfitLossChart';
 import FinancialSummary from '@/components/dashboard/FinancialSummary';
-import { calculateProfitMetrics, estimateCosts, formatCurrency, FinancialMetrics } from '@/utils/financialUtils';
+import { calculateProfitMetrics, calculateActualCosts, formatCurrency, FinancialMetrics } from '@/utils/financialUtils';
 
 interface SaleSummary {
   date: string;
@@ -365,26 +365,62 @@ const Dashboard = () => {
         
         setMonthlySalesTrend(monthlyTrendData);
         
-        // Calculate profit/loss data
-        const profitLossItems: ProfitLossData[] = monthlyTrendData.map(item => {
-          const revenue = item.total;
-          const cost = estimateCosts(revenue);
-          return {
-            date: item.date,
+        // Calculate actual profit/loss data using real purchase prices
+        const profitLossItems: ProfitLossData[] = [];
+        
+        for (const monthData of monthlyTrendData) {
+          const revenue = monthData.total;
+          
+          // Get all sale items for this month to calculate actual costs
+          const monthStart = new Date(monthData.date);
+          const monthEnd = new Date(monthStart);
+          monthEnd.setMonth(monthEnd.getMonth() + 1);
+          
+          const { data: monthSaleItems, error: monthSaleItemsError } = await supabase
+            .from('sale_items')
+            .select(`
+              quantity,
+              product_id,
+              sales!inner(created_at, user_id)
+            `)
+            .eq('sales.user_id', user.id)
+            .gte('sales.created_at', monthStart.toISOString())
+            .lt('sales.created_at', monthEnd.toISOString());
+          
+          let actualCost = 0;
+          if (monthSaleItems && !monthSaleItemsError) {
+            actualCost = await calculateActualCosts(monthSaleItems, supabase);
+          }
+          
+          profitLossItems.push({
+            date: monthData.date,
             revenue,
-            cost,
-            profit: revenue - cost
-          };
-        });
+            cost: actualCost,
+            profit: revenue - actualCost
+          });
+        }
         
         setProfitLossData(profitLossItems);
         
-        // Calculate overall financial metrics
+        // Calculate overall financial metrics using actual costs
+        const { data: allSaleItems, error: allSaleItemsError } = await supabase
+          .from('sale_items')
+          .select(`
+            quantity,
+            product_id,
+            sales!inner(user_id)
+          `)
+          .eq('sales.user_id', user.id);
+        
+        let totalActualCost = 0;
+        if (allSaleItems && !allSaleItemsError) {
+          totalActualCost = await calculateActualCosts(allSaleItems, supabase);
+        }
+        
         const currentMonthRevenue = profitLossItems.length > 0 ? profitLossItems[profitLossItems.length - 1].revenue : 0;
         const previousMonthRevenue = profitLossItems.length > 1 ? profitLossItems[profitLossItems.length - 2].revenue : undefined;
-        const totalCost = estimateCosts(totalSalesAmount);
         
-        setFinancialMetrics(calculateProfitMetrics(totalSalesAmount, totalCost, previousMonthRevenue));
+        setFinancialMetrics(calculateProfitMetrics(totalSalesAmount, totalActualCost, previousMonthRevenue));
         
         // Use the collected data to generate AI insights
         setIsLoadingAI(true);

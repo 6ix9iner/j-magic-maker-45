@@ -28,15 +28,44 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
   // Custom tooltip formatter for currency values
   const formatTooltipValue = (value: number) => formatCurrency(value);
 
-  // Custom label formatter for better mobile display
+  // Enhanced date formatter that handles various date formats
   const formatXAxisLabel = (value: string) => {
-    if (isMobile) {
-      // Show only month abbreviation on mobile
-      const date = new Date(value);
-      return date.toLocaleDateString('en-US', { month: 'short' });
+    try {
+      // Handle different date formats
+      let date: Date;
+      
+      // Check if it's already in "Mon YYYY" format
+      if (value.match(/^[A-Za-z]{3}\s\d{4}$/)) {
+        date = new Date(`${value.split(' ')[0]} 1, ${value.split(' ')[1]}`);
+      } else {
+        date = new Date(value);
+      }
+      
+      // Validate the date
+      if (isNaN(date.getTime())) {
+        // If date parsing fails, return the original value truncated for mobile
+        return isMobile ? value.substring(0, 3) : value;
+      }
+      
+      if (isMobile) {
+        // Show only month abbreviation on mobile
+        return date.toLocaleDateString('en-US', { month: 'short' });
+      }
+      
+      // Show month and year on desktop
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+    } catch (error) {
+      console.error('Date formatting error:', error, 'for value:', value);
+      return isMobile ? value.substring(0, 3) : value;
     }
-    return value;
   };
+
+  // Filter out invalid data entries
+  const validData = data.filter(item => {
+    const hasValidNumbers = !isNaN(item.revenue) && !isNaN(item.cost) && !isNaN(item.profit);
+    const hasValidDate = item.date && item.date.trim() !== '';
+    return hasValidNumbers && hasValidDate;
+  });
 
   return (
     <Card className="w-full h-full">
@@ -49,7 +78,7 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
       </CardHeader>
       <CardContent className="pt-1 sm:pt-2 px-1 sm:px-3 pb-3 sm:pb-6">
         <div className="h-[300px] w-full">
-          {data.length > 0 ? (
+          {validData.length > 0 ? (
             <ChartContainer
               config={{
                 revenue: { color: "#22c55e" },
@@ -59,37 +88,41 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
             >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
-                  data={data} 
+                  data={validData} 
                   margin={{ 
                     top: 20, 
-                    right: isMobile ? 10 : 30, 
-                    left: isMobile ? 10 : 20, 
-                    bottom: isMobile ? 20 : 5 
+                    right: isMobile ? 5 : 30, 
+                    left: isMobile ? 5 : 20, 
+                    bottom: isMobile ? 25 : 5 
                   }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
                   <XAxis 
                     dataKey="date" 
-                    tick={{ fontSize: isMobile ? 9 : 12 }}
+                    tick={{ fontSize: isMobile ? 8 : 12 }}
                     tickFormatter={formatXAxisLabel}
-                    interval={isMobile ? 1 : 0}
+                    interval={0}
+                    angle={isMobile ? -45 : 0}
+                    textAnchor={isMobile ? 'end' : 'middle'}
+                    height={isMobile ? 50 : 30}
                   />
                   <YAxis 
-                    tick={{ fontSize: isMobile ? 9 : 12 }}
-                    width={isMobile ? 40 : 60}
+                    tick={{ fontSize: isMobile ? 8 : 12 }}
+                    width={isMobile ? 35 : 60}
                     tickFormatter={(value) => {
                       // Abbreviate large numbers with K/M suffix
-                      if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
-                      if (value >= 1000) return `$${(value / 1000).toFixed(0)}K`;
+                      if (Math.abs(value) >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
+                      if (Math.abs(value) >= 1000) return `$${(value / 1000).toFixed(0)}K`;
                       return `$${value}`;
                     }}
                   />
                   <Tooltip 
                     content={<ChartTooltipContent />}
                     formatter={formatTooltipValue}
+                    labelFormatter={(value) => formatXAxisLabel(value)}
                   />
                   <Legend 
-                    wrapperStyle={{ fontSize: isMobile ? 9 : 12 }}
+                    wrapperStyle={{ fontSize: isMobile ? 8 : 12 }}
                     iconType="circle"
                   />
                   <ReferenceLine y={0} stroke="#000" strokeWidth={1} />

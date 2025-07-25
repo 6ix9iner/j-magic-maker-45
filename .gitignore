@@ -12,13 +12,32 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# Dependency directories
+node_modules/
+android/app/build/
+android/build/
+ios/build/
+dist/
+
+# System files
 .DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Output
+*.apk
+*.ipa
+
+# Capacitor
+android/capacitor-cordova-android-plugins/build/
+
+# Misc
+.env
+.env.*
+
+# Ignore repo-clean if not needed
+dist/
+repo-clean/

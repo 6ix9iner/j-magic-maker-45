@@ -3,7 +3,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import PasswordReset from "./pages/PasswordReset";
@@ -14,8 +13,10 @@ import Settings from "./pages/Settings";
 import Sales from "./pages/Sales";
 import Receipts from "./pages/Receipts";
 import Layout from "./components/Layout";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import LoadingScreen from "./components/LoadingScreen";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import PushNotificationManager from "./components/PushNotificationManager";
+import { useState } from "react";
 
 const queryClient = new QueryClient();
 
@@ -25,10 +26,10 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-pulse flex flex-col items-center">
-          <div className="w-16 h-16 bg-blue-200 rounded-full mb-3"></div>
-          <div className="h-4 w-24 bg-gray-200 rounded"></div>
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading...</p>
         </div>
       </div>
     );
@@ -41,77 +42,100 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-const AppRoutes = () => {
-  const [initialLoading, setInitialLoading] = useState(true);
+// Public route that redirects authenticated users
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
   
-  useEffect(() => {
-    // Simulate initial loading time - reduced for better user experience
-    const timer = setTimeout(() => {
-      setInitialLoading(false);
-    }, 1500);
-    
-    return () => clearTimeout(timer);
-  }, []);
-  
-  if (initialLoading) {
-    return <LoadingScreen duration={1500} />;
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-white">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
   }
+  
+  if (user) {
+    return <Navigate to="/scanner" replace />;
+  }
+  
+  return <>{children}</>;
+};
 
+const AppRoutes = () => {
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        {/* Redirect root to scanner for authenticated users */}
-        <Route index element={<Navigate to="/scanner" replace />} />
-        <Route path="/auth" element={<Auth />} />
-        <Route path="/reset-password" element={<PasswordReset />} />
-        <Route path="/scanner" element={
-          <ProtectedRoute>
-            <Index />
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/inventory" element={
-          <ProtectedRoute>
-            <Inventory />
-          </ProtectedRoute>
-        } />
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <Settings />
-          </ProtectedRoute>
-        } />
-        <Route path="/sales" element={
-          <ProtectedRoute>
-            <Sales />
-          </ProtectedRoute>
-        } />
-        <Route path="/receipts" element={
-          <ProtectedRoute>
-            <Receipts />
-          </ProtectedRoute>
-        } />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+    <>
+      <PushNotificationManager />
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          {/* Redirect root to scanner for authenticated users, auth for unauthenticated */}
+          <Route index element={<Navigate to="/scanner" replace />} />
+          <Route path="/auth" element={
+            <PublicRoute>
+              <Auth />
+            </PublicRoute>
+          } />
+          <Route path="/reset-password" element={
+            <PublicRoute>
+              <PasswordReset />
+            </PublicRoute>
+          } />
+          <Route path="/scanner" element={
+            <ProtectedRoute>
+              <Index />
+            </ProtectedRoute>
+          } />
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/inventory" element={
+            <ProtectedRoute>
+              <Inventory />
+            </ProtectedRoute>
+          } />
+          <Route path="/settings" element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          } />
+          <Route path="/sales" element={
+            <ProtectedRoute>
+              <Sales />
+            </ProtectedRoute>
+          } />
+          <Route path="/receipts" element={
+            <ProtectedRoute>
+              <Receipts />
+            </ProtectedRoute>
+          } />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </>
   );
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <BrowserRouter>
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <AppRoutes />
-        </TooltipProvider>
-      </AuthProvider>
-    </BrowserRouter>
-  </QueryClientProvider>
-);
+const App = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            {showSplash && <LoadingScreen duration={5000} />}
+            <AppRoutes />
+          </TooltipProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

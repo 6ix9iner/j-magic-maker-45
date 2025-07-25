@@ -1,4 +1,3 @@
-
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,7 @@ import SaleTable from './sale/SaleTable';
 import SaleSummary from './sale/SaleSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Receipt from './receipt/Receipt';
+import { sendPushNotification } from '@/utils/pushNotificationUtils';
 
 interface Product {
   id: string;
@@ -204,6 +204,25 @@ const SaleManager = forwardRef((props, ref) => {
         }
       }
 
+      // 🔔 Send sale completion notification
+      try {
+        await sendPushNotification({
+          user_id: user.id,
+          title: '💰 Sale Completed!',
+          body: `Sale of $${calculateTotal().toFixed(2)} completed successfully with ${items.length} items`,
+          notification_type: 'sale_completed',
+          data: {
+            sale_id: saleData.id,
+            total_amount: calculateTotal(),
+            items_count: items.length,
+            timestamp: new Date().toISOString()
+          }
+        });
+        console.log('✅ Sale completion notification sent');
+      } catch (notifError) {
+        console.error('❌ Failed to send sale completion notification:', notifError);
+      }
+
       // Get the completed sale data with items
       const { data: completedSaleData, error: completedSaleError } = await supabase
         .from('sales')
@@ -227,7 +246,7 @@ const SaleManager = forwardRef((props, ref) => {
       // Fetch business info for the receipt
       const businessInfoData = await fetchBusinessInfo(user.id);
       
-      // If we have business info, show the receipt
+      // If we have business info, show the receipt and send receipt notification
       if (businessInfoData) {
         setBusinessInfo(businessInfoData);
         setCompletedSale({
@@ -235,6 +254,25 @@ const SaleManager = forwardRef((props, ref) => {
           items: saleItemsData || []
         });
         setShowReceiptModal(true);
+
+        // 🧾 Send receipt generated notification
+        try {
+          await sendPushNotification({
+            user_id: user.id,
+            title: '🧾 Receipt Generated!',
+            body: `Receipt for sale of $${calculateTotal().toFixed(2)} has been generated and is ready to view`,
+            notification_type: 'receipt_generated',
+            data: {
+              sale_id: saleData.id,
+              total_amount: calculateTotal(),
+              business_name: businessInfoData.business_name,
+              timestamp: new Date().toISOString()
+            }
+          });
+          console.log('✅ Receipt generated notification sent');
+        } catch (notifError) {
+          console.error('❌ Failed to send receipt notification:', notifError);
+        }
       } else {
         // No business info found, show a message
         toast.info("Sale completed! Set up your business information to generate receipts.");

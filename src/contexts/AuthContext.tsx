@@ -1,8 +1,9 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
+import { sendPushNotification } from '@/utils/pushNotificationUtils';
+import { Capacitor } from '@capacitor/core';
 
 type AuthContextType = {
   user: User | null;
@@ -21,21 +22,66 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, currentSession) => {
+      async (event, currentSession) => {
+        console.log('🔐 Auth state changed:', event, !!currentSession);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        
-        if (event === 'SIGNED_IN') {
+
+        if (event === 'SIGNED_IN' && currentSession?.user) {
           toast.success('Successfully signed in');
-        } else if (event === 'SIGNED_OUT') {
+
+          // Only send push notifications on Android native platform
+          if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+            // Check if user already has a push token before sending notification
+            setTimeout(async () => {
+              try {
+                console.log('📱 Checking for existing Android push token...');
+                
+                const { data: tokenData, error: tokenError } = await (supabase as any)
+                  .from('user_push_tokens')
+                  .select('push_token')
+                  .eq('user_id', currentSession.user.id)
+                  .limit(1)
+                  .maybeSingle();
+
+                if (tokenError) {
+                  console.error('❌ Error checking for push token:', tokenError);
+                  return;
+                }
+
+                if (tokenData?.push_token) {
+                  console.log('📱 Found existing push token, sending Android login notification...');
+                  await sendPushNotification({
+                    user_id: currentSession.user.id,
+                    title: 'Welcome Back! 👋',
+                    body: 'You have successfully signed in to your Android app',
+                    notification_type: 'android_login',
+                    data: {
+                      timestamp: new Date().toISOString(),
+                      force_display: 'true',
+                      platform: 'android'
+                    }
+                  });
+                } else {
+                  console.log('📱 No push token found yet - user needs to register for notifications first');
+                }
+              } catch (error) {
+                console.error('❌ Failed to send Android login notification:', error);
+              }
+            }, 8000);
+          } else {
+            console.log('🌐 Not Android platform - skipping push notification');
+          }
+        }
+
+        if (event === 'SIGNED_OUT') {
+          console.log('🚪 User signed out');
           toast.info('Signed out');
         }
       }
     );
 
-    // THEN check for existing session
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
@@ -77,32 +123,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // First check if we have a session before trying to sign out
+      console.log('🚪 Starting Android sign out process...');
+
       const { data } = await supabase.auth.getSession();
-      
-      if (!data.session) {
-        // No active session, just clear the local state
+      const currentUser = data.session?.user;
+
+      if (!currentUser) {
+        console.log('⚠️ No active session found');
         setUser(null);
         setSession(null);
-        toast.info('Already signed out');
         return;
       }
-      
-      // If we have a session, try to sign out
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Sign out error:', error);
-      
-      // Even if there's an error, let's make sure the UI state is updated
+
+      // Only send Android push notifications on native Android platform if token exists
+      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+        try {
+          console.log('📱 Checking for push token before sending logout notification...');
+          
+          const { data: tokenData, error: tokenError } = await (supabase as any)
+            .from('user_push_tokens')
+            .select('push_token')
+            .eq('user_id', currentUser.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (tokenError) {
+            console.error('❌ Error checking for push token:', tokenError);
+          } else if (tokenData?.push_token) {
+            console.log('📱 Found push token, sending Android logout notification...');
+            await sendPushNotification({
+              user_id: currentUser.id,
+              title: 'Goodbye! 👋',
+              body: 'You have signed out of your Android app',
+              notification_type: 'android_logout',
+              data: {
+                timestamp: new Date().toISOString(),
+                force_display: 'true',
+                platform: 'android'
+              }
+            });
+
+            console.log('✅ Android logout notification sent');
+            await new Promise(resolve => setTimeout(resolve, 2000));
+          } else {
+            console.log('📱 No push token found - skipping logout notification');
+          }
+        } catch (fcmError) {
+          console.error('❌ Failed to send Android logout notification:', fcmError);
+        }
+      }
+
+      // Clear state and sign out from Supabase
       setUser(null);
       setSession(null);
-      
-      // Only show an error toast if it's not a session missing error
-      if (error.message !== 'Auth session missing!') {
-        toast.error(error.message || 'Error signing out');
+
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('⚠️ Supabase sign out error:', error);
       } else {
-        toast.info('Signed out');
+        console.log('✅ User signed out from Supabase');
+      }
+
+    } catch (error: any) {
+      console.error('❌ Unexpected sign out error:', error);
+      setUser(null);
+      setSession(null);
+
+      if (error.message !== 'Auth session missing!') {
+        toast.error('Unexpected sign out error');
       }
     }
   };
@@ -121,3 +209,9 @@ export const useAuth = () => {
   }
   return context;
 };
+
+
+
+
+
+

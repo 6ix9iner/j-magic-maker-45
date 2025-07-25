@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,16 +8,27 @@ import { toast } from "sonner";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
 
   const handleSignOut = async () => {
     try {
+      console.log('Sign out button pressed - user:', user?.id);
+      
+      // Show loading toast
+      toast.loading("Signing out...");
+      
       await signOut();
-      navigate("/auth");
-      toast.success("You have been signed out");
+      
+      // Force navigation after sign out
+      setTimeout(() => {
+        navigate("/auth", { replace: true });
+        window.location.reload(); // Force reload for Android
+      }, 500);
+      
+      console.log('Sign out completed successfully');
     } catch (error) {
       console.error("Sign out error:", error);
-      toast.error("Failed to sign out");
+      toast.error("Failed to sign out. Please try again.");
     }
   };
 
@@ -63,6 +73,7 @@ const Settings = () => {
                 variant={option.variant || "default"}
                 className="w-full" 
                 onClick={option.action}
+                disabled={option.title === "Sign Out" && !user}
               >
                 {option.title === "Sign Out" ? "Sign Out" : "Open"}
               </Button>
@@ -75,3 +86,4 @@ const Settings = () => {
 };
 
 export default Settings;
+

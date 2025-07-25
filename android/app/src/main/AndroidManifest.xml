@@ -1,9 +1,14 @@
-<?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- OneSignal permissions -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <application
         android:allowBackup="true"
@@ -26,6 +31,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- Handle OneSignal notification clicks -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+            </intent-filter>
+
         </activity>
 
         <provider
@@ -37,6 +49,35 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths"></meta-data>
         </provider>
+
+        <!-- OneSignal Configuration -->
+        <meta-data 
+            android:name="onesignal_app_id"
+            android:value="904ebe61-ff30-44e2-8c3d-1c936a10597d" />
+        
+        <!-- OneSignal default notification settings -->
+        <meta-data
+            android:name="onesignal_large_icon"
+            android:resource="@mipmap/ic_launcher" />
+        
+        <meta-data
+            android:name="onesignal_small_icon"
+            android:resource="@mipmap/ic_launcher" />
+
+        <!-- OneSignal default notification channel -->
+        <meta-data
+            android:name="onesignal_default_channel_id"
+            android:value="pos_notifications_channel" />
+
+        <!-- Auto-start receivers for push notifications -->
+        <receiver android:name="com.onesignal.BootUpReceiver" android:exported="true">
+            <intent-filter android:priority="600">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+
     </application>
 
 </manifest>
+

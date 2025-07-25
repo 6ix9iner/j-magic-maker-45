@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Loader } from 'lucide-react';
@@ -11,6 +10,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
   const [show, setShow] = useState(true);
   
   useEffect(() => {
+    // Use the provided duration directly (no cap)
     const timer = setTimeout(() => {
       setShow(false);
     }, duration);

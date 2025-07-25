@@ -179,31 +179,32 @@ const ProfitLossChart: React.FC<ProfitLossChartProps> = ({
                     <Legend 
                       wrapperStyle={{ fontSize: 12 }}
                       iconType="circle"
-                      formatter={(value, entry) => (
-                        <span style={{ color: entry.color }}>
-                          {value === 'revenue' ? 'Revenue' : value === 'cost' ? 'Cost' : 'Profit'}
-                        </span>
-                      )}
+                      formatter={(value) => {
+                        if (value === 'revenue') return 'Revenue';
+                        if (value === 'cost') return 'Cost';
+                        if (value === 'profit') return 'Profit';
+                        return value;
+                      }}
                     />
                   )}
                   <ReferenceLine y={0} stroke="#000" strokeWidth={1} />
                   <Bar 
                     dataKey="revenue" 
-                    name="Revenue" 
+                    name="revenue" 
                     fill="#22c55e"
                     radius={[2, 2, 0, 0]}
                     fillOpacity={0.8}
                   />
                   <Bar 
                     dataKey="cost" 
-                    name="Cost" 
+                    name="cost" 
                     fill="#ef4444"
                     radius={[2, 2, 0, 0]} 
                     fillOpacity={0.8}
                   />
                   <Bar 
                     dataKey="profit" 
-                    name="Profit" 
+                    name="profit" 
                     fill="#3b82f6"
                     radius={[2, 2, 0, 0]}
                     fillOpacity={0.8}

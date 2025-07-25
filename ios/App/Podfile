@@ -14,8 +14,12 @@ def capacitor_pods
   pod 'CapacitorCamera', :path => '../../node_modules/@capacitor/camera'
   pod 'CapacitorDevice', :path => '../../node_modules/@capacitor/device'
   pod 'CapacitorFilesystem', :path => '../../node_modules/@capacitor/filesystem'
+  pod 'CapacitorLocalNotifications', :path => '../../node_modules/@capacitor/local-notifications'
   pod 'CapacitorNetwork', :path => '../../node_modules/@capacitor/network'
   pod 'CapacitorSplashScreen', :path => '../../node_modules/@capacitor/splash-screen'
+  pod 'CapacitorStatusBar', :path => '../../node_modules/@capacitor/status-bar'
+  pod 'CapgoCapacitorNavigationBar', :path => '../../node_modules/@capgo/capacitor-navigation-bar'
+  pod 'CordovaPluginsStatic', :path => '../capacitor-cordova-ios-plugins'
 end
 
 target 'App' do

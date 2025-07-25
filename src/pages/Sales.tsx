@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronUp } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,6 +10,7 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Receipt from "@/components/receipt/Receipt";
+import { exportSalesToCSV } from "@/utils/salesExport";
 
 interface SaleItemData {
   id: string;
@@ -176,18 +176,57 @@ const Sales = () => {
     setSelectedSale(null);
   };
 
+  const handleDownloadSales = async () => {
+    if (!user) {
+      toast.error("Please sign in to download sales data");
+      return;
+    }
+
+    if (sales.length === 0) {
+      toast.error("No sales data to download");
+      return;
+    }
+
+    try {
+      // Get business name for the export
+      let businessName = "My Business";
+      if (businessInfo) {
+        businessName = businessInfo.business_name;
+      }
+
+      // Export sales data
+      exportSalesToCSV(sales, businessName);
+      toast.success("Sales data downloaded successfully!");
+    } catch (error) {
+      console.error("Error downloading sales data:", error);
+      toast.error("Failed to download sales data");
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => navigate("/settings")}
-          className="mr-2"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" /> Back
-        </Button>
-        <h1 className="text-3xl font-bold">Sales History</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => navigate("/settings")}
+            className="mr-2"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" /> Back
+          </Button>
+          <h1 className="text-3xl font-bold">Sales History</h1>
+        </div>
+        
+        {sales.length > 0 && (
+          <Button 
+            onClick={handleDownloadSales}
+            className="flex items-center gap-2"
+          >
+            <Download className="h-4 w-4" />
+            Download CSV
+          </Button>
+        )}
       </div>
 
       <Card>

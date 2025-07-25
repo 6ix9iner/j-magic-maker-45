@@ -90,91 +90,133 @@ const Receipt = ({ sale, businessInfo }: ReceiptProps) => {
     }
   };
 
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  };
+
+  const formatCurrencyCompact = (amount: number) => {
+    // For very large amounts, use compact notation
+    if (amount >= 1000000) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        notation: 'compact',
+        maximumFractionDigits: 1,
+      }).format(amount);
+    }
+    return formatCurrency(amount);
+  };
+
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center w-full">
       <div 
         ref={receiptRef} 
-        className="receipt bg-white p-6 w-full max-w-sm mx-auto border rounded-lg shadow-sm"
+        className="receipt bg-white p-4 sm:p-6 w-full max-w-sm mx-auto border rounded-lg shadow-sm"
+        style={{ fontFamily: 'monospace' }}
       >
         <div className="header text-center mb-4">
-          <h2 className="text-lg font-bold break-words">{businessInfo.business_name}</h2>
-          <div className="text-gray-600 text-xs space-y-1">
+          <h2 className="text-base sm:text-lg font-bold break-words leading-tight">{businessInfo.business_name}</h2>
+          <div className="text-gray-600 text-xs space-y-1 mt-2">
             <p className="break-words">{businessInfo.address}</p>
-            <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
+            <p className="break-words">{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
             <p className="break-all">{businessInfo.phone}</p>
-            <p className="break-all">{businessInfo.email}</p>
-            {businessInfo.website && <p className="break-all">{businessInfo.website}</p>}
-            {businessInfo.tax_id && <p>Tax ID: {businessInfo.tax_id}</p>}
+            <p className="break-all text-xs">{businessInfo.email}</p>
+            {businessInfo.website && <p className="break-all text-xs">{businessInfo.website}</p>}
+            {businessInfo.tax_id && <p className="text-xs">Tax ID: {businessInfo.tax_id}</p>}
           </div>
         </div>
 
-        <div className="receipt-details mb-4 space-y-1">
+        <div className="receipt-details mb-4 space-y-1 border-t border-b border-dashed border-gray-300 py-2">
           <div className="flex justify-between text-xs">
             <span>Receipt #:</span>
-            <span className="font-mono">{sale.id.substring(0, 8)}</span>
+            <span className="font-mono text-right">{sale.id.substring(0, 8)}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span>Date:</span>
-            <span className="text-right">{format(new Date(sale.created_at), "MMM d, yyyy h:mm a")}</span>
+            <span className="text-right text-xs">{format(new Date(sale.created_at), "MM/dd/yy h:mm a")}</span>
           </div>
           <div className="flex justify-between text-xs">
             <span>Payment:</span>
-            <span>{sale.payment_method || 'Cash'}</span>
+            <span className="text-right">{sale.payment_method || 'Cash'}</span>
           </div>
           {sale.transaction_id && (
             <div className="flex justify-between text-xs">
-              <span>Transaction ID:</span>
-              <span className="font-mono text-right break-all">{sale.transaction_id}</span>
+              <span>Transaction:</span>
+              <span className="font-mono text-right break-all text-xs">{sale.transaction_id}</span>
             </div>
           )}
         </div>
 
-        <div className="items border-t border-b border-dashed border-gray-300 py-3 my-4">
-          <div className="flex justify-between font-bold text-xs mb-2 border-b pb-1">
-            <div className="w-1/2">Item</div>
-            <div className="w-1/6 text-center">Qty</div>
-            <div className="w-1/6 text-right">Price</div>
-            <div className="w-1/6 text-right">Total</div>
+        <div className="items mb-4">
+          <div className="grid grid-cols-12 gap-1 font-bold text-xs mb-2 border-b pb-1">
+            <div className="col-span-5 text-left">Item</div>
+            <div className="col-span-2 text-center">Qty</div>
+            <div className="col-span-2 text-right">Price</div>
+            <div className="col-span-3 text-right">Total</div>
           </div>
 
-          <div className="space-y-2">
-            {sale.items?.map((item) => (
-              <div key={item.id} className="space-y-1">
-                <div className="flex justify-between items-start text-xs">
-                  <div className="w-1/2 pr-2">
-                    <div className="break-words leading-tight">
+          <div className="space-y-1">
+            {sale.items?.map((item) => {
+              const itemTotal = item.price_at_sale * item.quantity;
+              return (
+                <div key={item.id} className="grid grid-cols-12 gap-1 text-xs items-start">
+                  <div className="col-span-5 text-left pr-1">
+                    <div className="break-words leading-tight text-xs">
                       {item.name_at_sale || 'Unknown Item'}
                     </div>
+                    {item.barcode_at_sale && (
+                      <div className="text-xs text-gray-500 break-all">
+                        {item.barcode_at_sale}
+                      </div>
+                    )}
                   </div>
-                  <div className="w-1/6 text-center">{item.quantity}</div>
-                  <div className="w-1/6 text-right">${item.price_at_sale.toFixed(2)}</div>
-                  <div className="w-1/6 text-right font-medium">
-                    ${(item.price_at_sale * item.quantity).toFixed(2)}
+                  <div className="col-span-2 text-center text-xs">{item.quantity}</div>
+                  <div className="col-span-2 text-right text-xs">
+                    {item.price_at_sale >= 1000000 ? 
+                      formatCurrencyCompact(item.price_at_sale) : 
+                      formatCurrency(item.price_at_sale)
+                    }
+                  </div>
+                  <div className="col-span-3 text-right font-medium text-xs">
+                    {itemTotal >= 1000000 ? 
+                      formatCurrencyCompact(itemTotal) : 
+                      formatCurrency(itemTotal)
+                    }
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
-        <div className="total-section">
-          <div className="flex justify-between font-bold text-base border-t pt-2">
+        <div className="total-section border-t border-dashed border-gray-300 pt-2">
+          <div className="flex justify-between font-bold text-sm">
             <span>Total:</span>
-            <span>${sale.total_amount.toFixed(2)}</span>
+            <span className="text-right">
+              {sale.total_amount >= 1000000 ? 
+                formatCurrencyCompact(sale.total_amount) : 
+                formatCurrency(sale.total_amount)
+              }
+            </span>
           </div>
         </div>
 
-        <div className="thank-you text-center mt-6 text-xs italic text-gray-600 break-words">
+        <div className="thank-you text-center mt-4 text-xs italic text-gray-600 break-words">
           {businessInfo.thank_you_message || 'Thank you for your business!'}
         </div>
       </div>
       
-      <div className="flex gap-4 mt-4">
-        <Button onClick={handlePrint} className="flex items-center gap-2">
+      <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 mt-4 w-full sm:w-auto">
+        <Button onClick={handlePrint} className="flex items-center justify-center gap-2 text-sm">
           <Printer className="h-4 w-4" />
           Print Receipt
         </Button>
-        <Button onClick={handleDownload} variant="outline" className="flex items-center gap-2">
+        <Button onClick={handleDownload} variant="outline" className="flex items-center justify-center gap-2 text-sm">
           <Download className="h-4 w-4" />
           Download PDF
         </Button>

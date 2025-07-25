@@ -205,34 +205,35 @@ const Sales = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate("/settings")}
-            className="mr-2"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Back
-          </Button>
-          <h1 className="text-3xl font-bold">Sales History</h1>
-        </div>
-        
-        {sales.length > 0 && (
-          <Button 
-            onClick={handleDownloadSales}
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Download CSV
-          </Button>
-        )}
+      <div className="flex items-center mb-6">
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => navigate("/settings")}
+          className="mr-2"
+        >
+          <ChevronLeft className="h-4 w-4 mr-1" /> Back
+        </Button>
+        <h1 className="text-3xl font-bold">Sales History</h1>
       </div>
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle>My Sales</CardTitle>
-          <CardDescription>Your personal sales transaction history</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>My Sales</CardTitle>
+              <CardDescription>Your personal sales transaction history</CardDescription>
+            </div>
+            {sales.length > 0 && (
+              <Button 
+                onClick={handleDownloadSales}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download CSV
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (

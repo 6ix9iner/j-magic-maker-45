@@ -3,6 +3,8 @@ import React, { useRef } from 'react';
 import { Download, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface BusinessInfo {
   business_name: string;
@@ -43,210 +45,126 @@ interface ReceiptProps {
 const Receipt = ({ sale, businessInfo }: ReceiptProps) => {
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = () => {
-    const printContents = receiptRef.current?.innerHTML || '';
-    const originalContents = document.body.innerHTML;
+  const generatePDF = async () => {
+    if (!receiptRef.current) return null;
 
-    // Create a new window with just the receipt
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      alert('Please allow popups for this website to print receipts');
-      return;
+    try {
+      const canvas = await html2canvas(receiptRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: [80, 120], // Receipt-like dimensions
+      });
+
+      const imgWidth = 80;
+      const pageHeight = 120;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+      return pdf;
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      return null;
     }
-
-    // Add print styles
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Receipt</title>
-          <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              max-width: 300px;
-              margin: 0 auto;
-            }
-            .receipt {
-              width: 100%;
-            }
-            .header, .footer {
-              text-align: center;
-              margin-bottom: 10px;
-            }
-            .items {
-              width: 100%;
-              border-top: 1px dashed #ccc;
-              border-bottom: 1px dashed #ccc;
-              padding: 10px 0;
-              margin: 10px 0;
-            }
-            .item {
-              display: flex;
-              justify-content: space-between;
-              margin-bottom: 5px;
-            }
-            .item-name {
-              flex: 2;
-            }
-            .item-price, .item-qty, .item-total {
-              flex: 1;
-              text-align: right;
-            }
-            .total-row {
-              display: flex;
-              justify-content: space-between;
-              font-weight: bold;
-              margin-top: 10px;
-            }
-            .thank-you {
-              text-align: center;
-              margin-top: 20px;
-              font-style: italic;
-            }
-            @media print {
-              body {
-                width: 100%;
-                max-width: none;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          ${printContents}
-        </body>
-      </html>
-    `);
-
-    // Print and close
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.onafterprint = () => {
-      printWindow.close();
-    };
   };
 
-  const handleDownload = () => {
-    if (!receiptRef.current) return;
+  const handlePrint = async () => {
+    const pdf = await generatePDF();
+    if (pdf) {
+      pdf.autoPrint();
+      window.open(pdf.output('bloburl'), '_blank');
+    }
+  };
 
-    // Create a plain text version of the receipt
-    const businessHeader = `
-${businessInfo.business_name}
-${businessInfo.address}
-${businessInfo.city}, ${businessInfo.state} ${businessInfo.zip_code}
-Phone: ${businessInfo.phone}
-Email: ${businessInfo.email}
-${businessInfo.website ? `Website: ${businessInfo.website}` : ''}
-${businessInfo.tax_id ? `Tax ID: ${businessInfo.tax_id}` : ''}
-`;
-
-    const receiptDate = format(new Date(sale.created_at), "MMM d, yyyy h:mm a");
-    const receiptHeader = `
-Receipt: #${sale.id.substring(0, 8)}
-Date: ${receiptDate}
-Payment: ${sale.payment_method || 'Cash'}
-${sale.transaction_id ? `Transaction ID: ${sale.transaction_id}` : ''}
-
-ITEMS
-------------------------------------------
-`;
-
-    const itemLines = sale.items?.map(item => {
-      const name = item.name_at_sale || 'Unknown Item';
-      const price = `$${item.price_at_sale.toFixed(2)}`;
-      const quantity = `${item.quantity}x`;
-      const total = `$${(item.price_at_sale * item.quantity).toFixed(2)}`;
-      return `${name.padEnd(20)} ${quantity.padEnd(3)} ${price.padEnd(8)} ${total}`;
-    }).join('\n') || '';
-
-    const totalSection = `
-------------------------------------------
-TOTAL: $${sale.total_amount.toFixed(2)}
-`;
-
-    const thankYou = `
-${businessInfo.thank_you_message || 'Thank you for your business!'}
-`;
-
-    const receiptText = `${businessHeader}${receiptHeader}${itemLines}${totalSection}${thankYou}`;
-
-    // Create and download the file
-    const element = document.createElement('a');
-    const file = new Blob([receiptText], {type: 'text/plain'});
-    element.href = URL.createObjectURL(file);
-    element.download = `receipt-${sale.id.substring(0, 8)}.txt`;
-    document.body.appendChild(element);
-    element.click();
-    document.body.removeChild(element);
+  const handleDownload = async () => {
+    const pdf = await generatePDF();
+    if (pdf) {
+      pdf.save(`receipt-${sale.id.substring(0, 8)}.pdf`);
+    }
   };
 
   return (
     <div className="flex flex-col items-center">
       <div 
         ref={receiptRef} 
-        className="receipt bg-white p-6 w-full max-w-md mx-auto border rounded-lg shadow-sm"
+        className="receipt bg-white p-6 w-full max-w-sm mx-auto border rounded-lg shadow-sm"
       >
         <div className="header text-center mb-4">
-          <h2 className="text-xl font-bold">{businessInfo.business_name}</h2>
-          <div className="text-gray-600 text-sm">
-            <p>{businessInfo.address}</p>
+          <h2 className="text-lg font-bold break-words">{businessInfo.business_name}</h2>
+          <div className="text-gray-600 text-xs space-y-1">
+            <p className="break-words">{businessInfo.address}</p>
             <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
-            <p>{businessInfo.phone}</p>
-            <p>{businessInfo.email}</p>
-            {businessInfo.website && <p>{businessInfo.website}</p>}
+            <p className="break-all">{businessInfo.phone}</p>
+            <p className="break-all">{businessInfo.email}</p>
+            {businessInfo.website && <p className="break-all">{businessInfo.website}</p>}
             {businessInfo.tax_id && <p>Tax ID: {businessInfo.tax_id}</p>}
           </div>
         </div>
 
-        <div className="receipt-details mb-4">
-          <div className="flex justify-between text-sm">
+        <div className="receipt-details mb-4 space-y-1">
+          <div className="flex justify-between text-xs">
             <span>Receipt #:</span>
-            <span>{sale.id.substring(0, 8)}</span>
+            <span className="font-mono">{sale.id.substring(0, 8)}</span>
           </div>
-          <div className="flex justify-between text-sm">
+          <div className="flex justify-between text-xs">
             <span>Date:</span>
-            <span>{format(new Date(sale.created_at), "MMM d, yyyy h:mm a")}</span>
+            <span className="text-right">{format(new Date(sale.created_at), "MMM d, yyyy h:mm a")}</span>
           </div>
-          <div className="flex justify-between text-sm">
-            <span>Payment Method:</span>
+          <div className="flex justify-between text-xs">
+            <span>Payment:</span>
             <span>{sale.payment_method || 'Cash'}</span>
           </div>
           {sale.transaction_id && (
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-xs">
               <span>Transaction ID:</span>
-              <span>{sale.transaction_id}</span>
+              <span className="font-mono text-right break-all">{sale.transaction_id}</span>
             </div>
           )}
         </div>
 
-        <div className="items border-t border-b border-dashed border-gray-300 py-4 my-4">
-          <div className="grid grid-cols-12 font-bold text-sm mb-2">
-            <div className="col-span-6">Item</div>
-            <div className="col-span-2 text-right">Price</div>
-            <div className="col-span-1 text-center">Qty</div>
-            <div className="col-span-3 text-right">Total</div>
+        <div className="items border-t border-b border-dashed border-gray-300 py-3 my-4">
+          <div className="flex justify-between font-bold text-xs mb-2 border-b pb-1">
+            <div className="w-1/2">Item</div>
+            <div className="w-1/6 text-center">Qty</div>
+            <div className="w-1/6 text-right">Price</div>
+            <div className="w-1/6 text-right">Total</div>
           </div>
 
-          {sale.items?.map((item) => (
-            <div key={item.id} className="grid grid-cols-12 text-sm mb-1">
-              <div className="col-span-6">{item.name_at_sale || 'Unknown Item'}</div>
-              <div className="col-span-2 text-right">${item.price_at_sale.toFixed(2)}</div>
-              <div className="col-span-1 text-center">{item.quantity}</div>
-              <div className="col-span-3 text-right">
-                ${(item.price_at_sale * item.quantity).toFixed(2)}
+          <div className="space-y-2">
+            {sale.items?.map((item) => (
+              <div key={item.id} className="space-y-1">
+                <div className="flex justify-between items-start text-xs">
+                  <div className="w-1/2 pr-2">
+                    <div className="break-words leading-tight">
+                      {item.name_at_sale || 'Unknown Item'}
+                    </div>
+                  </div>
+                  <div className="w-1/6 text-center">{item.quantity}</div>
+                  <div className="w-1/6 text-right">${item.price_at_sale.toFixed(2)}</div>
+                  <div className="w-1/6 text-right font-medium">
+                    ${(item.price_at_sale * item.quantity).toFixed(2)}
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
         <div className="total-section">
-          <div className="flex justify-between font-bold text-lg">
+          <div className="flex justify-between font-bold text-base border-t pt-2">
             <span>Total:</span>
             <span>${sale.total_amount.toFixed(2)}</span>
           </div>
         </div>
 
-        <div className="thank-you text-center mt-6 italic text-gray-600">
+        <div className="thank-you text-center mt-6 text-xs italic text-gray-600 break-words">
           {businessInfo.thank_you_message || 'Thank you for your business!'}
         </div>
       </div>
@@ -258,7 +176,7 @@ ${businessInfo.thank_you_message || 'Thank you for your business!'}
         </Button>
         <Button onClick={handleDownload} variant="outline" className="flex items-center gap-2">
           <Download className="h-4 w-4" />
-          Download
+          Download PDF
         </Button>
       </div>
     </div>

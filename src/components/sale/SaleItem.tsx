@@ -58,7 +58,7 @@ const SaleItem = ({
           </Button>
         </div>
       </TableCell>
-      <TableCell>${(product.price * quantity).toFixed(2)}</TableCell>
+      <TableCell>₦{(product.price * quantity).toFixed(2)}</TableCell>
       <TableCell>
         <Button 
           variant="ghost" 

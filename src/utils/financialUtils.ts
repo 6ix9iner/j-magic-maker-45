@@ -51,9 +51,9 @@ export const calculateProfitMetrics = (
  * Format number as currency
  */
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('en-NG', {
     style: 'currency',
-    currency: 'USD',
+    currency: 'NGN',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   }).format(amount);

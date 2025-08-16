@@ -1,4 +1,8 @@
 
+import { Capacitor } from '@capacitor/core';
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
+import { Share } from '@capacitor/share';
+
 interface SaleExportData {
   id: string;
   total_amount: number;
@@ -15,7 +19,7 @@ interface SaleExportData {
   }[];
 }
 
-export const exportSalesToCSV = (sales: SaleExportData[], businessName: string = 'My Business') => {
+export const exportSalesToCSV = async (sales: SaleExportData[], businessName: string = 'My Business') => {
   // Create CSV headers
   const headers = [
     'Sale ID',
@@ -65,17 +69,45 @@ export const exportSalesToCSV = (sales: SaleExportData[], businessName: string =
     ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
   ].join('\n');
 
-  // Create and trigger download
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  
-  if (link.download !== undefined) {
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `sales-data-${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const fileName = `sales-data-${new Date().toISOString().split('T')[0]}.csv`;
+
+  // Check if running on mobile
+  if (Capacitor.isNativePlatform()) {
+    try {
+      // Write file to device storage (Documents for user access)
+
+      const result = await Filesystem.writeFile({
+        path: fileName,
+        data: csvContent,
+        directory: Directory.Documents,
+        encoding: Encoding.UTF8
+      });
+
+      // Always use Share plugin with files array for Android/iOS
+      await Share.share({
+        title: 'Sales Data Export',
+        text: `Sales data from ${businessName}`,
+        files: [result.uri],
+        dialogTitle: 'Export Sales Data'
+      });
+
+    } catch (error) {
+      console.error('Error exporting sales data on mobile:', error);
+      throw new Error('Failed to export sales data on mobile device');
+    }
+  } else {
+    // Web fallback - original implementation
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', fileName);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
   }
 };

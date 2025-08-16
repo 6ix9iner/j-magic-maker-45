@@ -122,7 +122,7 @@ const ProductForm = ({
             type="number"
             step="0.01"
             min="0"
-            value={product.price || 0}
+            value={typeof product.price === 'number' && product.price !== 0 ? product.price : ''}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
             placeholder="0.00"
@@ -138,7 +138,7 @@ const ProductForm = ({
             type="number"
             step="0.01"
             min="0"
-            value={product.purchase_price || 0}
+            value={typeof product.purchase_price === 'number' && product.purchase_price !== 0 ? product.purchase_price : ''}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
             placeholder="0.00"
@@ -153,7 +153,7 @@ const ProductForm = ({
             name="stock_count"
             type="number"
             min="0"
-            value={product.stock_count || 0}
+            value={typeof product.stock_count === 'number' && product.stock_count !== 0 ? product.stock_count : ''}
             onChange={onInputChange}
             className="col-span-3 rounded-xl border-slate-300 bg-white dark:bg-slate-800 dark:border-slate-600 text-slate-900 dark:text-slate-100"
             placeholder="0"

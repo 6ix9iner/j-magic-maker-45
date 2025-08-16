@@ -20,7 +20,7 @@ const SaleSummary = ({
     <CardFooter className="flex flex-col space-y-4">
       <div className="w-full flex justify-between text-lg font-bold">
         <span>Total:</span>
-        <span>${total.toFixed(2)}</span>
+        <span>₦{total.toFixed(2)}</span>
       </div>
       <div className="w-full flex space-x-2">
         <Button 

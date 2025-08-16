@@ -1,9 +1,18 @@
-
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -39,6 +48,8 @@ const Inventory = () => {
     stock_count: 0,
     category: '',
   });
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -178,6 +189,33 @@ const Inventory = () => {
     }
   };
 
+  const handleDeleteProduct = (product: Product) => {
+    setProductToDelete(product);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteProduct = async () => {
+    if (!productToDelete || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', productToDelete.id)
+        .eq('user_id', user.id); // Ensure we're only deleting the user's own products
+
+      if (error) throw error;
+
+      toast.success('Product deleted successfully');
+      setIsDeleteDialogOpen(false);
+      setProductToDelete(null);
+      fetchProducts();
+    } catch (error: any) {
+      console.error('Error deleting product:', error);
+      toast.error(error.message || 'Failed to delete product');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">
       <div className="max-w-7xl mx-auto">
@@ -206,6 +244,7 @@ const Inventory = () => {
               isLoading={isLoading}
               searchTerm={searchTerm}
               onEditProduct={openEditProductDialog}
+              onDeleteProduct={handleDeleteProduct}
             />
           </CardContent>
         </Card>
@@ -222,6 +261,28 @@ const Inventory = () => {
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the product "{productToDelete?.name}" from your inventory.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setIsDeleteDialogOpen(false)}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteProduct}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

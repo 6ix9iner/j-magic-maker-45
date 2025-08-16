@@ -2,6 +2,8 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Trash2 } from "lucide-react";
 
 interface Product {
   id: string;
@@ -19,9 +21,15 @@ interface Product {
 interface ProductCardProps {
   product: Product;
   onClick: () => void;
+  onDelete: (product: Product) => void;
 }
 
-const ProductCard = ({ product, onClick }: ProductCardProps) => {
+const ProductCard = ({ product, onClick, onDelete }: ProductCardProps) => {
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click event
+    onDelete(product);
+  };
+
   return (
     <Card 
       className="cursor-pointer hover:shadow-md transition-shadow duration-200 border border-gray-200"
@@ -32,12 +40,22 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
           <h3 className="font-semibold text-lg text-gray-900 truncate flex-1 mr-2">
             {product.name}
           </h3>
-          <Badge 
-            variant={product.stock_count < 5 ? "destructive" : "secondary"}
-            className="text-xs"
-          >
-            Stock: {product.stock_count}
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge 
+              variant={product.stock_count < 5 ? "destructive" : "secondary"}
+              className="text-xs"
+            >
+              Stock: {product.stock_count}
+            </Badge>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDelete}
+              className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         <div className="text-sm text-gray-600 mb-3">
@@ -51,11 +69,11 @@ const ProductCard = ({ product, onClick }: ProductCardProps) => {
           <div className="flex gap-4">
             <span className="text-sm">
               <span className="font-medium text-gray-700">Price:</span> 
-              <span className="text-green-600 font-semibold"> ${parseFloat(product.price.toString()).toFixed(2)}</span>
+              <span className="text-green-600 font-semibold"> ₦{parseFloat(product.price.toString()).toFixed(2)}</span>
             </span>
             <span className="text-sm">
               <span className="font-medium text-gray-700">Cost:</span> 
-              <span className="text-gray-600"> ${parseFloat(product.purchase_price.toString()).toFixed(2)}</span>
+              <span className="text-gray-600"> ₦{parseFloat(product.purchase_price.toString()).toFixed(2)}</span>
             </span>
           </div>
         </div>

@@ -20,6 +20,7 @@
     "@capacitor/ios": "^7.4.0",
     "@capacitor/local-notifications": "^7.0.1",
     "@capacitor/network": "^7.0.1",
+    "@capacitor/share": "^7.0.1",
     "@capacitor/splash-screen": "^7.0.1",
     "@capacitor/status-bar": "^7.0.1",
     "@capgo/capacitor-navigation-bar": "^7.1.22",

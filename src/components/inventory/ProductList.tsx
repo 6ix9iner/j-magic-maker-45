@@ -20,6 +20,7 @@ interface ProductListProps {
   isLoading: boolean;
   searchTerm: string;
   onEditProduct: (product: Product) => void;
+  onDeleteProduct: (product: Product) => void;
 }
 
 const ProductList = ({
@@ -27,6 +28,7 @@ const ProductList = ({
   isLoading,
   searchTerm,
   onEditProduct,
+  onDeleteProduct,
 }: ProductListProps) => {
   const filteredProducts = products.filter(product => {
     const searchLower = searchTerm.toLowerCase();
@@ -63,6 +65,7 @@ const ProductList = ({
           key={product.id}
           product={product}
           onClick={() => onEditProduct(product)}
+          onDelete={onDeleteProduct}
         />
       ))}
     </div>

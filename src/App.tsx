@@ -102,6 +102,7 @@ const AppRoutes = () => {
               <Settings />
             </ProtectedRoute>
           } />
+          {/* AI Accountant removed */}
           <Route path="/sales" element={
             <ProtectedRoute>
               <Sales />

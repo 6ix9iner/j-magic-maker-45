@@ -24,59 +24,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
-        console.log('🔐 Auth state changed:', event, !!currentSession);
+        console.log('🔐 Auth event:', event);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
-        if (event === 'SIGNED_IN' && currentSession?.user) {
-          toast.success('Successfully signed in');
-
-          // Only send push notifications on Android native platform
-          if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
-            // Check if user already has a push token before sending notification
-            setTimeout(async () => {
-              try {
-                console.log('📱 Checking for existing Android push token...');
-                
-                const { data: tokenData, error: tokenError } = await (supabase as any)
-                  .from('user_push_tokens')
-                  .select('push_token')
-                  .eq('user_id', currentSession.user.id)
-                  .limit(1)
-                  .maybeSingle();
-
-                if (tokenError) {
-                  console.error('❌ Error checking for push token:', tokenError);
-                  return;
-                }
-
-                if (tokenData?.push_token) {
-                  console.log('📱 Found existing push token, sending Android login notification...');
-                  await sendPushNotification({
-                    user_id: currentSession.user.id,
-                    title: 'Welcome Back! 👋',
-                    body: 'You have successfully signed in to your Android app',
-                    notification_type: 'android_login',
-                    data: {
-                      timestamp: new Date().toISOString(),
-                      force_display: 'true',
-                      platform: 'android'
-                    }
-                  });
-                } else {
-                  console.log('📱 No push token found yet - user needs to register for notifications first');
-                }
-              } catch (error) {
-                console.error('❌ Failed to send Android login notification:', error);
-              }
-            }, 8000);
-          } else {
-            console.log('🌐 Not Android platform - skipping push notification');
-          }
+        // Send login notification only on native platform after successful login
+        if (event === 'SIGNED_IN' && currentSession?.user && Capacitor.isNativePlatform()) {
+          // Wait for OneSignal to be ready and registered
+          setTimeout(async () => {
+            try {
+              console.log('📤 Sending login notification');
+              await sendPushNotification({
+                user_id: currentSession.user.id,
+                title: '👋 Welcome Back!',
+                body: 'You have successfully logged in to Insight Inventory',
+                notification_type: 'login'
+              });
+            } catch (error) {
+              console.error('Failed to send login notification:', error);
+            }
+          }, 15000); // Wait 15 seconds for OneSignal to be ready
         }
 
         if (event === 'SIGNED_OUT') {
-          console.log('🚪 User signed out');
           toast.info('Signed out');
         }
       }
@@ -95,6 +65,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
+      toast.success('Successfully signed in');
     } catch (error: any) {
       toast.error(error.message || 'Error signing in');
       throw error;
@@ -123,75 +94,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      console.log('🚪 Starting Android sign out process...');
-
-      const { data } = await supabase.auth.getSession();
-      const currentUser = data.session?.user;
-
-      if (!currentUser) {
-        console.log('⚠️ No active session found');
-        setUser(null);
-        setSession(null);
-        return;
-      }
-
-      // Only send Android push notifications on native Android platform if token exists
-      if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
+      // Send logout notification on native platform before signing out
+      if (user && Capacitor.isNativePlatform()) {
         try {
-          console.log('📱 Checking for push token before sending logout notification...');
-          
-          const { data: tokenData, error: tokenError } = await (supabase as any)
-            .from('user_push_tokens')
-            .select('push_token')
-            .eq('user_id', currentUser.id)
-            .limit(1)
-            .maybeSingle();
-
-          if (tokenError) {
-            console.error('❌ Error checking for push token:', tokenError);
-          } else if (tokenData?.push_token) {
-            console.log('📱 Found push token, sending Android logout notification...');
-            await sendPushNotification({
-              user_id: currentUser.id,
-              title: 'Goodbye! 👋',
-              body: 'You have signed out of your Android app',
-              notification_type: 'android_logout',
-              data: {
-                timestamp: new Date().toISOString(),
-                force_display: 'true',
-                platform: 'android'
-              }
-            });
-
-            console.log('✅ Android logout notification sent');
-            await new Promise(resolve => setTimeout(resolve, 2000));
-          } else {
-            console.log('📱 No push token found - skipping logout notification');
-          }
-        } catch (fcmError) {
-          console.error('❌ Failed to send Android logout notification:', fcmError);
+          console.log('📤 Sending logout notification');
+          await sendPushNotification({
+            user_id: user.id,
+            title: '👋 Goodbye!',
+            body: 'You have signed out of Insight Inventory',
+            notification_type: 'logout'
+          });
+          // Small delay to ensure notification is sent
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        } catch (error) {
+          console.error('Failed to send logout notification:', error);
         }
       }
 
-      // Clear state and sign out from Supabase
-      setUser(null);
-      setSession(null);
-
       const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('⚠️ Supabase sign out error:', error);
-      } else {
-        console.log('✅ User signed out from Supabase');
-      }
-
-    } catch (error: any) {
-      console.error('❌ Unexpected sign out error:', error);
+      if (error) throw error;
+      
       setUser(null);
       setSession(null);
-
-      if (error.message !== 'Auth session missing!') {
-        toast.error('Unexpected sign out error');
-      }
+    } catch (error: any) {
+      console.error('Sign out error:', error);
+      toast.error('Error signing out');
     }
   };
 
@@ -209,9 +136,4 @@ export const useAuth = () => {
   }
   return context;
 };
-
-
-
-
-
 

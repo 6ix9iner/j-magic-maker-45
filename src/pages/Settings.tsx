@@ -1,16 +1,51 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingBag, FileText, LogOut, User, Settings as SettingsIcon } from "lucide-react";
+import { ShoppingBag, FileText, LogOut, User, Settings as SettingsIcon, Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
+import InventoryPasswordSettings from "@/components/settings/InventoryPasswordSettings";
 
 const Settings = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const [hasInventoryPassword, setHasInventoryPassword] = useState<boolean>(false);
+  const [isLoadingPasswordStatus, setIsLoadingPasswordStatus] = useState<boolean>(true);
+
+  useEffect(() => {
+    checkInventoryPasswordStatus();
+  }, [user]);
+
+  const checkInventoryPasswordStatus = async () => {
+    if (!user) {
+      setIsLoadingPasswordStatus(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('business_info')
+        .select('inventory_password_hash')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      
+      setHasInventoryPassword(!!data?.inventory_password_hash);
+    } catch (error) {
+      console.error('Error checking inventory password status:', error);
+    } finally {
+      setIsLoadingPasswordStatus(false);
+    }
+  };
+
+  const handlePasswordChange = () => {
+    checkInventoryPasswordStatus();
+  };
 
   const handleSignOut = async () => {
     try {
@@ -51,6 +86,14 @@ const Settings = () => {
       color: "text-green-600",
       bgColor: "bg-green-50",
     },
+    {
+      title: "AI Business Accountant",
+      description: "Chat with AI about your business performance and get growth advice",
+      icon: Bot,
+      action: () => navigate("/ai-accountant"),
+      color: "text-purple-600",
+      bgColor: "bg-purple-50",
+    },
   ];
 
   const accountOptions = [
@@ -77,28 +120,28 @@ const Settings = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Header Section */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-          <p className="text-gray-600">Manage your account and application preferences</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+          <p className="text-sm sm:text-base text-gray-600">Manage your account and application preferences</p>
         </div>
 
         {/* Management Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Management</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Management</h2>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {managementOptions.map((option) => (
               <Card key={option.title} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={option.action}>
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 p-4 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${option.bgColor}`}>
-                      <option.icon className={`h-5 w-5 ${option.color}`} />
+                    <div className={`p-2 rounded-lg ${option.bgColor} shrink-0`}>
+                      <option.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${option.color}`} />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">{option.title}</CardTitle>
-                      <CardDescription className="text-sm">{option.description}</CardDescription>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg group-hover:text-blue-600 transition-colors truncate">{option.title}</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">{option.description}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -111,24 +154,46 @@ const Settings = () => {
 
         {/* Account Section */}
         <div className="mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Account</h2>
-          <div className="grid gap-4 md:grid-cols-2">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Account</h2>
+          <div className="grid gap-4 sm:grid-cols-2">
             {accountOptions.map((option) => (
               <Card key={option.title} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={option.action}>
-                <CardHeader className="pb-3">
+                <CardHeader className="pb-3 p-4 sm:p-6">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${option.bgColor}`}>
-                      <option.icon className={`h-5 w-5 ${option.color}`} />
+                    <div className={`p-2 rounded-lg ${option.bgColor} shrink-0`}>
+                      <option.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${option.color}`} />
                     </div>
-                    <div>
-                      <CardTitle className="text-lg group-hover:text-blue-600 transition-colors">{option.title}</CardTitle>
-                      <CardDescription className="text-sm">{option.description}</CardDescription>
+                    <div className="min-w-0 flex-1">
+                      <CardTitle className="text-base sm:text-lg group-hover:text-blue-600 transition-colors truncate">{option.title}</CardTitle>
+                      <CardDescription className="text-xs sm:text-sm">{option.description}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
               </Card>
             ))}
           </div>
+        </div>
+
+        <Separator className="my-8" />
+
+        {/* Inventory Security Section */}
+        <div className="mb-8">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Security</h2>
+          {isLoadingPasswordStatus ? (
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-2">
+                  <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin"></div>
+                  <span className="text-gray-600">Loading security settings...</span>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <InventoryPasswordSettings
+              hasPassword={hasInventoryPassword}
+              onPasswordChange={handlePasswordChange}
+            />
+          )}
         </div>
 
         <Separator className="my-8" />

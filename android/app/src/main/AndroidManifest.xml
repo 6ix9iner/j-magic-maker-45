@@ -25,7 +25,6 @@
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
             android:exported="true">
-
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -37,8 +36,12 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
             </intent-filter>
-
         </activity>
+
+        <!-- ML Kit scan activity (CameraX + ML Kit barcode) -->
+        <activity android:name=".plugins.MlKitScanActivity"
+            android:exported="false"
+            android:theme="@style/TranslucentScannerTheme" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -69,13 +72,7 @@
             android:name="onesignal_default_channel_id"
             android:value="pos_notifications_channel" />
 
-        <!-- Auto-start receivers for push notifications -->
-        <receiver android:name="com.onesignal.BootUpReceiver" android:exported="true">
-            <intent-filter android:priority="600">
-                <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-            </intent-filter>
-        </receiver>
+
 
     </application>
 

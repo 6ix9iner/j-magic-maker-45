@@ -1,6 +1,6 @@
 
 import { BarcodeReader } from 'dynamsoft-javascript-barcode';
-import { DYNAMSOFT_LICENSE_KEY } from './BarcodeConfigUtils';
+import { getDynamsoftLicenseKey } from './BarcodeConfigUtils';
 
 // Flag to track if the reader has been initialized
 let isInitialized = false;
@@ -17,8 +17,9 @@ export const initializeBarcodeReader = async (): Promise<void> => {
   
   try {
     console.log("Initializing Dynamsoft Barcode Reader...");
-    // Set license key
-    BarcodeReader.license = DYNAMSOFT_LICENSE_KEY;
+    // Set license key from Supabase
+    const licenseKey = await getDynamsoftLicenseKey();
+    BarcodeReader.license = licenseKey;
     
     // Set engine resource path
     BarcodeReader.engineResourcePath = 'https://cdn.jsdelivr.net/npm/dynamsoft-javascript-barcode@9.6.42/dist/';

@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -22,6 +22,7 @@ export type Database = {
           created_at: string | null
           email: string
           id: string
+          inventory_password_hash: string | null
           phone: string
           state: string
           tax_id: string | null
@@ -38,6 +39,7 @@ export type Database = {
           created_at?: string | null
           email: string
           id?: string
+          inventory_password_hash?: string | null
           phone: string
           state: string
           tax_id?: string | null
@@ -54,6 +56,7 @@ export type Database = {
           created_at?: string | null
           email?: string
           id?: string
+          inventory_password_hash?: string | null
           phone?: string
           state?: string
           tax_id?: string | null
@@ -490,14 +493,14 @@ export type Database = {
         Returns: string
       }
       get_top_brands: {
-        Args: { user_id_param: string; limit_param: number }
+        Args: { limit_param: number; user_id_param: string }
         Returns: {
           brand: string
           count: number
         }[]
       }
       get_top_categories: {
-        Args: { user_id_param: string; limit_param: number }
+        Args: { limit_param: number; user_id_param: string }
         Returns: {
           category: string
           count: number
@@ -509,12 +512,12 @@ export type Database = {
       }
       http_delete: {
         Args:
+          | { content: string; content_type: string; uri: string }
           | { uri: string }
-          | { uri: string; content: string; content_type: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_get: {
-        Args: { uri: string } | { uri: string; data: Json }
+        Args: { data: Json; uri: string } | { uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_head: {
@@ -533,17 +536,17 @@ export type Database = {
         }[]
       }
       http_patch: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_post: {
         Args:
-          | { uri: string; content: string; content_type: string }
-          | { uri: string; data: Json }
+          | { content: string; content_type: string; uri: string }
+          | { data: Json; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_put: {
-        Args: { uri: string; content: string; content_type: string }
+        Args: { content: string; content_type: string; uri: string }
         Returns: Database["public"]["CompositeTypes"]["http_response"]
       }
       http_reset_curlopt: {
@@ -560,11 +563,11 @@ export type Database = {
       }
       send_push_notification: {
         Args: {
-          p_user_id: string
-          p_title: string
           p_body: string
-          p_notification_type?: string
           p_data?: Json
+          p_notification_type?: string
+          p_title: string
+          p_user_id: string
         }
         Returns: undefined
       }

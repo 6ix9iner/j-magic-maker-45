@@ -41,3 +41,11 @@ android/capacitor-cordova-android-plugins/build/
 # Ignore repo-clean if not needed
 dist/
 repo-clean/
+
+# Temporary and Installer Files
+jdk-17.0.14_windows-x64_bin.exe
+_
+android/gradle-output.txt
+vite.config.ts.timestamp-*
+supabase/.temp/
+.supabase/

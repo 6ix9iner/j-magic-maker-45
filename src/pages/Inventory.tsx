@@ -15,10 +15,12 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 import SearchBox from '@/components/inventory/SearchBox';
 import ProductList from '@/components/inventory/ProductList';
 import ProductForm from '@/components/inventory/ProductForm';
+import InventoryPasswordPrompt from '@/components/inventory/InventoryPasswordPrompt';
 
 // Updated interface to include user_id
 interface Product {
@@ -50,27 +52,100 @@ const Inventory = () => {
   });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState<boolean>(false);
+  const [isInventoryUnlocked, setIsInventoryUnlocked] = useState<boolean>(false);
+  const [inventoryPasswordHash, setInventoryPasswordHash] = useState<string | null>(null);
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) { // Only fetch if user is authenticated
-      fetchProducts();
+    // Always reset unlock status when component mounts to force password prompt each time
+    setIsInventoryUnlocked(false);
+    
+    if (user) {
+      checkInventoryPassword();
     }
   }, [user]);
 
+  // Reset inventory unlock status when component unmounts to ensure fresh state
+  useEffect(() => {
+    return () => {
+      setIsInventoryUnlocked(false);
+      setIsPasswordPromptOpen(false);
+    };
+  }, []);
+
+  // Simple hash function for password verification
+  const hashPassword = (password: string): string => {
+    let hash = 0;
+    for (let i = 0; i < password.length; i++) {
+      const char = password.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return hash.toString();
+  };
+
+  const checkInventoryPassword = async () => {
+    if (!user) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('business_info')
+        .select('inventory_password_hash')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      const hasPassword = data?.inventory_password_hash;
+      setInventoryPasswordHash(hasPassword);
+
+      if (hasPassword) {
+        setIsPasswordPromptOpen(true);
+        setIsLoading(false);
+      } else {
+        setIsInventoryUnlocked(true);
+        await fetchProducts();
+      }
+    } catch (error: any) {
+      console.error('Error checking password:', error);
+      toast.error('Failed to verify access');
+      navigate('/dashboard');
+    }
+  };
+
+  const verifyPassword = async (password: string): Promise<boolean> => {
+    if (!inventoryPasswordHash) return false;
+    
+    const hashedInput = hashPassword(password);
+    return hashedInput === inventoryPasswordHash;
+  };
+
+  const handlePasswordSuccess = () => {
+    setIsInventoryUnlocked(true);
+    setIsPasswordPromptOpen(false);
+    fetchProducts();
+  };
+
+  const handlePasswordCancel = () => {
+    setIsPasswordPromptOpen(false);
+    navigate('/dashboard'); // Redirect to dashboard if they cancel
+  };
+
   const fetchProducts = async () => {
-    if (!user) return; // Exit if no user
+    if (!user) return;
 
     setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('products')
         .select('*')
-        .eq('user_id', user.id) // Only get products for current user
+        .eq('user_id', user.id)
         .order('name');
 
       if (error) throw error;
-      // Type assertion to ensure compatibility
       setProducts(data as Product[] || []);
     } catch (error: any) {
       console.error('Error fetching products:', error);
@@ -216,6 +291,28 @@ const Inventory = () => {
     }
   };
 
+  // Don't render inventory content until password is verified
+  if (!isInventoryUnlocked) {
+    return (
+      <>
+        <InventoryPasswordPrompt
+          isOpen={isPasswordPromptOpen}
+          onSuccess={handlePasswordSuccess}
+          onCancel={handlePasswordCancel}
+          onVerifyPassword={verifyPassword}
+        />
+        {isLoading && (
+          <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-600">Checking access permissions...</p>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">
       <div className="max-w-7xl mx-auto">
@@ -283,8 +380,16 @@ const Inventory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      <InventoryPasswordPrompt
+        isOpen={isPasswordPromptOpen}
+        onSuccess={handlePasswordSuccess}
+        onCancel={handlePasswordCancel}
+        onVerifyPassword={verifyPassword}
+      />
     </div>
   );
 };
 
 export default Inventory;
+

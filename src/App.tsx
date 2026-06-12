@@ -17,6 +17,7 @@ import LoadingScreen from "./components/LoadingScreen";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import PushNotificationManager from "./components/PushNotificationManager";
 import { useState } from "react";
+import AIAccountant from "@/pages/AIAccountant";
 
 const queryClient = new QueryClient();
 
@@ -113,6 +114,7 @@ const AppRoutes = () => {
               <Receipts />
             </ProtectedRoute>
           } />
+          <Route path="/ai-accountant" element={<AIAccountant />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

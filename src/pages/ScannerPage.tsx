@@ -14,6 +14,8 @@ import { format } from 'date-fns';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
 import { initializeBarcodeReader, isBarcodeReaderInitialized } from '@/components/barcode/BarcodeInitializer';
+import { Capacitor } from '@capacitor/core';
+import MlKitScanner from '@/components/barcode/MlKitScanner';
 
 // Type definition for a scanned item
 export interface ScannedItem {
@@ -393,19 +395,28 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
   const containerRef = React.useRef<HTMLDivElement>(null);
   const [scanner, setScanner] = React.useState<BarcodeScanner | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [mlKitAvailable, setMlKitAvailable] = React.useState(false);
+  const [selectedScanner, setSelectedScanner] = React.useState<'dynamsoft' | 'mlkit'>('dynamsoft');
   const videoContainerCreated = React.useRef<boolean>(false);
   const scannerInstanceRef = React.useRef<BarcodeScanner | null>(null);
   const isDestroyingRef = React.useRef<boolean>(false);
   
   React.useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setMlKitAvailable(true);
+    }
+  }, []);
+
+  React.useEffect(() => {
     let isMounted = true;
+    let mlkitListener: any = null;
     
     // Reset the destroying flag when mounting
     isDestroyingRef.current = false;
     
     const setupScanner = async () => {
       try {
-        console.log("Setting up SimpleBarcodeScanner");
+        console.log("Setting up SimpleBarcodeScanner (Dynamsoft)");
         
         // Create video container element required by Dynamsoft scanner
         if (containerRef.current && !videoContainerCreated.current) {
@@ -438,7 +449,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           
           // Set up callback for barcode detection
           scannerInstance.onUnduplicatedRead = (txt, result) => {
-            console.log("Simple scanner barcode detected:", txt, result);
+            console.log("Simple scanner barcode detected (Dynamsoft):", txt, result);
             onDetected(txt, result.barcodeFormatString);
           };
           
@@ -457,10 +468,12 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           }
         } else {
           console.log("Component unmounted during setup, cleaning up scanner");
-          try {
-            await scannerInstance.destroyContext();
-          } catch (e) {
-            console.error("Error destroying scanner during setup cleanup:", e);
+          if (scannerInstance) {
+            try {
+              await scannerInstance.destroyContext();
+            } catch (e) {
+              console.error("Error destroying scanner during setup cleanup:", e);
+            }
           }
         }
       } catch (err) {
@@ -470,12 +483,37 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
         }
       }
     };
+
+    const startMlKit = async () => {
+      try {
+        await MlKitScanner.startScan();
+
+        // Capacitor style listener
+        try {
+          mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
+            const code = (d && (d.code || d.value)) || null;
+            if (code && isMounted) {
+              onDetected(code, "ML Kit");
+            }
+          });
+        } catch (e) {
+          console.warn('Failed to attach mlkit listener', e);
+        }
+      } catch (e) {
+        console.error('Error starting MlKit plugin', e);
+        setError('Failed to start ML Kit scanner');
+      }
+    };
     
-    setupScanner();
+    if (selectedScanner === 'mlkit') {
+      startMlKit();
+    } else {
+      setupScanner();
+    }
     
     // Cleanup function with proper Promise handling
     return () => {
-      console.log("SimpleBarcodeScanner unmounting");
+      console.log("SimpleBarcodeScanner cleaning up, selected:", selectedScanner);
       isMounted = false;
       isDestroyingRef.current = true;
       videoContainerCreated.current = false;
@@ -512,19 +550,51 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             console.error("Error in simple scanner cleanup:", e);
           }
         })();
+        scannerInstanceRef.current = null;
       }
+
+      try {
+        if (mlkitListener && mlkitListener.remove) {
+          mlkitListener.remove();
+        }
+      } catch (e) {}
+      
+      try {
+        MlKitScanner.stopScan();
+      } catch (e) {}
     };
-  }, [onDetected]);
+  }, [selectedScanner, onDetected]);
   
   return (
-    <div className="flex flex-col items-center p-4 bg-white">
+    <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 w-full">
+      {mlKitAvailable && (
+        <div className="flex items-center gap-2 mb-4 w-full justify-center">
+          <Button 
+            variant={selectedScanner === 'dynamsoft' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedScanner('dynamsoft')}
+            className="rounded-full px-4"
+          >
+            Dynamsoft
+          </Button>
+          <Button 
+            variant={selectedScanner === 'mlkit' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setSelectedScanner('mlkit')}
+            className="rounded-full px-4"
+          >
+            ML Kit (Native)
+          </Button>
+        </div>
+      )}
+
       {error ? (
         <div className="text-center py-8">
           <div className="bg-amber-100 p-3 rounded-full mx-auto mb-4 w-16 h-16 flex items-center justify-center">
             <Camera className="w-8 h-8 text-amber-500" />
           </div>
           <p className="text-amber-500 font-medium">{error}</p>
-          <p className="text-sm text-slate-600 mt-2">
+          <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
             Please allow camera access to scan barcodes
           </p>
           <div className="flex gap-3 justify-center mt-6">
@@ -547,52 +617,69 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
           >
-            <div className="absolute inset-0 pointer-events-none z-10"></div>
-            <motion.div 
-              className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-gradient-to-r from-blue-400 to-purple-500 z-20"
-              animate={{ 
-                y: [-10, 10, -10], 
-                opacity: [0.8, 1, 0.8] 
-              }}
-              transition={{ 
-                duration: 2, 
-                repeat: Infinity,
-                ease: "easeInOut" 
-              }}
-            ></motion.div>
-            
-            <motion.div 
-              className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.3 }}
-            >
-              <motion.div 
-                className="w-64 h-64 border-2 border-blue-400 rounded-lg"
-                animate={{
-                  boxShadow: ["0 0 0 0 rgba(59, 130, 246, 0)", "0 0 0 10px rgba(59, 130, 246, 0.3)"],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  repeatType: "reverse"
-                }}
-              >
-                <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400"></div>
-                <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-400"></div>
-                <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-400"></div>
-                <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-400"></div>
-              </motion.div>
-            </motion.div>
+            {selectedScanner === 'mlkit' ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white p-6">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-600 animate-pulse mb-4">
+                  <Camera className="w-8 h-8" />
+                </div>
+                <p className="font-semibold text-lg">Native Scanner Active</p>
+                <p className="text-sm text-slate-400 text-center mt-2 max-w-xs">
+                  A native camera window has opened to scan your barcode.
+                </p>
+              </div>
+            ) : (
+              <>
+                <div className="absolute inset-0 pointer-events-none z-10"></div>
+                <motion.div 
+                  className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-gradient-to-r from-blue-400 to-purple-500 z-20"
+                  animate={{ 
+                    y: [-10, 10, -10], 
+                    opacity: [0.8, 1, 0.8] 
+                  }}
+                  transition={{ 
+                    duration: 2, 
+                    repeat: Infinity,
+                    ease: "easeInOut" 
+                  }}
+                ></motion.div>
+                
+                <motion.div 
+                  className="absolute inset-0 flex items-center justify-center pointer-events-none z-30"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2, duration: 0.3 }}
+                >
+                  <motion.div 
+                    className="w-64 h-64 border-2 border-blue-400 rounded-lg"
+                    animate={{
+                      boxShadow: ["0 0 0 0 rgba(59, 130, 246, 0)", "0 0 0 10px rgba(59, 130, 246, 0.3)"],
+                    }}
+                    transition={{
+                      duration: 2,
+                      repeat: Infinity,
+                      repeatType: "reverse"
+                    }}
+                  >
+                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400"></div>
+                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-400"></div>
+                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-400"></div>
+                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-400"></div>
+                  </motion.div>
+                </motion.div>
+              </>
+            )}
           </motion.div>
           
           <motion.p 
-            className="text-sm text-center my-4 text-slate-600"
+            className="text-sm text-center my-4 text-slate-600 dark:text-slate-400"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.3 }}
           >
-            Position barcode within the frame for automatic scanning
+            {selectedScanner === 'mlkit' 
+              ? "Close the native camera when done scanning" 
+              : "Position barcode within the frame for automatic scanning"
+            }
           </motion.p>
           
           <motion.div

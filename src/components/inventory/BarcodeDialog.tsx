@@ -3,7 +3,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
-import { DYNAMSOFT_LICENSE_KEY } from '@/components/barcode/BarcodeConfigUtils';
+import { Capacitor } from '@capacitor/core';
+import MlKitScanner from '@/components/barcode/MlKitScanner';
 
 interface BarcodeDialogProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   const [shouldRenderScanner, setShouldRenderScanner] = useState(false);
   const [scanner, setScanner] = useState<DynamsoftScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mlKitAvailable, setMlKitAvailable] = useState(false);
+  const [selectedScanner, setSelectedScanner] = useState<'dynamsoft' | 'mlkit'>('dynamsoft');
   const scannerContainerRef = useRef<HTMLDivElement>(null);
   const dialogOpenRef = useRef(false);
   const videoContainerCreated = useRef<boolean>(false);
@@ -38,6 +41,12 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     
     // When dialog opens, prepare for scanner mounting
     if (isOpen) {
+      // check for native ML Kit plugin availability
+      if (Capacitor.isNativePlatform()) {
+        setMlKitAvailable(true);
+      } else {
+        setMlKitAvailable(false);
+      }
       setShouldRenderScanner(true);
     } else {
       cleanupScanner();
@@ -48,15 +57,16 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   // Set up the scanner when the container is ready and dialog is open
   useEffect(() => {
     if (!shouldRenderScanner || !dialogOpenRef.current) return;
-    
+
     let isMounted = true;
-    
-    const setupScanner = async () => {
+    let mlkitListener: any = null;
+
+    const setupDynamsoft = async () => {
       if (isDestroyingRef.current || !dialogOpenRef.current) return;
-      
+
       try {
         console.log("Setting up scanner in dialog");
-        
+
         // Create video container element required by Dynamsoft scanner
         if (scannerContainerRef.current && !videoContainerCreated.current) {
           const videoContainer = document.createElement('div');
@@ -71,20 +81,20 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           videoContainerCreated.current = true;
           console.log("Dialog video container created");
         }
-        
+
         // Create scanner instance without setting license again
         const scannerInstance = await DynamsoftScanner.createInstance();
         console.log("Dialog scanner instance created");
-        
+
         // Update settings for better performance
         const settings = await scannerInstance.getRuntimeSettings();
         settings.barcodeFormatIds = 0x3FF | 0x1000000 | 0x2000000; // Common 1D, QR, DataMatrix
         settings.deblurLevel = 2;
         await scannerInstance.updateRuntimeSettings(settings);
-        
+
         if (isMounted && dialogOpenRef.current && !isDestroyingRef.current) {
           setScanner(scannerInstance);
-          
+
           // Set up callback for barcode detection
           scannerInstance.onUnduplicatedRead = (txt, result) => {
             console.log("Dialog barcode detected:", txt);
@@ -92,7 +102,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
             // Close the dialog after detection
             onClose();
           };
-          
+
           // Start scanning if container is ready
           if (scannerContainerRef.current) {
             try {
@@ -121,14 +131,58 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
         }
       }
     };
-    
-    setupScanner();
-    
+
+    const startMlKit = async () => {
+      try {
+        await MlKitScanner.startScan();
+
+        // DOM event listener
+        const domListener = (ev: any) => {
+          const code = (ev && ev.detail && (ev.detail.code || ev.detail.value)) || (ev && ev.detail) || null;
+          if (code) {
+            onDetected(code);
+            onClose();
+          }
+        };
+        document.addEventListener('mlkitBarcodeDetected', domListener as any);
+
+        // Capacitor style listener if available
+        try {
+          mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
+            const R = (d && (d.code || d.value)) || null;
+            if (R) {
+              onDetected(R);
+              onClose();
+            }
+          });
+        } catch (e) {
+          console.warn('Failed to attach mlkit listener', e);
+        }
+
+      } catch (e) {
+        console.error('Error starting MlKit plugin', e);
+        setError('Failed to start ML Kit scanner');
+      }
+    };
+
+    // Choose scanner setup path
+    if (selectedScanner === 'mlkit') {
+      startMlKit();
+    } else {
+      setupDynamsoft();
+    }
+
     return () => {
       isMounted = false;
       cleanupScanner();
+      try {
+        if (mlkitListener && mlkitListener.remove) mlkitListener.remove();
+      } catch (e) {}
+      try {
+        MlKitScanner.stopScan();
+      } catch (e) {}
     };
-  }, [shouldRenderScanner, onDetected, onClose]);
+  }, [shouldRenderScanner, onDetected, onClose, selectedScanner]);
 
   // Clean up scanner resources
   const cleanupScanner = async () => {
@@ -181,6 +235,22 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           </DialogDescription>
         </DialogHeader>
         <div className="p-2">
+          <div className="flex items-center gap-2 mb-2">
+            <button
+              className={`px-3 py-1 rounded ${selectedScanner === 'dynamsoft' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+              onClick={() => setSelectedScanner('dynamsoft')}
+            >
+              Dynamsoft
+            </button>
+            {mlKitAvailable && (
+              <button
+                className={`px-3 py-1 rounded ${selectedScanner === 'mlkit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+                onClick={() => setSelectedScanner('mlkit')}
+              >
+                ML Kit (Native)
+              </button>
+            )}
+          </div>
           {shouldRenderScanner && (
             <motion.div 
               initial={{ opacity: 0, scale: 0.95 }}

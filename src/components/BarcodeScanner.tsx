@@ -302,11 +302,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
         {error ? (
           <div className="text-center py-8">
-            <p className="text-amber-500 font-medium">{error}</p>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-rose-500 font-semibold">{error}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
               This application requires camera access to scan barcodes
             </p>
-            <Button onClick={onClose} variant="outline" className="mt-4">
+            <Button onClick={onClose} variant="outline" className="mt-4 h-10 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-100/50 font-semibold">
               Close
             </Button>
           </div>
@@ -314,12 +314,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <>
             <div 
               ref={containerRef} 
-              className="relative w-full aspect-[4/3] bg-black rounded-md overflow-hidden" 
+              className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800" 
               style={{ minHeight: '300px' }}
             >
               {selectedScanner === 'mlkit' ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white p-6">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-600 animate-pulse mb-4">
+                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 animate-pulse mb-4 shadow-lg shadow-indigo-500/20">
                     <Camera className="w-8 h-8" />
                   </div>
                   <p className="font-semibold text-lg">Native Scanner Active</p>
@@ -329,17 +329,17 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 </div>
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
+                  <div className="w-full h-1 bg-indigo-600 opacity-90 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse"></div>
                 </div>
               )}
             </div>
-            <p className="text-sm text-center my-4 text-gray-600 dark:text-slate-400">
+            <p className="text-xs text-center my-4 text-slate-500 dark:text-slate-400 font-medium">
               {selectedScanner === 'mlkit' 
                 ? "Close the native camera when done scanning"
                 : "Position barcode within the frame for automatic scanning"
               }
             </p>
-            <Button variant="outline" onClick={onClose} className="mt-2">
+            <Button variant="outline" onClick={onClose} className="mt-1 h-10 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-100/50 font-semibold w-full">
               Cancel
             </Button>
           </>
@@ -349,39 +349,45 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   };
   return <>
       {/* Only render the button if we're not in controlled mode */}
-      {open === undefined && <Button onClick={handleDialogOpen} disabled={isInitializing} className="w-full text-white font-medium bg-slate-950 hover:bg-slate-800">
+      {open === undefined && (
+        <Button onClick={handleDialogOpen} disabled={isInitializing} className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-sm hover:shadow active:scale-[0.98] transition-all">
           <ScanBarcode className="w-5 h-5 mr-2" />
-          {isInitializing ? "Initializing Scanner..." : "Scan Barcode"}
-        </Button>}
+          {isInitializing ? "Initializing..." : "Scan Barcode"}
+        </Button>
+      )}
 
-      {isMobile ? <Sheet open={isOpen} onOpenChange={open => {
-      setIsOpen(open);
-      if (onOpenChange) onOpenChange(open);
-      dialogOpenRef.current = open;
-    }}>
-          <SheetContent side="bottom" className="h-[85vh] p-0">
-            <div className="p-4 border-b">
-              <h2 className="text-xl font-semibold">Scan Barcode</h2>
-              <p className="text-sm text-gray-500 mt-1">
+      {isMobile ? (
+        <Sheet open={isOpen} onOpenChange={open => {
+          setIsOpen(open);
+          if (onOpenChange) onOpenChange(open);
+          dialogOpenRef.current = open;
+        }}>
+          <SheetContent side="bottom" className="rounded-t-3xl border-t border-slate-100 dark:border-slate-800 p-6 bg-white dark:bg-slate-900 h-[80vh] flex flex-col">
+            <div className="pb-4 border-b border-slate-50 dark:border-slate-800 mb-4">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Scan Barcode</h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
                 Position barcode within view for automatic scanning
               </p>
             </div>
             
             {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
           </SheetContent>
-        </Sheet> : <Dialog open={isOpen} onOpenChange={open => {
-      setIsOpen(open);
-      if (onOpenChange) onOpenChange(open);
-      dialogOpenRef.current = open;
-    }}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Scan Barcode</DialogTitle>
+        </Sheet>
+      ) : (
+        <Dialog open={isOpen} onOpenChange={open => {
+          setIsOpen(open);
+          if (onOpenChange) onOpenChange(open);
+          dialogOpenRef.current = open;
+        }}>
+          <DialogContent className="sm:max-w-md rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 bg-white dark:bg-slate-900">
+            <DialogHeader className="pb-2">
+              <DialogTitle className="text-slate-800 dark:text-slate-100 font-bold text-lg">Scan Barcode</DialogTitle>
             </DialogHeader>
             
             {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
           </DialogContent>
-        </Dialog>}
+        </Dialog>
+      )}
     </>;
 };
 export default BarcodeScanner;

@@ -31,12 +31,12 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
             exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
           >
-            <div className="sticky top-0 bg-gradient-to-r from-black to-gray-900 px-5 py-4 flex justify-between items-center bg-[#0a0c0e]">
-              <h3 className="font-semibold text-white text-lg tracking-tight">{title}</h3>
+            <div className="sticky top-0 bg-slate-50 dark:bg-slate-950 px-5 py-4 flex justify-between items-center border-b border-slate-100 dark:border-slate-900">
+              <h3 className="font-bold text-slate-800 dark:text-slate-100 text-base tracking-tight">{title}</h3>
               <Button 
                 size="icon" 
                 variant="ghost" 
-                className="h-8 w-8 rounded-full text-white hover:bg-white/20 transition-colors"
+                className="h-8 w-8 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 dark:hover:text-slate-100 dark:hover:bg-slate-850 transition-colors"
                 onClick={onClose}
               >
                 <X className="h-4 w-4" />

@@ -111,10 +111,10 @@ const ScannerPage = () => {
 
   return (
     <div className="flex flex-col bg-white dark:bg-slate-900">
-      <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-200 dark:border-slate-800">
+      <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-100 dark:border-slate-800/80">
         <header className="px-4 py-3">
           <div className="container mx-auto">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
               Barcode Scanner
             </h1>
           </div>
@@ -131,11 +131,11 @@ const ScannerPage = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-              <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-slate-900">
+              <Card className="overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm bg-white dark:bg-slate-900 rounded-3xl">
                 <CardContent className="p-0">
                   <div className="p-6 flex flex-col items-center text-center space-y-4">
                     <motion.div 
-                      className="w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg mb-2"
+                      className="w-24 h-24 rounded-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-violet-600 shadow-sm mb-2"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -143,14 +143,14 @@ const ScannerPage = () => {
                     </motion.div>
                     
                     <div>
-                      <h2 className="text-xl font-bold mb-2">Premium Barcode Scanner</h2>
+                      <h2 className="text-xl font-bold mb-2 text-slate-850 dark:text-slate-150">Premium Barcode Scanner</h2>
                       <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">
                         Scan barcodes with high accuracy and speed
                       </p>
                       
                       <Button 
                         onClick={openScanner}
-                        className="w-full sm:w-auto text-base font-medium px-8 py-6 h-auto bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-xl shadow-md hover:shadow-lg transition-all"
+                        className="w-full sm:w-auto text-base font-semibold px-8 py-6 h-auto bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all"
                         disabled={isInitializing}
                       >
                         <ScanBarcode className="w-5 h-5 mr-2" />
@@ -159,7 +159,7 @@ const ScannerPage = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white text-center">
+                  <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-4 text-white text-center">
                     <p className="text-sm font-medium">
                       {scannedItems.length === 0 
                         ? "No items scanned yet" 
@@ -229,7 +229,7 @@ const ScannerPage = () => {
                             <div className="cursor-pointer" onClick={() => setActiveScannedBarcode(item.code)}>
                               <p className="font-mono text-sm font-medium">{item.code}</p>
                               <div className="flex items-center mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                <span className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-2 py-0.5 rounded-full mr-2">{item.symbology}</span>
+                                <span className="bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full mr-2">{item.symbology}</span>
                                 <span>{format(item.timestamp, 'HH:mm:ss')}</span>
                               </div>
                             </div>
@@ -276,23 +276,23 @@ const ScannerPage = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl text-center">
+                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-4 rounded-xl text-center shadow-sm">
                   <p className="text-xs uppercase font-semibold opacity-80">Total Scans</p>
                   <p className="text-3xl font-bold mt-1">{scannedItems.length}</p>
                 </div>
-                <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white p-4 rounded-xl text-center">
+                <div className="bg-gradient-to-br from-violet-500 to-violet-600 text-white p-4 rounded-xl text-center shadow-sm">
                   <p className="text-xs uppercase font-semibold opacity-80">Unique Codes</p>
                   <p className="text-3xl font-bold mt-1">
                     {new Set(scannedItems.map(item => item.code)).size}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 rounded-xl text-center">
+                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 rounded-xl text-center shadow-sm">
                   <p className="text-xs uppercase font-semibold opacity-80">Code Types</p>
                   <p className="text-3xl font-bold mt-1">
                     {new Set(scannedItems.map(item => item.symbology)).size}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 rounded-xl text-center">
+                <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 rounded-xl text-center shadow-sm">
                   <p className="text-xs uppercase font-semibold opacity-80">Today's Scans</p>
                   <p className="text-3xl font-bold mt-1">
                     {scannedItems.filter(item => {
@@ -323,7 +323,7 @@ const ScannerPage = () => {
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2">
                           <div 
-                            className="h-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500"
+                            className="h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"
                             style={{ width: `${(count / scannedItems.length) * 100}%` }}
                           ></div>
                         </div>
@@ -344,7 +344,7 @@ const ScannerPage = () => {
           transition={{ duration: 0.3, delay: 0.2 }}
         >
           <Button
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all w-full max-w-xs h-12"
+            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all w-full max-w-xs h-12"
             onClick={openScanner}
           >
             <ScanBarcode className="mr-2 h-5 w-5" />
@@ -356,10 +356,10 @@ const ScannerPage = () => {
       {/* Scanner Dialog/Sheet for Mobile or Desktop */}
       {isMobile ? (
         <Sheet open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <SheetContent side="bottom" className="h-[85vh] p-0 bg-white border-t-2 border-blue-500">
-            <div className="p-4 border-b">
-              <h2 className="text-xl font-bold text-blue-700">Scan Barcode</h2>
-              <p className="text-sm text-slate-600 mt-1">
+          <SheetContent side="bottom" className="h-[85vh] p-0 bg-white dark:bg-slate-900 rounded-t-3xl border-t border-slate-100 dark:border-slate-800">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-850 bg-slate-50 dark:bg-slate-950">
+              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Scan Barcode</h2>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
                 Position barcode within view for automatic scanning
               </p>
             </div>
@@ -371,10 +371,12 @@ const ScannerPage = () => {
         </Sheet>
       ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-md bg-white">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-blue-700">Scan Barcode</DialogTitle>
-            </DialogHeader>
+          <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-xl p-0 overflow-hidden">
+            <div className="p-5 border-b border-slate-100 dark:border-slate-850 bg-slate-50 dark:bg-slate-950">
+              <DialogHeader>
+                <DialogTitle className="text-lg font-bold text-slate-800 dark:text-slate-100">Scan Barcode</DialogTitle>
+              </DialogHeader>
+            </div>
             
             {isDialogOpen && (
               <SimpleBarcodeScanner onDetected={handleScan} onClose={closeScanner} />
@@ -569,22 +571,18 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
     <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 w-full">
       {mlKitAvailable && (
         <div className="flex items-center gap-2 mb-4 w-full justify-center">
-          <Button 
-            variant={selectedScanner === 'dynamsoft' ? 'default' : 'outline'}
-            size="sm"
+          <button
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedScanner === 'dynamsoft' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-800'}`}
             onClick={() => setSelectedScanner('dynamsoft')}
-            className="rounded-full px-4"
           >
             Dynamsoft
-          </Button>
-          <Button 
-            variant={selectedScanner === 'mlkit' ? 'default' : 'outline'}
-            size="sm"
+          </button>
+          <button
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedScanner === 'mlkit' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-800'}`}
             onClick={() => setSelectedScanner('mlkit')}
-            className="rounded-full px-4"
           >
             ML Kit (Native)
-          </Button>
+          </button>
         </div>
       )}
 
@@ -611,7 +609,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
         <>
           <motion.div 
             ref={containerRef} 
-            className="relative w-full aspect-[4/3] bg-black rounded-xl overflow-hidden"
+            className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800"
             style={{ minHeight: '300px' }}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -619,7 +617,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           >
             {selectedScanner === 'mlkit' ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white p-6">
-                <div className="w-16 h-16 rounded-full flex items-center justify-center bg-blue-600 animate-pulse mb-4">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 animate-pulse mb-4 shadow-lg shadow-indigo-500/20">
                   <Camera className="w-8 h-8" />
                 </div>
                 <p className="font-semibold text-lg">Native Scanner Active</p>
@@ -631,7 +629,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
               <>
                 <div className="absolute inset-0 pointer-events-none z-10"></div>
                 <motion.div 
-                  className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-1 bg-gradient-to-r from-blue-400 to-purple-500 z-20"
+                  className="absolute inset-x-0 top-1/2 transform -translate-y-1/2 h-0.5 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)] z-20"
                   animate={{ 
                     y: [-10, 10, -10], 
                     opacity: [0.8, 1, 0.8] 
@@ -650,9 +648,9 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
                   transition={{ delay: 0.2, duration: 0.3 }}
                 >
                   <motion.div 
-                    className="w-64 h-64 border-2 border-blue-400 rounded-lg"
+                    className="w-64 h-64 border-2 border-white/40 rounded-xl"
                     animate={{
-                      boxShadow: ["0 0 0 0 rgba(59, 130, 246, 0)", "0 0 0 10px rgba(59, 130, 246, 0.3)"],
+                      boxShadow: ["0 0 0 0 rgba(99,102,241,0)", "0 0 0 10px rgba(99,102,241,0.15)"],
                     }}
                     transition={{
                       duration: 2,
@@ -660,10 +658,10 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
                       repeatType: "reverse"
                     }}
                   >
-                    <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-blue-400"></div>
-                    <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-blue-400"></div>
-                    <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-blue-400"></div>
-                    <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-blue-400"></div>
+                    <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-indigo-400"></div>
+                    <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-indigo-400"></div>
+                    <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-indigo-400"></div>
+                    <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-indigo-400"></div>
                   </motion.div>
                 </motion.div>
               </>
@@ -671,7 +669,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           </motion.div>
           
           <motion.p 
-            className="text-sm text-center my-4 text-slate-600 dark:text-slate-400"
+            className="text-xs text-center my-4 text-slate-500 dark:text-slate-400 font-medium"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3, duration: 0.3 }}
@@ -683,6 +681,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           </motion.p>
           
           <motion.div
+            className="w-full"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.3 }}
@@ -690,7 +689,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             <Button 
               variant="outline" 
               onClick={onClose} 
-              className="mt-2 border-slate-300 hover:bg-slate-100"
+              className="mt-1 h-10 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-100/50 font-semibold w-full"
             >
               Cancel
             </Button>

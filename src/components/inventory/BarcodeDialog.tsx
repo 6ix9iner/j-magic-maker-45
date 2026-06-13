@@ -227,24 +227,24 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) onClose();
     }}>
-      <DialogContent className="sm:max-w-md max-w-[calc(100vw-32px)] p-0 bg-white overflow-hidden">
-        <DialogHeader className="bg-gradient-to-r from-blue-600 to-purple-600 p-4 text-white">
-          <DialogTitle className="text-xl font-bold">Scan Barcode</DialogTitle>
-          <DialogDescription className="text-white/80">
+      <DialogContent className="sm:max-w-md max-w-[calc(100vw-32px)] p-0 bg-white dark:bg-slate-900 rounded-3xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-xl">
+        <DialogHeader className="bg-slate-50 dark:bg-slate-950 p-5 border-b border-slate-100 dark:border-slate-850">
+          <DialogTitle className="text-lg font-bold text-slate-800 dark:text-slate-100">Scan Barcode</DialogTitle>
+          <DialogDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
             Position the barcode in view of your camera
           </DialogDescription>
         </DialogHeader>
-        <div className="p-2">
-          <div className="flex items-center gap-2 mb-2">
+        <div className="p-4 bg-white dark:bg-slate-900 flex flex-col gap-3">
+          <div className="flex items-center gap-2 w-full justify-center">
             <button
-              className={`px-3 py-1 rounded ${selectedScanner === 'dynamsoft' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedScanner === 'dynamsoft' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-800'}`}
               onClick={() => setSelectedScanner('dynamsoft')}
             >
               Dynamsoft
             </button>
             {mlKitAvailable && (
               <button
-                className={`px-3 py-1 rounded ${selectedScanner === 'mlkit' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-800'}`}
+                className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${selectedScanner === 'mlkit' ? 'bg-indigo-600 text-white shadow-sm' : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-100 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-800'}`}
                 onClick={() => setSelectedScanner('mlkit')}
               >
                 ML Kit (Native)
@@ -256,14 +256,14 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              className="barcode-container relative overflow-hidden rounded-xl" 
+              className="barcode-container relative overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800" 
               style={{ height: "350px" }}
             >
-              <div className="absolute inset-0 bg-black/5 pointer-events-none z-10 rounded-xl"></div>
+              <div className="absolute inset-0 bg-black/5 pointer-events-none z-10 rounded-2xl"></div>
               
-              {/* Animated scanning line */}
+              {/* Animated scanning laser guide */}
               <motion.div 
-                className="absolute inset-x-0 h-0.5 bg-blue-500 z-20"
+                className="absolute inset-x-0 h-0.5 bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.8)] z-20"
                 initial={{ top: "0%" }}
                 animate={{ 
                   top: ["0%", "100%", "0%"]
@@ -278,9 +278,9 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
               {/* Targeting frame */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                 <motion.div 
-                  className="w-64 h-64 border-2 border-white/60 rounded-lg"
+                  className="w-64 h-64 border-2 border-white/40 rounded-xl"
                   animate={{
-                    boxShadow: ["0 0 0 0 rgba(255,255,255,0)", "0 0 0 10px rgba(255,255,255,0.2)"],
+                    boxShadow: ["0 0 0 0 rgba(99,102,241,0)", "0 0 0 10px rgba(99,102,241,0.15)"],
                   }}
                   transition={{
                     duration: 2,
@@ -288,10 +288,10 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
                     repeatType: "reverse"
                   }}
                 >
-                  <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-blue-400"></div>
-                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-blue-400"></div>
-                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-blue-400"></div>
-                  <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-blue-400"></div>
+                  <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-indigo-400"></div>
+                  <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-indigo-400"></div>
+                  <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-indigo-400"></div>
+                  <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-indigo-400"></div>
                 </motion.div>
               </div>
               
@@ -300,10 +300,10 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
                 className="absolute inset-0"
               >
                 {error && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-white z-40">
+                  <div className="absolute inset-0 flex items-center justify-center bg-white dark:bg-slate-900 z-40">
                     <div className="text-center p-4">
                       <p className="text-red-500 font-medium mb-2">{error}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-slate-500 dark:text-slate-400">
                         Please allow camera access to scan barcodes
                       </p>
                     </div>

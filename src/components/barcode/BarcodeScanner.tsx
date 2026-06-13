@@ -226,12 +226,12 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
           )}
           
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="w-full h-1.5 bg-blue-600 opacity-80 animate-bounce"></div>
-            <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-blue-500 opacity-70">
-              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-blue-500"></div>
-              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-blue-500"></div>
-              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-blue-500"></div>
-              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-blue-500"></div>
+            <div className="w-full h-1 bg-indigo-600 opacity-90 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse"></div>
+            <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-white/40 opacity-70 rounded-xl">
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-400"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-4 border-r-4 border-indigo-400"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-4 border-l-4 border-indigo-400"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-4 border-r-4 border-indigo-400"></div>
             </div>
           </div>
         </div>

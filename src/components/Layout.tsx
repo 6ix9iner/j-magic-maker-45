@@ -42,9 +42,9 @@ const Layout = () => {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
-      {/* Top Navigation Bar - Enhanced with premium glass effect */}
+      {/* Top Navigation Bar - Transparent floating branding and avatar */}
       <motion.header 
-        className="glass-panel shadow-sm border-b z-10 border-slate-100"
+        className="w-full bg-transparent border-0 shadow-none z-10"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -68,45 +68,45 @@ const Layout = () => {
               animate={{ x: 0, opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              {/* Mobile user button - Enhanced for better visibility */}
-              <div className="sm:hidden">
+              {/* User profile action trigger */}
+              <div className="flex">
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="rounded-full px-2 bg-gradient-to-r from-black/30 to-gray-900/30 backdrop-blur-sm border border-white/20 hover:bg-white/10 shadow-lg"
+                  className="rounded-full p-0.5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-sm shrink-0"
                   onClick={() => setIsMobileMenuOpen(true)}
                 >
-                  <Avatar className="h-7 w-7 ring-2 ring-white/40 shadow-lg">
+                  <Avatar className="h-8 w-8 ring-2 ring-indigo-500/20 shadow-sm">
                     <AvatarImage src="" />
-                    <AvatarFallback className="bg-gradient-to-r from-black to-gray-800 text-white font-medium text-xs">
+                    <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold text-xs flex items-center justify-center">
                       {getUserInitials()}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
-
+ 
                 <MobilePopover 
                   isOpen={isMobileMenuOpen} 
                   onClose={() => setIsMobileMenuOpen(false)} 
                   title="Account"
                 >
                   <div className="py-4">
-                    <div className="flex items-center gap-4 mb-6 bg-white/5 p-4 rounded-xl border border-white/10 shadow-inner">
-                      <Avatar className="h-14 w-14 ring-2 ring-white/30 shadow-md">
+                    <div className="flex items-center gap-4 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-850 shadow-sm">
+                      <Avatar className="h-14 w-14 ring-2 ring-indigo-100 dark:ring-indigo-950/50 shadow-sm">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-black to-gray-800 text-white text-lg font-medium">
+                        <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-lg font-bold">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-medium text-white text-lg">{user?.email?.split('@')[0]}</p>
-                        <p className="text-sm text-gray-200/70">{user?.email}</p>
+                        <p className="font-bold text-slate-800 dark:text-slate-100 text-lg">{user?.email?.split('@')[0]}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{user?.email}</p>
                       </div>
                     </div>
                     
                     <Button 
                       onClick={handleSignOut} 
                       variant="destructive" 
-                      className="w-full shadow-lg rounded-xl"
+                      className="w-full h-11 bg-red-500 hover:bg-red-600 text-white font-semibold rounded-xl shadow-sm active:scale-95 transition-all"
                     >
                       <span className="mr-2">Sign Out</span>
                     </Button>

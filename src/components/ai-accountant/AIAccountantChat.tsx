@@ -42,13 +42,19 @@ const AIAccountantChat: React.FC = () => {
       timestamp: new Date(),
     };
 
-    setMessages((p) => [...p, userMessage]);
+    const updatedMessages = [...messages, userMessage];
+    setMessages(updatedMessages);
     setInputMessage('');
     setIsLoading(true);
 
     try {
+      // Send conversation history (excluding the welcome message) so the AI has context
+      const historyForApi = updatedMessages
+        .filter(m => m.id !== '1') // exclude the hardcoded welcome message
+        .map(m => ({ sender: m.sender, content: m.content }));
+
       const { data, error } = await supabase.functions.invoke('ai-accountant-chat', {
-        body: { message: userMessage.content, userId: user.id }
+        body: { message: userMessage.content, history: historyForApi }
       });
       if (error) throw error;
 
@@ -169,7 +175,7 @@ const AIAccountantChat: React.FC = () => {
               <div className="bg-gray-100 p-3 rounded-lg max-w-[80%]">
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin text-gray-600" />
-                  <span className="text-sm text-gray-600">Analyzing your business data...</span>
+                  <span className="text-sm text-gray-600">Thinking...</span>
                 </div>
               </div>
             </div>

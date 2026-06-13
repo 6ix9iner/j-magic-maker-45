@@ -291,11 +291,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         )}
 
         {showInitMessage && (
-          <div className="absolute inset-0 bg-black/50 z-50 flex items-center justify-center text-white">
-            <div className="text-center p-6 bg-slate-800/90 rounded-lg shadow-lg max-w-[250px] animate-pulse">
-              <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-t-transparent border-white animate-spin"></div>
-              <p className="font-medium text-lg mb-1">Initializing Scanner</p>
-              <p className="text-sm text-slate-300">Please wait a moment...</p>
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center">
+            <div className="text-center p-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-lg max-w-[250px] animate-pulse">
+              <div className="mx-auto mb-4 h-10 w-10 rounded-full border-2 border-t-transparent border-indigo-600 animate-spin"></div>
+              <p className="font-bold text-slate-800 dark:text-slate-100 text-lg mb-1">Initializing Scanner</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Connecting to camera...</p>
             </div>
           </div>
         )}
@@ -314,7 +314,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <>
             <div 
               ref={containerRef} 
-              className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800" 
+              className="relative w-full aspect-[4/3] bg-slate-950/90 rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-inner" 
               style={{ minHeight: '300px' }}
             >
               {selectedScanner === 'mlkit' ? (
@@ -333,12 +333,16 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                 </div>
               )}
             </div>
-            <p className="text-xs text-center my-4 text-slate-500 dark:text-slate-400 font-medium">
-              {selectedScanner === 'mlkit' 
-                ? "Close the native camera when done scanning"
-                : "Position barcode within the frame for automatic scanning"
-              }
-            </p>
+            
+            <div className="w-full my-4 px-4 py-2.5 bg-slate-50/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-xl">
+              <p className="text-xs text-center text-slate-850 dark:text-slate-150 font-semibold leading-relaxed">
+                {selectedScanner === 'mlkit' 
+                  ? "Close the native camera when done scanning"
+                  : "Position barcode within the frame for automatic scanning"
+                }
+              </p>
+            </div>
+
             <Button variant="outline" onClick={onClose} className="mt-1 h-10 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-100/50 font-semibold w-full">
               Cancel
             </Button>

@@ -159,8 +159,8 @@ const ScannerPage = () => {
                     </div>
                   </div>
                   
-                  <div className="bg-gradient-to-r from-indigo-600 to-violet-600 p-4 text-white text-center">
-                    <p className="text-sm font-medium">
+                  <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border-t border-slate-100 dark:border-slate-800/60 p-4 text-indigo-600 dark:text-indigo-400 text-center">
+                    <p className="text-sm font-semibold">
                       {scannedItems.length === 0 
                         ? "No items scanned yet" 
                         : `${scannedItems.length} item${scannedItems.length !== 1 ? 's' : ''} in scan history`
@@ -276,25 +276,25 @@ const ScannerPage = () => {
             </CardHeader>
             <CardContent className="pt-6">
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-gradient-to-br from-indigo-500 to-indigo-600 text-white p-4 rounded-xl text-center shadow-sm">
-                  <p className="text-xs uppercase font-semibold opacity-80">Total Scans</p>
-                  <p className="text-3xl font-bold mt-1">{scannedItems.length}</p>
+                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-center shadow-sm">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Total Scans</p>
+                  <p className="text-3xl font-extrabold mt-1 text-slate-800 dark:text-slate-100">{scannedItems.length}</p>
                 </div>
-                <div className="bg-gradient-to-br from-violet-500 to-violet-600 text-white p-4 rounded-xl text-center shadow-sm">
-                  <p className="text-xs uppercase font-semibold opacity-80">Unique Codes</p>
-                  <p className="text-3xl font-bold mt-1">
+                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-center shadow-sm">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Unique Codes</p>
+                  <p className="text-3xl font-extrabold mt-1 text-slate-800 dark:text-slate-100">
                     {new Set(scannedItems.map(item => item.code)).size}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white p-4 rounded-xl text-center shadow-sm">
-                  <p className="text-xs uppercase font-semibold opacity-80">Code Types</p>
-                  <p className="text-3xl font-bold mt-1">
+                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-center shadow-sm">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Code Types</p>
+                  <p className="text-3xl font-extrabold mt-1 text-slate-800 dark:text-slate-100">
                     {new Set(scannedItems.map(item => item.symbology)).size}
                   </p>
                 </div>
-                <div className="bg-gradient-to-br from-amber-500 to-amber-600 text-white p-4 rounded-xl text-center shadow-sm">
-                  <p className="text-xs uppercase font-semibold opacity-80">Today's Scans</p>
-                  <p className="text-3xl font-bold mt-1">
+                <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-center shadow-sm">
+                  <p className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider">Today's Scans</p>
+                  <p className="text-3xl font-extrabold mt-1 text-slate-800 dark:text-slate-100">
                     {scannedItems.filter(item => {
                       const today = new Date();
                       return item.timestamp.toDateString() === today.toDateString();
@@ -609,7 +609,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
         <>
           <motion.div 
             ref={containerRef} 
-            className="relative w-full aspect-[4/3] bg-black rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800"
+            className="relative w-full aspect-[4/3] bg-slate-950/90 rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-inner"
             style={{ minHeight: '300px' }}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -617,7 +617,7 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
           >
             {selectedScanner === 'mlkit' ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white p-6">
-                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 animate-pulse mb-4 shadow-lg shadow-indigo-500/20">
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-650 animate-pulse mb-4 shadow-lg shadow-indigo-500/20">
                   <Camera className="w-8 h-8" />
                 </div>
                 <p className="font-semibold text-lg">Native Scanner Active</p>
@@ -668,17 +668,14 @@ const SimpleBarcodeScanner: React.FC<SimpleBarcodeScannerProps> = ({ onDetected,
             )}
           </motion.div>
           
-          <motion.p 
-            className="text-xs text-center my-4 text-slate-500 dark:text-slate-400 font-medium"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.3 }}
-          >
-            {selectedScanner === 'mlkit' 
-              ? "Close the native camera when done scanning" 
-              : "Position barcode within the frame for automatic scanning"
-            }
-          </motion.p>
+          <div className="w-full my-4 px-4 py-2.5 bg-slate-50/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-xl">
+            <p className="text-xs text-center text-slate-850 dark:text-slate-150 font-semibold leading-relaxed">
+              {selectedScanner === 'mlkit' 
+                ? "Close the native camera when done scanning" 
+                : "Position barcode within the frame for automatic scanning"
+              }
+            </p>
+          </div>
           
           <motion.div
             className="w-full"

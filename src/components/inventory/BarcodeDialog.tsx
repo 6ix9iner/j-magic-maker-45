@@ -256,7 +256,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.3 }}
-              className="barcode-container relative overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800" 
+              className="barcode-container relative overflow-hidden rounded-2xl border border-slate-200/50 dark:border-slate-800 bg-slate-950/90 shadow-inner" 
               style={{ height: "350px" }}
             >
               <div className="absolute inset-0 bg-black/5 pointer-events-none z-10 rounded-2xl"></div>

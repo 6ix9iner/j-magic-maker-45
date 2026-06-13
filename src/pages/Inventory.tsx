@@ -314,9 +314,9 @@ const Inventory = () => {
   }
 
   return (
-    <div className="py-2 px-1 sm:py-4 sm:px-2">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
+      <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 overflow-hidden min-h-0">
+        <header className="flex-shrink-0 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
               <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
@@ -329,15 +329,18 @@ const Inventory = () => {
           <Button onClick={openNewProductDialog} className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all">Add New Product</Button>
         </header>
 
-        <SearchBox 
-          searchTerm={searchTerm}
-          onSearchChange={setSearchTerm}
-        />
+        <div className="flex-shrink-0">
+          <SearchBox 
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+          />
+        </div>
 
-        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden mt-6 bg-white dark:bg-slate-900">
-          <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-            <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Products</CardTitle>
-          </CardHeader>
+        <div className="flex-1 overflow-y-auto min-h-0 pb-24 mt-6">
+          <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+            <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+              <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Products</CardTitle>
+            </CardHeader>
           <CardContent className="p-0 sm:p-4">
             <ProductList
               products={products}
@@ -348,6 +351,7 @@ const Inventory = () => {
             />
           </CardContent>
         </Card>
+        </div>
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>

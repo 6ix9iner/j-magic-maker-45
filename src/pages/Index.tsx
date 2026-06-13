@@ -1,15 +1,17 @@
-
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import BarcodeScanner from '@/components/BarcodeScanner';
+import BarcodeScannerCompat from '@/components/BarcodeScanner';
+import BarcodeScannerInline from '@/components/barcode/BarcodeScanner';
 import BarcodeResult from '@/components/BarcodeResult';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
 const Index = () => {
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null);
   const [saleManagerRef, setSaleManagerRef] = useState<React.RefObject<any> | null>(null);
+  const isMobile = useIsMobile();
 
   // Create ref for SaleManager
   React.useEffect(() => {
@@ -34,62 +36,70 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-full pb-16 px-2 sm:px-4 max-w-5xl mx-auto">
-      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 mt-4 flex items-center gap-2">
-        <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
-        Scan & Lookup
-      </h2>
-      <div className="space-y-6 mb-8">
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="space-y-4"
-        >
-          {barcodeValue ? (
-            <div className="space-y-4">
-              <BarcodeResult barcodeValue={barcodeValue} onClear={clearResult} />
-              <ProductLookup 
-                barcodeValue={barcodeValue} 
-                onAddToSale={(product, quantity) => {
-                  if (saleManagerRef?.current?.addItem) {
-                    saleManagerRef.current.addItem(product, quantity);
-                    toast.success(`Added ${quantity} ${product.name} to sale`);
-                  }
-                }} 
-              />
-            </div>
-          ) : (
-            <motion.div 
-              className="premium-card overflow-hidden relative border border-slate-100/80 rounded-3xl"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <div className="p-5 bg-gradient-to-r from-indigo-50/80 via-white/70 to-violet-50/80 dark:from-indigo-950/40 dark:via-slate-900/40 dark:to-violet-950/40 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-slate-100">
-                <h2 className="font-bold text-base sm:text-lg text-slate-900 dark:text-slate-100">Scan Barcode</h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Position a barcode within the frame</p>
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1 max-w-7xl mx-auto">
+      {/* 2-column layout on Desktop, stacked on Mobile */}
+      <div className="w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden min-h-0">
+        
+        {/* Left Column - Scanner and Product Info */}
+        <div className="lg:col-span-5 flex flex-col overflow-hidden min-h-0 h-full">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 mt-2 flex items-center gap-2 flex-shrink-0">
+            <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+            Scan & Lookup
+          </h2>
+          
+          <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
+            {barcodeValue ? (
+              <div className="flex-1 overflow-y-auto pr-1 space-y-4">
+                <BarcodeResult barcodeValue={barcodeValue} onClear={clearResult} />
+                <ProductLookup 
+                  barcodeValue={barcodeValue} 
+                  onAddToSale={(product, quantity) => {
+                    if (saleManagerRef?.current?.addItem) {
+                      saleManagerRef.current.addItem(product, quantity);
+                      toast.success(`Added ${quantity} ${product.name} to sale`);
+                    }
+                  }} 
+                />
               </div>
-              <div className="relative p-4">
-                <BarcodeScanner onDetected={handleBarcodeDetected} />
+            ) : (
+              <div className="flex-grow flex flex-col min-h-0 relative rounded-3xl overflow-hidden bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 flex-1">
+                {isMobile ? (
+                  <div className="flex-grow flex flex-col items-center justify-center p-6 text-center space-y-4">
+                    <p className="text-sm text-slate-400 font-medium">Scan barcodes with your camera</p>
+                    <div className="w-full max-w-xs">
+                      <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex-grow min-h-0 flex flex-col relative">
+                    <BarcodeScannerInline onDetected={handleBarcodeDetected} />
+                  </div>
+                )}
               </div>
-            </motion.div>
-          )}
-        </motion.div>
-      </div>
+            )}
+          </div>
+        </div>
 
-      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
-        <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
-        Current Sale
-      </h2>
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="premium-card p-5 mb-8 rounded-3xl border border-slate-100"
-      >
-        <SaleManager ref={saleManagerRef} />
-      </motion.div>
+        {/* Right Column - Current Sale */}
+        <div className="lg:col-span-7 flex flex-col overflow-hidden min-h-0 h-full">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 mt-2 flex items-center gap-2 flex-shrink-0">
+            <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+            Current Sale
+          </h2>
+          
+          <div className="flex-grow overflow-y-auto min-h-0 pb-24 pr-1">
+            <motion.div 
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="premium-card p-5 rounded-3xl border border-slate-100 bg-white dark:bg-slate-900 shadow-sm"
+            >
+              <SaleManager ref={saleManagerRef} />
+            </motion.div>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 };

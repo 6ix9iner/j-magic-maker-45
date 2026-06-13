@@ -65,9 +65,9 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="py-2 px-1 sm:py-4 sm:px-2">
-      <div className="w-full max-w-7xl mx-auto space-y-5">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
+      <div className="w-full max-w-7xl mx-auto flex flex-col flex-1 overflow-hidden min-h-0 space-y-5">
+        <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
               <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
@@ -97,6 +97,8 @@ const Dashboard = () => {
             )}
           </div>
         </header>
+
+        <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-24 space-y-5">
 
         {/* Strategic KPI Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6">
@@ -276,6 +278,7 @@ const Dashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </div>
   );

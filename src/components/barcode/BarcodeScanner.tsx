@@ -205,9 +205,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full h-full flex flex-col min-h-0">
       {error ? (
-        <div className="bg-red-50 p-4 rounded-md text-center">
+        <div className="bg-red-50 p-4 rounded-md text-center flex-1 flex flex-col items-center justify-center">
           <p className="text-red-600 font-medium mb-2">Camera access required</p>
           <p className="text-sm text-gray-600">
             Please allow camera access when prompted
@@ -216,16 +216,15 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
       ) : (
         <div 
           ref={containerRef} 
-          className="relative w-full aspect-[4/3] bg-black rounded-md overflow-hidden"
-          style={{ minHeight: '300px' }}
+          className="relative w-full flex-grow min-h-[300px] bg-black rounded-2xl overflow-hidden shadow-inner"
         >
           {isLoading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white">
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 text-white z-10">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-white"></div>
             </div>
           )}
           
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-20">
             <div className="w-full h-1 bg-indigo-600 opacity-90 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse"></div>
             <div className="absolute top-1/4 bottom-1/4 left-1/6 right-1/6 border-2 border-white/40 opacity-70 rounded-xl">
               <div className="absolute top-0 left-0 w-8 h-8 border-t-4 border-l-4 border-indigo-400"></div>
@@ -236,7 +235,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
           </div>
         </div>
       )}
-      <p className="text-sm text-center mt-3 text-gray-600">
+      <p className="text-xs text-center mt-2.5 text-slate-400 dark:text-slate-500 font-medium flex-shrink-0">
         Position barcode within the frame for automatic scanning
       </p>
     </div>

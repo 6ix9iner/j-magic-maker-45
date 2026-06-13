@@ -204,8 +204,8 @@ const Sales = () => {
   };
 
   return (
-    <div className="py-2 px-1 sm:py-4 sm:px-2">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
+      <div className="flex-shrink-0 flex items-center gap-3 mb-6">
         <Button 
           variant="outline" 
           size="sm" 
@@ -220,7 +220,8 @@ const Sales = () => {
         </h1>
       </div>
 
-      <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+      <div className="flex-grow overflow-y-auto min-h-0 pb-24 pr-1">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
         <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="flex items-center justify-between w-full">
             <div>
@@ -337,6 +338,7 @@ const Sales = () => {
           )}
         </CardContent>
       </Card>
+      </div>
 
       {/* Receipt Modal */}
       {showReceiptModal && selectedSale && businessInfo && (

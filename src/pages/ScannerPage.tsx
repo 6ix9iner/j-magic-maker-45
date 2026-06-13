@@ -110,8 +110,8 @@ const ScannerPage = () => {
   };
 
   return (
-    <div className="flex flex-col bg-white dark:bg-slate-900">
-      <div className="sticky top-0 z-10 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-100 dark:border-slate-800/80">
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 bg-white dark:bg-slate-900">
+      <div className="flex-shrink-0 z-10 backdrop-blur-lg bg-white/70 dark:bg-slate-900/70 border-b border-slate-100 dark:border-slate-800/80">
         <header className="px-4 py-3">
           <div className="container mx-auto">
             <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">
@@ -121,7 +121,8 @@ const ScannerPage = () => {
         </header>
       </div>
       
-      <main className="flex-1 container mx-auto p-4 bg-white dark:bg-slate-900">
+      <main className="flex-grow overflow-y-auto min-h-0 p-4 bg-white dark:bg-slate-900 pb-24">
+        <div className="container mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left Column - Scanner and Product Lookup */}
           <div className="flex flex-col gap-6">
@@ -334,24 +335,25 @@ const ScannerPage = () => {
             </CardContent>
           </Card>
         </motion.div>
-      </main>
-      
-      <footer className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <motion.div 
-          className="container mx-auto flex justify-center"
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-        >
-          <Button
-            className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all w-full max-w-xs h-12"
-            onClick={openScanner}
+
+        <footer className="p-4 border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 mt-8">
+          <motion.div 
+            className="flex justify-center"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.2 }}
           >
-            <ScanBarcode className="mr-2 h-5 w-5" />
-            Scan New Barcode
-          </Button>
-        </motion.div>
-      </footer>
+            <Button
+              className="bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all w-full max-w-xs h-12"
+              onClick={openScanner}
+            >
+              <ScanBarcode className="mr-2 h-5 w-5" />
+              Scan New Barcode
+            </Button>
+          </motion.div>
+        </footer>
+        </div>
+      </main>
 
       {/* Scanner Dialog/Sheet for Mobile or Desktop */}
       {isMobile ? (

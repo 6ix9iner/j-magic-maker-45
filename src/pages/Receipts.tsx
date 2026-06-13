@@ -158,8 +158,8 @@ const Receipts = () => {
   }
 
   return (
-    <div className="py-2 px-1 sm:py-4 sm:px-2">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
+      <div className="flex-shrink-0 flex items-center gap-3 mb-6">
         <Button 
           variant="outline" 
           size="sm" 
@@ -174,7 +174,8 @@ const Receipts = () => {
         </h1>
       </div>
 
-      <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900 mb-6">
+      <div className="flex-grow overflow-y-auto min-h-0 pb-24 pr-1">
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900 mb-6">
         <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
           <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Business Information</CardTitle>
         </CardHeader>
@@ -221,6 +222,7 @@ const Receipts = () => {
           </CardContent>
         </Card>
       )}
+      </div>
 
       {/* Business Information Setup/Edit Modal */}
       <Dialog open={showSetupModal || editMode} onOpenChange={(open) => {

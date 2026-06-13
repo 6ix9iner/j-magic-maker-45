@@ -120,16 +120,18 @@ const Settings = () => {
   ];
 
   return (
-    <div className="py-2 px-1 sm:py-4 sm:px-2">
-      <div className="container mx-auto max-w-4xl">
+    <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
+      <div className="container mx-auto max-w-4xl flex flex-col flex-1 overflow-hidden min-h-0">
         {/* Header Section */}
-        <div className="mb-6">
+        <div className="flex-shrink-0 mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
             <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
             Settings
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">Manage your account and application preferences</p>
         </div>
+
+        <div className="flex-1 overflow-y-auto min-h-0 pb-24 pr-1">
 
         {/* Management Section */}
         <div className="mb-6">
@@ -216,6 +218,7 @@ const Settings = () => {
             <LogOut className="h-4.5 w-4.5" />
             Sign Out
           </Button>
+        </div>
         </div>
       </div>
     </div>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Loader } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import Logo from './Logo';
 
 type LoadingScreenProps = {
   duration?: number; // Duration in milliseconds before hiding
@@ -22,7 +23,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
   
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50/30 via-slate-50 to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
@@ -33,18 +34,16 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
         transition={{ duration: 0.6, ease: "easeOut" }}
         className="relative mb-8"
       >
-        <div className="w-24 h-24 rounded-full bg-gradient-to-r from-black to-gray-800 shadow-lg flex items-center justify-center">
-          <div className="w-20 h-20 rounded-full bg-white flex items-center justify-center">
-            <span className="text-3xl font-bold bg-gradient-to-r from-black to-gray-800 bg-clip-text text-transparent">II</span>
-          </div>
+        <div className="w-28 h-28 rounded-full bg-white dark:bg-slate-900 shadow-xl shadow-indigo-500/5 flex items-center justify-center border border-slate-100/80 dark:border-slate-800/80">
+          <Logo size={52} />
         </div>
         <motion.div 
-          className="absolute -inset-3"
+          className="absolute -inset-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3, duration: 0.6 }}
         >
-          <div className="absolute inset-0 rounded-full border-4 border-black/30 animate-ping" />
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/10 animate-ping" />
         </motion.div>
       </motion.div>
       
@@ -54,14 +53,18 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
         transition={{ delay: 0.3, duration: 0.6 }}
         className="flex flex-col items-center"
       >
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Insight Inventory</h1>
-        <p className="text-gray-600 text-sm mb-6">Powering smarter business decisions</p>
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-850 dark:text-slate-100 tracking-tight mb-2">
+          Insight Inventory
+        </h1>
+        <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-8">
+          Powering smarter business decisions
+        </p>
         
         <motion.div 
           animate={{ rotate: 360 }}
-          transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+          transition={{ repeat: Infinity, duration: 1.2, ease: "linear" }}
         >
-          <Loader size={36} className="text-black" />
+          <Loader2 size={32} className="text-indigo-600 dark:text-indigo-400" />
         </motion.div>
       </motion.div>
     </motion.div>

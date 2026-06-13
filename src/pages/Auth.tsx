@@ -37,6 +37,14 @@ const Auth = () => {
   const [newPassword, setNewPassword] = useState('');
   const [emailConfirmationError, setEmailConfirmationError] = useState(false);
   const [emailForConfirmation, setEmailForConfirmation] = useState('');
+  const [signupStep, setSignupStep] = useState(1);
+
+  const handleNextStep = async () => {
+    const isValid = await signupForm.trigger(['fullName', 'email']);
+    if (isValid) {
+      setSignupStep(2);
+    }
+  };
 
   // Check if this is a password reset flow
   useEffect(() => {
@@ -225,7 +233,7 @@ const Auth = () => {
               </div>
             </motion.div>}
           
-          <Tabs defaultValue="login">
+          <Tabs defaultValue="login" onValueChange={(val) => { if (val === 'login') setSignupStep(1); }}>
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-50 dark:bg-slate-800 border-0 p-1 h-11 rounded-xl">
               <TabsTrigger value="login" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-slate-500 dark:text-slate-400 font-semibold rounded-lg transition-all">Login</TabsTrigger>
               <TabsTrigger value="signup" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-slate-500 dark:text-slate-400 font-semibold rounded-lg transition-all">Sign Up</TabsTrigger>
@@ -260,40 +268,58 @@ const Auth = () => {
 
             <TabsContent value="signup">
               <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
-                <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="fullName" className="text-slate-700 dark:text-slate-300 font-medium">Full Name</Label>
-                  <Input id="fullName" placeholder="John Doe" {...signupForm.register('fullName', {
-                  required: true
-                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
-                </motion.div>
-                <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="signupEmail" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
-                  <Input id="signupEmail" type="email" placeholder="your@email.com" {...signupForm.register('email', {
-                  required: true
-                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
-                </motion.div>
-                <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="signupPassword" className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
-                  <Input id="signupPassword" type="password" {...signupForm.register('password', {
-                  required: true,
-                  minLength: 6
-                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
-                  {signupForm.formState.errors.password?.type === 'minLength' && <p className="text-xs text-red-500 font-medium mt-1">Password must be at least 6 characters</p>}
-                </motion.div>
-                <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-medium">Confirm Password</Label>
-                  <Input id="confirmPassword" type="password" {...signupForm.register('confirmPassword', {
-                  required: true
-                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
-                  {signupForm.formState.errors.confirmPassword?.message && <p className="text-xs text-red-500 font-medium mt-1">
-                      {signupForm.formState.errors.confirmPassword?.message}
-                    </p>}
-                </motion.div>
-                <motion.div variants={itemVariants} className="pt-2">
-                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all" disabled={isSubmitting}>
-                    {isSubmitting ? 'Signing up...' : 'Create Account'}
-                  </Button>
-                </motion.div>
+                {signupStep === 1 ? (
+                  <>
+                    <motion.div className="space-y-2" variants={itemVariants}>
+                      <Label htmlFor="fullName" className="text-slate-700 dark:text-slate-300 font-medium">Full Name</Label>
+                      <Input id="fullName" placeholder="John Doe" {...signupForm.register('fullName', {
+                      required: true
+                    })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                      {signupForm.formState.errors.fullName && <p className="text-xs text-red-500 font-medium">Name is required</p>}
+                    </motion.div>
+                    <motion.div className="space-y-2" variants={itemVariants}>
+                      <Label htmlFor="signupEmail" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
+                      <Input id="signupEmail" type="email" placeholder="your@email.com" {...signupForm.register('email', {
+                      required: true
+                    })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                      {signupForm.formState.errors.email && <p className="text-xs text-red-500 font-medium">Email is required</p>}
+                    </motion.div>
+                    <motion.div variants={itemVariants} className="pt-2">
+                      <Button type="button" onClick={handleNextStep} className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all">
+                        Next
+                      </Button>
+                    </motion.div>
+                  </>
+                ) : (
+                  <>
+                    <motion.div className="space-y-2" variants={itemVariants}>
+                      <Label htmlFor="signupPassword" className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
+                      <Input id="signupPassword" type="password" {...signupForm.register('password', {
+                      required: true,
+                      minLength: 6
+                    })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                      {signupForm.formState.errors.password?.type === 'minLength' && <p className="text-xs text-red-500 font-medium mt-1">Password must be at least 6 characters</p>}
+                      {signupForm.formState.errors.password?.type === 'required' && <p className="text-xs text-red-500 font-medium mt-1">Password is required</p>}
+                    </motion.div>
+                    <motion.div className="space-y-2" variants={itemVariants}>
+                      <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-medium">Confirm Password</Label>
+                      <Input id="confirmPassword" type="password" {...signupForm.register('confirmPassword', {
+                      required: true
+                    })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                      {signupForm.formState.errors.confirmPassword?.message && <p className="text-xs text-red-500 font-medium mt-1">
+                          {signupForm.formState.errors.confirmPassword?.message}
+                        </p>}
+                    </motion.div>
+                    <motion.div variants={itemVariants} className="pt-2 flex gap-3">
+                      <Button type="button" variant="outline" onClick={() => setSignupStep(1)} className="h-11 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-100/50 font-semibold px-4">
+                        Back
+                      </Button>
+                      <Button type="submit" className="flex-grow h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all" disabled={isSubmitting}>
+                        {isSubmitting ? 'Signing up...' : 'Create Account'}
+                      </Button>
+                    </motion.div>
+                  </>
+                )}
               </form>
             </TabsContent>
           </Tabs>

@@ -4,58 +4,58 @@
 
 @layer base {
   :root {
-    --background: 216 50% 98%; /* Refined blue-tinted background */
-    --foreground: 222.2 84% 4.9%;
+    --background: 219 14% 97%; /* Slate 50/100 split */
+    --foreground: 224 71.4% 4.1%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 224 71.4% 4.1%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 224 71.4% 4.1%;
 
-    --primary: 0 0% 0%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 243 75% 59%; /* Premium Indigo-600 */
+    --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 220 14.3% 95.9%;
+    --secondary-foreground: 220.9 39.3% 11%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14.3% 95.9%;
+    --muted-foreground: 220 8.9% 46.1%;
 
-    --accent: 0 0% 0%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 243 75% 97%; /* Soft Indigo Tint */
+    --accent-foreground: 243 75% 40%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 13% 91%; /* Sophisticated slate-100 border */
+    --input: 220 13% 91%;
+    --ring: 243 75% 59%;
 
-    --radius: 1rem;
+    --radius: 1.25rem; /* Rounder modern corners */
 
     --sidebar-background: 216 50% 97%;
     --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 0 0% 0%;
+    --sidebar-primary: 243 75% 59%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 0 0% 95%;
     --sidebar-accent-foreground: 240 5.9% 10%;
     --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 0 0% 0%;
+    --sidebar-ring: 243 75% 59%;
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
+    --background: 224 71.4% 4.1%;
     --foreground: 210 40% 98%;
 
-    --card: 222.2 84% 4.9%;
+    --card: 224 71.4% 4.1%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222.2 84% 4.9%;
+    --popover: 224 71.4% 4.1%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 243 75% 59%;
+    --primary-foreground: 210 40% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -71,15 +71,15 @@
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 243 75% 59%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary: 243 75% 59%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 0 0% 100%;
+    --sidebar-ring: 243 75% 59%;
   }
 }
 
@@ -89,7 +89,8 @@
   }
 
   body {
-    @apply bg-white text-foreground;
+    @apply bg-slate-50 text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
   }
 }
@@ -132,15 +133,16 @@
 
 /* Premium card effect - Updated for better interactivity */
 .premium-card {
-  @apply bg-white shadow-xl border border-slate-200 rounded-2xl overflow-hidden dark:bg-slate-900 dark:border-slate-800;
+  @apply bg-white shadow-sm border border-slate-100 rounded-3xl overflow-hidden dark:bg-slate-900 dark:border-slate-800;
   position: relative; /* Ensure proper stacking context */
   z-index: 1; /* Ensure card is above background elements */
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s ease;
 }
 
 .premium-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  transform: translateY(-4px);
+  @apply border-indigo-100/50;
+  box-shadow: 0 20px 40px -15px rgba(99, 102, 241, 0.08), 0 10px 20px -10px rgba(0, 0, 0, 0.02);
 }
 
 /* Form fields need to be interactive */
@@ -217,15 +219,15 @@ video.dce-video-player {
 
 /* Premium UI elements */
 .premium-button {
-  @apply bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white font-medium py-2 px-4 rounded-xl shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5;
+  @apply bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold py-2.5 px-5 rounded-xl shadow-sm transition-all duration-200 ease-out hover:shadow-md hover:shadow-indigo-100 transform hover:-translate-y-0.5 active:translate-y-0;
 }
 
 .premium-card-header {
-  @apply bg-gradient-to-r from-black/90 to-gray-900/90 text-white font-medium p-5 rounded-t-2xl;
+  @apply bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white font-semibold p-5 rounded-t-3xl;
 }
 
 .premium-card-content {
-  @apply p-5;
+  @apply p-6;
 }
 
 /* Better scrollbar */
@@ -256,16 +258,16 @@ video.dce-video-player {
 
 /* Add glass-panel styles for the header */
 .glass-panel {
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
   transition: background 0.3s ease;
 }
 
 /* Make sure bg-white is used throughout the app */
 .app-background {
-  @apply bg-white dark:bg-slate-900;
+  @apply bg-slate-50 dark:bg-slate-900;
 }
 
 /* Fix any possible overflow issues that might cause scrollbars */
@@ -274,7 +276,7 @@ html, body {
   margin: 0;
   padding: 0;
   width: 100%;
-  background: #fff !important;
+  background: hsl(var(--background)) !important;
   min-height: 100vh;
 }
 
@@ -298,18 +300,14 @@ html, body {
   display: none;
 }
 
-body {
-  background-color: #000;
+#root {
+  min-height: 100vh;
+  background: hsl(var(--background));
 }
 
 @media (display-mode: standalone) {
   body {
     padding-bottom: env(safe-area-inset-bottom);
-    background-color: #000;
+    background-color: hsl(var(--background));
   }
-}
-
-#root {
-  min-height: 100vh;
-  background: #fff;
 }

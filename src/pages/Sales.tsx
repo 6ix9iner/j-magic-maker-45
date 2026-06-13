@@ -204,33 +204,36 @@ const Sales = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center mb-6">
+    <div className="py-2 px-1 sm:py-4 sm:px-2">
+      <div className="flex items-center gap-3 mb-6">
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="sm" 
           onClick={() => navigate("/settings")}
-          className="mr-2"
+          className="h-9 w-9 p-0 rounded-xl border-slate-200 hover:bg-slate-100/50 shrink-0"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" /> Back
+          <ChevronLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-3xl font-bold">Sales History</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+          <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+          Sales History
+        </h1>
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
+      <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+        <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between w-full">
             <div>
-              <CardTitle>My Sales</CardTitle>
-              <CardDescription>Your personal sales transaction history</CardDescription>
+              <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">My Sales</CardTitle>
+              <CardDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium">Your personal sales transaction history</CardDescription>
             </div>
             {sales.length > 0 && (
               <Button 
                 onClick={handleDownloadSales}
-                className="flex items-center gap-2"
+                className="h-9 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1.5 px-3"
               >
                 <Download className="h-4 w-4" />
-                Download CSV
+                CSV
               </Button>
             )}
           </div>
@@ -283,8 +286,8 @@ const Sales = () => {
                       {sale.isExpanded && (
                         <TableRow key={`${sale.id}-details`}>
                           <TableCell colSpan={6}>
-                            <div className="bg-gray-50 p-4 rounded-md">
-                              <h4 className="font-medium mb-2">Sale Items:</h4>
+                            <div className="bg-slate-50/70 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100/50 dark:border-slate-800">
+                              <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-2">Sale Items:</h4>
                               {sale.items && sale.items.length > 0 ? (
                                 <Table>
                                   <TableHeader>

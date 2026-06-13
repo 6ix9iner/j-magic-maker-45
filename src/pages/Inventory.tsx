@@ -314,16 +314,19 @@ const Inventory = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-6 px-4 sm:py-10 sm:px-6">
+    <div className="py-2 px-1 sm:py-4 sm:px-2">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <header className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
-            <p className="mt-2 text-gray-600">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+              Inventory Management
+            </h1>
+            <p className="mt-1 text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">
               Manage your products and stock levels
             </p>
           </div>
-          <Button onClick={openNewProductDialog}>Add New Product</Button>
+          <Button onClick={openNewProductDialog} className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all">Add New Product</Button>
         </header>
 
         <SearchBox 
@@ -331,11 +334,11 @@ const Inventory = () => {
           onSearchChange={setSearchTerm}
         />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Products</CardTitle>
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden mt-6 bg-white dark:bg-slate-900">
+          <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Products</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-4">
             <ProductList
               products={products}
               isLoading={isLoading}

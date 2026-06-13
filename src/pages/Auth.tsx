@@ -12,6 +12,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Logo from '@/components/Logo';
 
 type LoginFormValues = {
   email: string;
@@ -173,24 +174,25 @@ const Auth = () => {
   };
   if (isResetMode) {
     return <motion.div className="flex min-h-[80vh] items-center justify-center p-4" initial="hidden" animate="visible" variants={containerVariants}>
-        <Card className="w-full max-w-md premium-card shadow-2xl overflow-hidden">
-          <CardHeader className="space-y-1 text-center bg-gradient-to-r from-black to-gray-800 text-white pb-6 pt-8">
-            <motion.div variants={itemVariants}>
-              <CardTitle className="text-2xl font-bold">Set New Password</CardTitle>
-              <CardDescription className="text-gray-200">Enter your new password below</CardDescription>
+        <Card className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_20px_50px_rgba(99,102,241,0.06)] rounded-3xl overflow-hidden">
+          <CardHeader className="space-y-2 text-center pb-6 pt-8 border-b border-slate-50 dark:border-slate-800">
+            <motion.div variants={itemVariants} className="flex flex-col items-center gap-3">
+              <Logo iconOnly size={40} />
+              <CardTitle className="text-2xl font-bold text-slate-800 dark:text-slate-100">Set New Password</CardTitle>
+              <CardDescription className="text-slate-400 dark:text-slate-500 font-medium">Enter your new password below</CardDescription>
             </motion.div>
           </CardHeader>
-          <CardContent className="p-6 bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-lg text-white">
+          <CardContent className="p-6">
             <form onSubmit={handleResetPassword} className="space-y-4">
               <motion.div className="space-y-2" variants={itemVariants}>
-                <Label htmlFor="newPassword" className="text-white">New Password</Label>
-                <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={6} required className="premium-input" />
-                <p className="text-xs text-gray-200/70">
+                <Label htmlFor="newPassword" className="text-slate-700 dark:text-slate-300 font-medium">New Password</Label>
+                <Input id="newPassword" type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} minLength={6} required className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                <p className="text-xs text-slate-400 dark:text-slate-500">
                   Password must be at least 6 characters
                 </p>
               </motion.div>
               <motion.div variants={itemVariants}>
-                <Button type="submit" className="w-full premium-button" disabled={isSubmitting}>
+                <Button type="submit" className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all" disabled={isSubmitting}>
                   {isSubmitting ? 'Updating...' : 'Update Password'}
                 </Button>
               </motion.div>
@@ -200,23 +202,23 @@ const Auth = () => {
       </motion.div>;
   }
   return <motion.div className="flex min-h-[80vh] items-center justify-center p-4" initial="hidden" animate="visible" variants={containerVariants}>
-      <Card className="w-full max-w-md shadow-2xl overflow-hidden border-0 rounded-xl">
-        <CardHeader className="space-y-1 text-center bg-gradient-to-r from-black to-gray-800 text-white pb-6 pt-8 bg-gray-950">
-          <motion.div variants={itemVariants}>
-            <CardTitle className="text-3xl font-bold tracking-tight">Insight Inventory</CardTitle>
-            <CardDescription className="text-gray-200 text-lg">Enterprise inventory management</CardDescription>
+      <Card className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_20px_50px_rgba(99,102,241,0.06)] rounded-3xl overflow-hidden">
+        <CardHeader className="space-y-2 text-center pb-6 pt-8 border-b border-slate-50 dark:border-slate-800">
+          <motion.div variants={itemVariants} className="flex flex-col items-center gap-2">
+            <Logo size={42} className="mb-1" />
+            <CardDescription className="text-slate-400 dark:text-slate-500 font-medium text-sm sm:text-base">Enterprise inventory management</CardDescription>
           </motion.div>
         </CardHeader>
-        <CardContent className="p-6 bg-gradient-to-br from-gray-900/90 to-black/90 backdrop-blur-lg text-white">
-          {emailConfirmationError && <motion.div className="bg-gray-800/50 border border-gray-600/50 rounded-md p-4 mb-6" variants={itemVariants}>
+        <CardContent className="p-6 bg-transparent text-slate-800 dark:text-slate-200">
+          {emailConfirmationError && <motion.div className="bg-slate-50 dark:bg-slate-800 border border-slate-200/50 rounded-xl p-4 mb-6" variants={itemVariants}>
               <div className="flex items-start">
-                <AlertCircle className="h-5 w-5 text-gray-300 mr-2" />
+                <AlertCircle className="h-5 w-5 text-indigo-600 mr-2 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-medium text-gray-300">Email not confirmed</h3>
-                  <p className="text-sm text-gray-400 mt-1">
+                  <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-100">Email not confirmed</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
                     Please check your email and click the confirmation link.
                   </p>
-                  <Button variant="outline" className="mt-2 text-gray-300 hover:text-white border-gray-600/50 hover:bg-gray-800/50" onClick={handleResendConfirmation} disabled={isSubmitting}>
+                  <Button variant="outline" className="mt-3 text-xs text-slate-600 hover:text-slate-800 border-slate-200 hover:bg-slate-100/50 h-8 rounded-lg" onClick={handleResendConfirmation} disabled={isSubmitting}>
                     {isSubmitting ? 'Sending...' : 'Resend confirmation email'}
                   </Button>
                 </div>
@@ -224,32 +226,32 @@ const Auth = () => {
             </motion.div>}
           
           <Tabs defaultValue="login">
-            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/10 border-0">
-              <TabsTrigger value="login" className="data-[state=active]:bg-black/80 data-[state=active]:text-white text-white">Login</TabsTrigger>
-              <TabsTrigger value="signup" className="data-[state=active]:bg-black/80 data-[state=active]:text-white text-white">Sign Up</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-slate-50 dark:bg-slate-800 border-0 p-1 h-11 rounded-xl">
+              <TabsTrigger value="login" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-slate-500 dark:text-slate-400 font-semibold rounded-lg transition-all">Login</TabsTrigger>
+              <TabsTrigger value="signup" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-slate-500 dark:text-slate-400 font-semibold rounded-lg transition-all">Sign Up</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
               <form onSubmit={loginForm.handleSubmit(handleLogin)} className="space-y-4">
                 <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="email" className="text-white">Email</Label>
+                  <Label htmlFor="email" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                   <Input id="email" type="email" placeholder="your@email.com" {...loginForm.register('email', {
                   required: true
-                })} className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-gray-400/50 focus:border-transparent" />
+                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-white">Password</Label>
-                    <Link to="/reset-password" className="text-xs text-gray-300 hover:text-gray-200 animated-underline">
+                    <Label htmlFor="password" className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
+                    <Link to="/reset-password" className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 hover:underline">
                       Forgot password?
                     </Link>
                   </div>
                   <Input id="password" type="password" {...loginForm.register('password', {
                   required: true
-                })} className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-gray-400/50 focus:border-transparent" />
+                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
                 </motion.div>
-                <motion.div variants={itemVariants}>
-                  <Button type="submit" className="w-full bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white font-medium py-2 px-4 rounded-lg shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5" disabled={isSubmitting}>
+                <motion.div variants={itemVariants} className="pt-2">
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all" disabled={isSubmitting}>
                     {isSubmitting ? 'Signing in...' : 'Sign In'}
                   </Button>
                 </motion.div>
@@ -259,36 +261,36 @@ const Auth = () => {
             <TabsContent value="signup">
               <form onSubmit={signupForm.handleSubmit(handleSignup)} className="space-y-4">
                 <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="fullName" className="text-white">Full Name</Label>
+                  <Label htmlFor="fullName" className="text-slate-700 dark:text-slate-300 font-medium">Full Name</Label>
                   <Input id="fullName" placeholder="John Doe" {...signupForm.register('fullName', {
                   required: true
-                })} className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-gray-400/50 focus:border-transparent" />
+                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="signupEmail" className="text-white">Email</Label>
+                  <Label htmlFor="signupEmail" className="text-slate-700 dark:text-slate-300 font-medium">Email</Label>
                   <Input id="signupEmail" type="email" placeholder="your@email.com" {...signupForm.register('email', {
                   required: true
-                })} className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-gray-400/50 focus:border-transparent" />
+                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="signupPassword" className="text-white">Password</Label>
+                  <Label htmlFor="signupPassword" className="text-slate-700 dark:text-slate-300 font-medium">Password</Label>
                   <Input id="signupPassword" type="password" {...signupForm.register('password', {
                   required: true,
                   minLength: 6
-                })} className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-gray-400/50 focus:border-transparent" />
-                  {signupForm.formState.errors.password?.type === 'minLength' && <p className="text-sm text-red-400">Password must be at least 6 characters</p>}
+                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                  {signupForm.formState.errors.password?.type === 'minLength' && <p className="text-xs text-red-500 font-medium mt-1">Password must be at least 6 characters</p>}
                 </motion.div>
                 <motion.div className="space-y-2" variants={itemVariants}>
-                  <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-slate-700 dark:text-slate-300 font-medium">Confirm Password</Label>
                   <Input id="confirmPassword" type="password" {...signupForm.register('confirmPassword', {
                   required: true
-                })} className="bg-white/10 border border-white/20 text-white placeholder:text-white/50 focus:ring-2 focus:ring-gray-400/50 focus:border-transparent" />
-                  {signupForm.formState.errors.confirmPassword?.message && <p className="text-sm text-red-400">
+                })} className="h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50" />
+                  {signupForm.formState.errors.confirmPassword?.message && <p className="text-xs text-red-500 font-medium mt-1">
                       {signupForm.formState.errors.confirmPassword?.message}
                     </p>}
                 </motion.div>
-                <motion.div variants={itemVariants}>
-                  <Button type="submit" className="w-full bg-gradient-to-r from-black to-gray-800 hover:from-gray-900 hover:to-black text-white font-medium py-2 px-4 rounded-lg shadow-lg transition-all duration-200 ease-out hover:shadow-xl transform hover:-translate-y-0.5" disabled={isSubmitting}>
+                <motion.div variants={itemVariants} className="pt-2">
+                  <Button type="submit" className="w-full h-11 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold rounded-xl shadow-sm hover:shadow active:scale-[0.98] transition-all" disabled={isSubmitting}>
                     {isSubmitting ? 'Signing up...' : 'Create Account'}
                   </Button>
                 </motion.div>

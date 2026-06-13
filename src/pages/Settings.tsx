@@ -120,28 +120,31 @@ const Settings = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="py-2 px-1 sm:py-4 sm:px-2">
+      <div className="container mx-auto max-w-4xl">
         {/* Header Section */}
-        <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Settings</h1>
-          <p className="text-sm sm:text-base text-gray-600">Manage your account and application preferences</p>
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+            <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+            Settings
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">Manage your account and application preferences</p>
         </div>
 
         {/* Management Section */}
-        <div className="mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Management</h2>
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">Management</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {managementOptions.map((option) => (
-              <Card key={option.title} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={option.action}>
-                <CardHeader className="pb-3 p-4 sm:p-6">
+              <Card key={option.title} className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 hover:shadow hover:border-slate-200 transition-all duration-300 cursor-pointer group" onClick={option.action}>
+                <CardHeader className="p-4 sm:p-5">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${option.bgColor} shrink-0`}>
-                      <option.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${option.color}`} />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${option.bgColor}`}>
+                      <option.icon className={`h-5 w-5 ${option.color}`} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <CardTitle className="text-base sm:text-lg group-hover:text-blue-600 transition-colors truncate">{option.title}</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">{option.description}</CardDescription>
+                      <CardTitle className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 transition-colors truncate">{option.title}</CardTitle>
+                      <CardDescription className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{option.description}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -150,22 +153,22 @@ const Settings = () => {
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-6 border-slate-100 dark:border-slate-800" />
 
         {/* Account Section */}
-        <div className="mb-8">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Account</h2>
+        <div className="mb-6">
+          <h2 className="text-sm font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">Account</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {accountOptions.map((option) => (
-              <Card key={option.title} className="hover:shadow-md transition-shadow cursor-pointer group" onClick={option.action}>
-                <CardHeader className="pb-3 p-4 sm:p-6">
+              <Card key={option.title} className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-2xl bg-white dark:bg-slate-900 hover:shadow hover:border-slate-200 transition-all duration-300 cursor-pointer group" onClick={option.action}>
+                <CardHeader className="p-4 sm:p-5">
                   <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg ${option.bgColor} shrink-0`}>
-                      <option.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${option.color}`} />
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${option.bgColor}`}>
+                      <option.icon className={`h-5 w-5 ${option.color}`} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <CardTitle className="text-base sm:text-lg group-hover:text-blue-600 transition-colors truncate">{option.title}</CardTitle>
-                      <CardDescription className="text-xs sm:text-sm">{option.description}</CardDescription>
+                      <CardTitle className="text-sm sm:text-base font-bold text-slate-800 dark:text-slate-100 group-hover:text-indigo-600 transition-colors truncate">{option.title}</CardTitle>
+                      <CardDescription className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{option.description}</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
@@ -174,7 +177,7 @@ const Settings = () => {
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="my-6 border-slate-100 dark:border-slate-800" />
 
         {/* Inventory Security Section */}
         <div className="mb-8">
@@ -199,22 +202,20 @@ const Settings = () => {
         <Separator className="my-8" />
 
         {/* Sign Out Section */}
-        <div className="bg-white rounded-lg border border-red-200 p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-1">Sign Out</h3>
-              <p className="text-sm text-gray-600">Sign out of your account securely</p>
-            </div>
-            <Button 
-              variant="destructive"
-              onClick={handleSignOut}
-              disabled={!user}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
+        <div className="bg-red-50/20 dark:bg-red-950/10 rounded-3xl border border-red-100/50 dark:border-red-900/20 p-5 sm:p-6 flex flex-row items-center justify-between mt-6">
+          <div>
+            <h3 className="text-sm sm:text-base font-bold text-red-900 dark:text-red-400">Sign Out</h3>
+            <p className="text-xs text-red-700/80 dark:text-red-500/80 mt-0.5 font-medium">Sign out of your account securely</p>
           </div>
+          <Button 
+            variant="destructive"
+            onClick={handleSignOut}
+            disabled={!user}
+            className="flex items-center gap-2 h-10 px-4 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold shadow-sm active:scale-95 transition-all text-xs"
+          >
+            <LogOut className="h-4.5 w-4.5" />
+            Sign Out
+          </Button>
         </div>
       </div>
     </div>

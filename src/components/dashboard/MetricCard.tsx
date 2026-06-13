@@ -35,27 +35,33 @@ const MetricCard: React.FC<MetricCardProps> = ({
   
   return (
     <Card 
-      className={`${className} ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${highPriority ? 'border-l-4 border-l-primary' : ''}`}
+      className={`${className} overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm ${onClick ? 'cursor-pointer hover:shadow-md hover:border-slate-200 transition-all duration-300 transform active:scale-[0.98]' : ''} ${highPriority ? 'border-l-4 border-l-indigo-600' : ''}`}
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-start justify-between pb-1 sm:pb-2 px-3 sm:px-4 pt-3 sm:pt-4">
-        <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-          {Icon && <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${iconColor}`} />}
-          {title}
-        </CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 px-4 pt-4">
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-500 shrink-0">
+              <Icon className={`h-4 w-4 ${iconColor}`} />
+            </div>
+          )}
+          <span className="text-xs sm:text-sm font-medium text-slate-500 dark:text-slate-400">
+            {title}
+          </span>
+        </div>
         {trend && (
-          <div className={`text-xs font-medium ${trend.isPositive ? 'text-green-600' : 'text-red-600'} flex items-center`}>
+          <div className={`text-xs font-semibold px-1.5 py-0.5 rounded-md ${trend.isPositive ? 'text-green-700 bg-green-50' : 'text-red-700 bg-red-50'} flex items-center`}>
             {trend.isPositive ? '+' : ''}{trend.value}%
           </div>
         )}
       </CardHeader>
-      <CardContent className="px-3 sm:px-4 pb-3 sm:pb-4 pt-0">
-        <div className={`text-lg sm:text-2xl font-bold ${valueClassName}`}>
+      <CardContent className="px-4 pb-4 pt-1">
+        <div className={`text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 ${valueClassName}`}>
           {formattedValue}
         </div>
         {description && (
           <div className="mt-1">
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">{description}</p>
           </div>
         )}
       </CardContent>

@@ -65,15 +65,15 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-3 px-3 sm:py-6 sm:px-4 md:py-8 md:px-6">
-      <div className="w-full max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+    <div className="py-2 px-1 sm:py-4 sm:px-2">
+      <div className="w-full max-w-7xl mx-auto space-y-5">
+        <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
               Dashboard
-              <span className="block sm:hidden text-sm font-normal text-gray-500 mt-1">{currentDay}, {currentMonth} {currentDate}</span>
             </h1>
-            <p className="mt-1 sm:mt-2 text-sm sm:text-base text-gray-600 hidden sm:block">
+            <p className="mt-1 text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">
               {currentDay}, {currentMonth} {currentDate}
             </p>
           </div>
@@ -203,9 +203,9 @@ const Dashboard = () => {
         </div>
 
         <Tabs defaultValue="financial" className="w-full">
-          <TabsList className="overflow-auto flex flex-nowrap bg-white/50 backdrop-blur-sm p-1">
-            <TabsTrigger value="financial">Financial Analysis</TabsTrigger>
-            <TabsTrigger value="insights" id="insights-tab">AI Insights</TabsTrigger>
+          <TabsList className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl h-11 w-fit border-0">
+            <TabsTrigger value="financial" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-slate-500 dark:text-slate-400 font-semibold rounded-lg transition-all h-9 px-4 text-xs sm:text-sm">Financial Analysis</TabsTrigger>
+            <TabsTrigger value="insights" id="insights-tab" className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-950 data-[state=active]:text-indigo-600 dark:data-[state=active]:text-indigo-400 text-slate-500 dark:text-slate-400 font-semibold rounded-lg transition-all h-9 px-4 text-xs sm:text-sm">AI Insights</TabsTrigger>
           </TabsList>
 
           <TabsContent value="financial" className="mt-4 space-y-4 sm:space-y-6">
@@ -240,33 +240,33 @@ const Dashboard = () => {
           </TabsContent>
 
           <TabsContent value="insights" className="mt-4">
-            <Card className="shadow-sm hover:shadow-md transition-shadow">
-              <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6 pb-2 flex flex-row items-center justify-between bg-gradient-to-r from-blue-50 to-blue-100/50 border-b border-blue-100">
+            <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden">
+              <CardHeader className="px-5 py-4 flex flex-row items-center justify-between border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
                 <div>
-                  <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-amber-500" />
-                    AI Insights
+                  <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-indigo-500" />
+                    AI Financial Insights
                   </CardTitle>
                 </div>
-                <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI} className="bg-white hover:bg-blue-50">
-                  {isLoadingAI ? 'Analyzing...' : 'Refresh Insights'}
+                <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI} className="h-9 rounded-xl text-xs border-slate-200 hover:bg-slate-100/50">
+                  {isLoadingAI ? 'Analyzing...' : 'Refresh'}
                 </Button>
               </CardHeader>
-              <CardContent className="px-4 sm:px-6 py-4">
-                <div className="space-y-4">
+              <CardContent className="p-5 bg-white dark:bg-slate-900">
+                <div className="space-y-3">
                   {isLoadingAI ? (
                     <div className="flex flex-col items-center justify-center py-8">
-                      <div className="animate-spin h-8 w-8 mb-4 border-4 border-blue-500 border-t-transparent rounded-full"></div>
-                      <p className="text-muted-foreground">Analyzing your business data...</p>
+                      <div className="animate-spin h-7 w-7 mb-3 border-4 border-indigo-600 border-t-transparent rounded-full"></div>
+                      <p className="text-sm font-medium text-slate-500">Analyzing your business data...</p>
                     </div>
                   ) : (
                     aiInsights.map((insight, index) => (
-                      <div key={index} className="flex items-start gap-3 p-3 rounded-lg bg-blue-50 border border-blue-100">
-                        <div className="bg-blue-100 rounded-full p-1 flex-shrink-0">
-                          <Sparkles className="h-5 w-5 text-blue-700" />
+                      <div key={index} className="flex items-start gap-3 p-3.5 rounded-2xl bg-indigo-50/30 dark:bg-indigo-950/10 border border-indigo-100/20 dark:border-indigo-900/20">
+                        <div className="bg-indigo-100/60 dark:bg-indigo-900/40 rounded-lg p-1.5 flex-shrink-0">
+                          <Sparkles className="h-4.5 w-4.5 text-indigo-600 dark:text-indigo-400" />
                         </div>
                         <div>
-                          <p className="text-sm text-gray-800">{insight}</p>
+                          <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-medium">{insight}</p>
                         </div>
                       </div>
                     ))

@@ -34,8 +34,11 @@ const Index = () => {
   }, []);
 
   return (
-    <div className="flex flex-col min-h-full pb-16 px-4 max-w-5xl mx-auto">
-      <h2 className="text-xl font-semibold mb-4 mt-4">Scan & Lookup</h2>
+    <div className="flex flex-col min-h-full pb-16 px-2 sm:px-4 max-w-5xl mx-auto">
+      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 mt-4 flex items-center gap-2">
+        <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+        Scan & Lookup
+      </h2>
       <div className="space-y-6 mb-8">
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
@@ -58,14 +61,14 @@ const Index = () => {
             </div>
           ) : (
             <motion.div 
-              className="premium-card overflow-hidden relative"
+              className="premium-card overflow-hidden relative border border-slate-100/80 rounded-3xl"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="p-5 bg-gradient-to-r from-black to-gray-900 text-white bg-black">
-                <h2 className="font-medium text-lg">Scan Barcode</h2>
-                <p className="text-sm opacity-90">Position a barcode within the frame</p>
+              <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white">
+                <h2 className="font-semibold text-base sm:text-lg">Scan Barcode</h2>
+                <p className="text-xs text-slate-300 mt-1">Position a barcode within the frame</p>
               </div>
               <div className="relative p-4">
                 <BarcodeScanner onDetected={handleBarcodeDetected} />
@@ -75,12 +78,15 @@ const Index = () => {
         </motion.div>
       </div>
 
-      <h2 className="text-xl font-semibold mb-4">Current Sale</h2>
+      <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
+        <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+        Current Sale
+      </h2>
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="premium-card p-4 mb-8"
+        className="premium-card p-5 mb-8 rounded-3xl border border-slate-100"
       >
         <SaleManager ref={saleManagerRef} />
       </motion.div>

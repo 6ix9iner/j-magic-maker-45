@@ -26,30 +26,41 @@ const SalesChart = memo(({ salesByDate, isLoading }: { salesByDate: SaleSummary[
   if (isLoading) return <LoadingSkeleton />;
   
   return (
-    <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-blue-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-blue-50 to-blue-100/50">
-        <CardTitle className="text-lg sm:text-xl flex items-center">
-          <BarChartIcon className="h-5 w-5 mr-2 text-blue-500" />
+    <Card className="col-span-1 w-full border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden">
+      <CardHeader className="px-4 pt-5 pb-3 border-b border-slate-50 dark:border-slate-800">
+        <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center">
+          <BarChartIcon className="h-5 w-5 mr-2 text-indigo-500" />
           Sales Last 7 Days
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm">Daily sales revenue</CardDescription>
+        <CardDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium">Daily sales revenue</CardDescription>
       </CardHeader>
-      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+      <CardContent className="pt-4 px-4 pb-4">
         <div className="h-[260px] w-full">
           {salesByDate.length > 0 ? (
-            <ChartContainer config={{ sales: { color: "#2563eb" } }}>
+            <ChartContainer config={{ sales: { color: "#6366f1" } }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={salesByDate}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                  <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                  <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <defs>
+                    <linearGradient id="sales-bar-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95}/>
+                      <stop offset="100%" stopColor="#4f46e5" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis dataKey="date" tick={{ fontSize: isMobile ? 9 : 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                  <YAxis 
+                    tick={{ fontSize: isMobile ? 9 : 11, fill: '#94a3b8' }} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={(val) => `₦${val >= 1000 ? (val / 1000).toFixed(0) + 'K' : val}`}
+                  />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total" name="Sales ($)" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="total" name="Sales (₦)" fill="url(#sales-bar-grad)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="h-full flex items-center justify-center text-slate-400">
               No sales data available
             </div>
           )}
@@ -65,35 +76,49 @@ const TopProductsChart = memo(({ topProducts, isLoading }: { topProducts: Produc
   if (isLoading) return <LoadingSkeleton />;
   
   return (
-    <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-green-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-green-50 to-green-100/50">
-        <CardTitle className="text-lg sm:text-xl flex items-center">
-          <TrendingUp className="h-5 w-5 mr-2 text-green-500" />
+    <Card className="col-span-1 w-full border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden">
+      <CardHeader className="px-4 pt-5 pb-3 border-b border-slate-50 dark:border-slate-800">
+        <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center">
+          <TrendingUp className="h-5 w-5 mr-2 text-emerald-500" />
           Top Products
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm">By revenue this week</CardDescription>
+        <CardDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium">By revenue this week</CardDescription>
       </CardHeader>
-      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+      <CardContent className="pt-4 px-4 pb-4">
         <div className="h-[260px] w-full">
           {topProducts.length > 0 ? (
             <ChartContainer config={{ revenue: { color: "#10b981" } }}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={topProducts} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                  <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 12 }} />
+                  <defs>
+                    <linearGradient id="prod-bar-grad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#34d399" stopOpacity={0.8}/>
+                      <stop offset="100%" stopColor="#10b981" stopOpacity={0.95}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" horizontal={false} />
+                  <XAxis 
+                    type="number" 
+                    tick={{ fontSize: isMobile ? 9 : 11, fill: '#94a3b8' }} 
+                    tickLine={false} 
+                    axisLine={false}
+                    tickFormatter={(val) => `₦${val >= 1000 ? (val / 1000).toFixed(0) + 'K' : val}`}
+                  />
                   <YAxis 
                     dataKey="product_name" 
                     type="category" 
-                    width={isMobile ? 80 : 150} 
-                    tick={{ fontSize: isMobile ? 9 : 12 }}
+                    width={isMobile ? 80 : 120} 
+                    tick={{ fontSize: isMobile ? 8 : 11, fill: '#64748b' }}
+                    tickLine={false}
+                    axisLine={false}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="total_revenue" name="Revenue ($)" fill="#10b981" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="total_revenue" name="Revenue (₦)" fill="url(#prod-bar-grad)" radius={[0, 4, 4, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>
           ) : (
-            <div className="h-full flex items-center justify-center text-muted-foreground">
+            <div className="h-full flex items-center justify-center text-slate-400">
               No product data available
             </div>
           )}
@@ -108,32 +133,36 @@ const MonthlyTrendChart = memo(({ monthlySalesTrend, isLoading }: { monthlySales
   
   if (isLoading) return <LoadingSkeleton />;
   
-  return (
-    <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-purple-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-purple-50 to-purple-100/50">
-        <CardTitle className="text-lg sm:text-xl flex items-center">
-          <ChartLine className="h-5 w-5 mr-2 text-purple-500" />
+    <Card className="col-span-1 w-full border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden">
+      <CardHeader className="px-4 pt-5 pb-3 border-b border-slate-50 dark:border-slate-800">
+        <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center">
+          <ChartLine className="h-5 w-5 mr-2 text-violet-500" />
           Monthly Sales Trend
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm">Last 6 months</CardDescription>
+        <CardDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium">Last 6 months</CardDescription>
       </CardHeader>
-      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+      <CardContent className="pt-4 px-4 pb-4">
         <div className="h-[260px] w-full">
           <ChartContainer config={{ trend: { color: "#8b5cf6" } }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={monthlySalesTrend}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f5" />
-                <XAxis dataKey="date" tick={{ fontSize: isMobile ? 10 : 12 }} />
-                <YAxis tick={{ fontSize: isMobile ? 10 : 12 }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: isMobile ? 9 : 11, fill: '#94a3b8' }} tickLine={false} axisLine={false} />
+                <YAxis 
+                  tick={{ fontSize: isMobile ? 9 : 11, fill: '#94a3b8' }} 
+                  tickLine={false} 
+                  axisLine={false}
+                  tickFormatter={(val) => `₦${val >= 1000 ? (val / 1000).toFixed(0) + 'K' : val}`}
+                />
                 <ChartTooltip content={<ChartTooltipContent />} />
                 <Line 
                   type="monotone" 
                   dataKey="total" 
-                  name="Monthly Revenue ($)" 
-                  stroke="#8b5cf6" 
-                  strokeWidth={2} 
-                  activeDot={{ r: 8 }} 
-                  dot={{ r: 4 }}
+                  name="Monthly Revenue (₦)" 
+                  stroke="#6366f1" 
+                  strokeWidth={2.5} 
+                  activeDot={{ r: 6, fill: '#4f46e5', strokeWidth: 2, stroke: '#ffffff' }} 
+                  dot={{ r: 3.5, fill: '#6366f1', strokeWidth: 1.5, stroke: '#ffffff' }}
                 />
               </LineChart>
             </ResponsiveContainer>
@@ -141,7 +170,6 @@ const MonthlyTrendChart = memo(({ monthlySalesTrend, isLoading }: { monthlySales
         </div>
       </CardContent>
     </Card>
-  );
 });
 
 const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: CategorySale[], isLoading: boolean }) => {
@@ -162,15 +190,15 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
   };
   
   return (
-    <Card className="col-span-1 w-full shadow-sm hover:shadow-md transition-shadow border-amber-100">
-      <CardHeader className="px-3 sm:px-6 pt-3 sm:pt-6 pb-2 bg-gradient-to-r from-amber-50 to-amber-100/50">
-        <CardTitle className="text-lg sm:text-xl flex items-center">
+    <Card className="col-span-1 w-full border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden">
+      <CardHeader className="px-4 pt-5 pb-3 border-b border-slate-50 dark:border-slate-800">
+        <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center">
           <ChartPie className="h-5 w-5 mr-2 text-amber-500" />
           Sales by Category
         </CardTitle>
-        <CardDescription className="text-xs sm:text-sm">Product category distribution</CardDescription>
+        <CardDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium">Product category distribution</CardDescription>
       </CardHeader>
-      <CardContent className="pt-2 px-3 sm:px-4 pb-4">
+      <CardContent className="pt-4 px-4 pb-4">
         <div className="h-[260px] w-full">
           <ChartContainer config={{ category: { color: "#10b981" } }}>
             <ResponsiveContainer width="100%" height="100%">
@@ -182,14 +210,14 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
                   labelLine={false}
                   label={renderCustomLabel}
                   outerRadius={isMobile ? 60 : 75}
-                  innerRadius={isMobile ? 20 : 25}
+                  innerRadius={isMobile ? 25 : 30}
                   fill="#8884d8"
                   dataKey="value"
                   nameKey="category"
                   style={{ 
-                    fontSize: isMobile ? '10px' : '12px',
+                    fontSize: isMobile ? '9px' : '11px',
                     fontWeight: '500',
-                    fill: '#374151'
+                    fill: '#475569'
                   }}
                 >
                   {categorySales.map((entry, index) => (
@@ -198,7 +226,7 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
                 </Pie>
                 <ChartTooltip 
                   content={<ChartTooltipContent />} 
-                  formatter={(value, name) => [`$${value.toLocaleString()}`, name]}
+                  formatter={(value, name) => [`₦${value.toLocaleString()}`, name]}
                 />
               </PieChart>
             </ResponsiveContainer>

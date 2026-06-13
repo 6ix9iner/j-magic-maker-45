@@ -9,6 +9,8 @@ import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MobilePopover from '@/components/ui/mobile-popover';
 
+import Logo from './Logo';
+
 const Layout = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -42,31 +44,20 @@ const Layout = () => {
     <div className="flex flex-col h-screen overflow-hidden">
       {/* Top Navigation Bar - Enhanced with premium glass effect */}
       <motion.header 
-        className="glass-panel shadow-lg border-b z-10 border-white/10"
+        className="glass-panel shadow-sm border-b z-10 border-slate-100"
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto bg-gray-50">
+        <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto bg-transparent">
           <motion.div 
             className="flex items-center"
             initial={{ x: -20, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Link to="/" className="flex items-center space-x-2">
-              <motion.div 
-                className="w-8 h-8 rounded-full bg-gradient-to-r from-black to-gray-800 flex items-center justify-center shadow-lg"
-                whileHover={{ scale: 1.05 }}
-                transition={{ duration: 0.2 }}
-              >
-                <span className="text-white font-bold text-sm">II</span>
-              </motion.div>
-              <motion.h1 
-                whileHover={{ scale: 1.03 }}
-                transition={{ duration: 0.2 }}
-                className="text-xl font-bold bg-gradient-to-r from-gray-600 to-black bg-clip-text drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)] text-black"
-              ></motion.h1>
+            <Link to="/" className="flex items-center">
+              <Logo size={34} />
             </Link>
           </motion.div>
           
@@ -128,70 +119,58 @@ const Layout = () => {
       </motion.header>
       
       {/* Main Content Area */}
-      <main className="flex-1 overflow-y-auto pb-20">
-        <div className="max-w-5xl mx-auto p-4 bg-gray-50">
+      <main className="flex-1 overflow-y-auto pb-24">
+        <div className="max-w-5xl mx-auto p-4 sm:p-6 bg-transparent">
           <Outlet />
         </div>
       </main>
       
-      {/* Bottom Tab Navigation - Enhanced for better visibility */}
+      {/* Bottom Tab Navigation - Enhanced floating capsule dock */}
       {user && (
         <motion.nav 
-          initial={{ y: 20, opacity: 0 }}
+          initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.5 }}
-          className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-black to-gray-900 border-t border-white/20 shadow-2xl h-16 z-40 bg-[#070807]/0"
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
+          className="fixed bottom-4 left-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border border-slate-100 dark:border-slate-800/80 shadow-[0_12px_40px_rgba(99,102,241,0.08)] h-16 z-40 rounded-2xl max-w-lg mx-auto"
         >
-          <div className="flex justify-around items-center h-full max-w-xl mx-auto px-2">
+          <div className="flex justify-around items-center h-full px-2">
             {navItems.map((item, index) => {
               const isActive = location.pathname === item.path;
               const Icon = item.icon;
 
-              // For regular tabs
               return (
                 <motion.div 
                   key={item.path}
-                  initial={{ y: 20, opacity: 0 }}
+                  initial={{ y: 10, opacity: 0 }}
                   animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 * index, duration: 0.3 }}
+                  transition={{ delay: 0.05 * index, duration: 0.3 }}
                 >
                   <Link 
                     to={item.path} 
                     className={cn(
-                      "flex flex-col items-center justify-center py-2 w-full rounded-xl transition-all duration-300 ease-in-out",
+                      "flex flex-col items-center justify-center w-16 h-12 rounded-xl transition-all duration-300 ease-out group",
                       isActive 
-                        ? "bg-white/20 text-white scale-105 shadow-lg" 
-                        : "text-white/80 hover:text-white hover:bg-white/10"
+                        ? "bg-indigo-50/80 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 scale-105" 
+                        : "text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-slate-50/50 dark:hover:bg-slate-800/50"
                     )}
-                    style={{ minWidth: "70px", padding: "0.5rem" }}
                   >
-                    <div className="relative">
+                    <div className="relative flex flex-col items-center">
                       <Icon className={cn(
-                        "h-5 w-5 mb-1 transition-all duration-300",
-                        isActive ? "text-white scale-110" : "text-white/70"
+                        "h-5 w-5 mb-0.5 transition-transform duration-300 group-hover:scale-110",
+                        isActive ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400 dark:text-slate-500"
                       )} />
-                      {isActive && (
-                        <motion.div 
-                          layoutId="activeIndicator"
-                          className="absolute -bottom-1 inset-x-0 mx-auto w-1 h-1 bg-white rounded-full"
-                          initial={false}
-                          transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        />
-                      )}
+                      <span className={cn(
+                        "text-[10px] transition-all duration-200",
+                        isActive ? "font-semibold" : "font-medium text-slate-400 dark:text-slate-500"
+                      )}>
+                        {item.name}
+                      </span>
                     </div>
-                    <span className={cn(
-                      "text-xs transition-all duration-300",
-                      isActive ? "font-medium" : "font-normal"
-                    )}>
-                      {item.name}
-                    </span>
                   </Link>
                 </motion.div>
               );
             })}
           </div>
-          {/* Safe area bottom padding for iOS devices */}
-          <div className="h-safe-area-bottom bg-gradient-to-r from-black to-gray-900" />
         </motion.nav>
       )}
     </div>

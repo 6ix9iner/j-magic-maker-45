@@ -158,59 +158,62 @@ const Receipts = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex items-center mb-6">
+    <div className="py-2 px-1 sm:py-4 sm:px-2">
+      <div className="flex items-center gap-3 mb-6">
         <Button 
-          variant="ghost" 
+          variant="outline" 
           size="sm" 
           onClick={() => navigate("/settings")}
-          className="mr-2"
+          className="h-9 w-9 p-0 rounded-xl border-slate-200 hover:bg-slate-100/50 shrink-0"
         >
-          <ChevronLeft className="h-4 w-4 mr-1" /> Back
+          <ChevronLeft className="h-5 w-5" />
         </Button>
-        <h1 className="text-3xl font-bold">Receipt Generator</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+          <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+          Receipt Generator
+        </h1>
       </div>
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Business Information</CardTitle>
+      <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900 mb-6">
+        <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+          <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Business Information</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           {businessInfo ? (
             <div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div>
-                  <h3 className="font-medium">Business Details</h3>
-                  <p>{businessInfo.business_name}</p>
-                  <p>{businessInfo.address}</p>
-                  <p>{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-slate-400 dark:text-slate-500 uppercase tracking-wider">Business Details</h3>
+                  <p className="font-semibold text-slate-800 dark:text-slate-200 text-lg">{businessInfo.business_name}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">{businessInfo.address}</p>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm">{businessInfo.city}, {businessInfo.state} {businessInfo.zip_code}</p>
                 </div>
-                <div>
-                  <h3 className="font-medium">Contact Information</h3>
-                  <p>Phone: {businessInfo.phone}</p>
-                  <p>Email: {businessInfo.email}</p>
-                  {businessInfo.website && <p>Website: {businessInfo.website}</p>}
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-slate-400 dark:text-slate-500 uppercase tracking-wider">Contact Information</h3>
+                  <p className="text-slate-700 dark:text-slate-300 text-sm"><span className="font-medium text-slate-400">Phone:</span> {businessInfo.phone}</p>
+                  <p className="text-slate-700 dark:text-slate-300 text-sm"><span className="font-medium text-slate-400">Email:</span> {businessInfo.email}</p>
+                  {businessInfo.website && <p className="text-slate-700 dark:text-slate-300 text-sm"><span className="font-medium text-slate-400">Website:</span> {businessInfo.website}</p>}
                 </div>
               </div>
-              <Button onClick={() => setEditMode(true)}>Edit Business Information</Button>
+              <Button onClick={() => setEditMode(true)} className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all">Edit Business Information</Button>
             </div>
           ) : (
-            <div className="text-center py-4">
-              <p className="text-gray-500 mb-4">
+            <div className="text-center py-6">
+              <p className="text-slate-500 dark:text-slate-400 mb-4 font-medium">
                 You need to set up your business information first to generate receipts.
               </p>
-              <Button onClick={() => setShowSetupModal(true)}>Set Up Business Information</Button>
+              <Button onClick={() => setShowSetupModal(true)} className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all">Set Up Business Information</Button>
             </div>
           )}
         </CardContent>
       </Card>
 
       {businessInfo && recentSale && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Latest Receipt Preview</CardTitle>
+        <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+          <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+            <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Latest Receipt Preview</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-6 bg-slate-50/30 dark:bg-slate-950/20">
             <Receipt 
               sale={recentSale} 
               businessInfo={businessInfo} 

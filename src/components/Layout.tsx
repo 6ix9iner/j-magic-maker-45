@@ -90,7 +90,7 @@ const Layout = () => {
                   title="Account"
                 >
                   <div className="py-4">
-                    <div className="flex items-center gap-4 mb-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div className="flex items-center gap-4 mb-6 bg-gradient-to-r from-indigo-50/50 via-white/40 to-violet-50/50 dark:from-indigo-950/20 dark:via-slate-900/20 dark:to-violet-950/20 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
                       <Avatar className="h-14 w-14 ring-2 ring-indigo-500/10 shadow-sm">
                         <AvatarImage src="" />
                         <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-lg font-bold">

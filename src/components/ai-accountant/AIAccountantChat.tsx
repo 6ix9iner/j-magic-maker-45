@@ -88,32 +88,32 @@ const AIAccountantChat: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-full sm:h-[600px] bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm max-w-full overflow-hidden">
-      <div className="flex items-center gap-3 p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-100">
+    <div className="flex flex-col h-full w-full bg-transparent max-w-4xl mx-auto overflow-hidden">
+      <div className="flex items-center gap-3 pb-4 mb-2 border-b border-slate-100 dark:border-slate-800 bg-transparent">
+        <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-100/50">
           <Bot className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h3 className="font-semibold text-slate-800 dark:text-slate-100">AI Business Accountant</h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400">Your personal financial advisor</p>
+          <h3 className="font-bold text-slate-800 dark:text-slate-100 text-lg tracking-tight">AI Business Accountant</h3>
+          <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">Your personal financial advisor</p>
         </div>
       </div>
 
-      <ScrollArea className="flex-1 p-4 overflow-hidden bg-slate-50/30">
-        <div className="space-y-4">
+      <ScrollArea className="flex-1 py-4 px-1 overflow-hidden bg-transparent">
+        <div className="space-y-6">
           {messages.map((message) => (
             <div
               key={message.id}
-              className={`flex gap-3.5 ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              className={`flex gap-3.5 ${message.sender === 'user' ? 'justify-end' : 'justify-start'} py-1`}
             >
               {message.sender === 'ai' && (
-                <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm">
-                  <Bot className="w-4.5 h-4.5 text-white" />
+                <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100/50 dark:border-indigo-900/30 flex items-center justify-center flex-shrink-0 shadow-sm">
+                  <Bot className="w-4.5 h-4.5 text-indigo-600 dark:text-indigo-400" />
                 </div>
               )}
 
               <div
-                className={`max-w-[78%] p-3.5 rounded-2xl break-words whitespace-pre-wrap shadow-sm ${message.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none ml-auto' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 rounded-tl-none border border-slate-100/70 dark:border-slate-800'}`}
+                className={`max-w-[85%] ${message.sender === 'user' ? 'p-3.5 px-4 bg-indigo-600 text-white rounded-2xl rounded-tr-none shadow-sm' : 'py-1 text-slate-800 dark:text-slate-200'}`}
                 style={{ wordBreak: 'break-word' }}
               >
                 {message.sender === 'ai' ? (
@@ -168,11 +168,11 @@ const AIAccountantChat: React.FC = () => {
           ))}
 
           {isLoading && (
-            <div className="flex gap-3.5 justify-start">
+            <div className="flex gap-3.5 justify-start py-1">
               <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse">
                 <Bot className="w-4.5 h-4.5 text-white" />
               </div>
-              <div className="bg-white dark:bg-slate-800 p-3.5 rounded-2xl rounded-tl-none border border-slate-100 dark:border-slate-800 shadow-sm max-w-[80%]">
+              <div className="py-1 max-w-[80%]">
                 <div className="flex items-center gap-2.5">
                   <Loader2 className="w-4 h-4 animate-spin text-indigo-600" />
                   <span className="text-sm font-medium text-slate-500">Thinking...</span>
@@ -185,14 +185,14 @@ const AIAccountantChat: React.FC = () => {
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex gap-2.5 items-center">
+      <div className="pt-4 pb-2 bg-transparent">
+        <div className="flex gap-2.5 items-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-md p-2 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm max-w-3xl mx-auto w-full">
           <Input
             value={inputMessage}
             onChange={(e) => setInputMessage(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Ask about your sales, products, profits..."
-            className="flex-1 min-w-0 h-11 px-4 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 placeholder:text-slate-400"
+            className="flex-1 min-w-0 h-11 px-4 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-400 text-slate-800 dark:text-slate-100"
             disabled={isLoading}
           />
           <Button

@@ -66,9 +66,9 @@ const Index = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.2 }}
             >
-              <div className="p-5 bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white">
-                <h2 className="font-semibold text-base sm:text-lg">Scan Barcode</h2>
-                <p className="text-xs text-slate-300 mt-1">Position a barcode within the frame</p>
+              <div className="p-5 bg-gradient-to-r from-indigo-50/80 via-white/70 to-violet-50/80 dark:from-indigo-950/40 dark:via-slate-900/40 dark:to-violet-950/40 backdrop-blur-xl border-b border-slate-100 dark:border-slate-800/80 text-slate-800 dark:text-slate-100">
+                <h2 className="font-bold text-base sm:text-lg text-slate-900 dark:text-slate-100">Scan Barcode</h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">Position a barcode within the frame</p>
               </div>
               <div className="relative p-4">
                 <BarcodeScanner onDetected={handleBarcodeDetected} />

@@ -41,7 +41,7 @@ const Layout = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden">
+    <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Top Navigation Bar - Transparent floating branding and avatar */}
       <motion.header 
         className="w-full bg-transparent border-0 shadow-none z-10"

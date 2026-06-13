@@ -201,7 +201,7 @@ const Auth = () => {
         </Card>
       </motion.div>;
   }
-  return <motion.div className="flex min-h-[80vh] items-center justify-center p-4" initial="hidden" animate="visible" variants={containerVariants}>
+  return <motion.div className="w-full h-full flex flex-col items-center justify-center overflow-y-auto py-8 px-4 min-h-0" initial="hidden" animate="visible" variants={containerVariants}>
       <Card className="w-full max-w-md bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-[0_20px_50px_rgba(99,102,241,0.06)] rounded-3xl overflow-hidden">
         <CardHeader className="space-y-2 text-center pb-6 pt-8 border-b border-slate-50 dark:border-slate-800">
           <motion.div variants={itemVariants} className="flex flex-col items-center gap-2">

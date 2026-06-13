@@ -23,7 +23,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
   
   return (
     <motion.div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50/30 via-slate-50 to-violet-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-indigo-50 via-slate-50 to-violet-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}

@@ -11,12 +11,25 @@ export interface ProductProfitability {
 }
 
 export interface SalesData {
+  // Snapshot metadata
+  reportGeneratedAt: string;       // ISO timestamp of when report was built
+  currentDate: string;             // e.g. "Sunday, June 15 2026"
+  currentTime: string;             // e.g. "19:54"
+
+  // Core KPIs
   totalSales: number;
   totalProducts: number;
-  recentOrders: number;
+  recentOrders: number;            // last 7 days
   lowStockCount: number;
+
+  // Detailed breakdowns
   salesByDate: Array<{date: string; total: number; count: number}>;
+  monthlySalesTrend: Array<{date: string; total: number; count: number}>;
   topProducts: Array<{product_name: string; total_quantity: number; total_revenue: number}>;
+  categorySales: Array<{category: string; value: number}>;
+  lowStockProducts: Array<{name: string; stock_count: number}>;
+
+  // Financials
   totalCosts: number;
   grossProfit: number;
   profitMargin: number;

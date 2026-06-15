@@ -12,13 +12,27 @@ export const useAIInsights = () => {
   const generateInsights = async (dashboardData: DashboardData) => {
     setIsLoadingAI(true);
     try {
+      const now = new Date();
       const salesDataForAI: SalesData = {
+        // Snapshot metadata
+        reportGeneratedAt: now.toISOString(),
+        currentDate: now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }),
+        currentTime: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+
+        // Core KPIs
         totalSales: dashboardData.totalSales,
         totalProducts: dashboardData.totalProducts,
         recentOrders: dashboardData.salesByDate.reduce((sum, day) => sum + day.count, 0),
         lowStockCount: dashboardData.lowStockCount,
+
+        // Detailed breakdowns
         salesByDate: dashboardData.salesByDate,
+        monthlySalesTrend: dashboardData.monthlySalesTrend,
         topProducts: dashboardData.topProducts,
+        categorySales: dashboardData.categorySales,
+        lowStockProducts: dashboardData.lowStockProducts.map(p => ({ name: p.name, stock_count: p.stock_count })),
+
+        // Financials
         totalCosts: dashboardData.financialMetrics.totalCost,
         grossProfit: dashboardData.financialMetrics.grossProfit,
         profitMargin: dashboardData.financialMetrics.profitMargin,

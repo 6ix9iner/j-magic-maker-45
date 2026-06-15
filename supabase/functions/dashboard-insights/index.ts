@@ -50,20 +50,57 @@ Deno.serve(async (req) => {
 
     console.log(`📊 Generating AI Dashboard insights for user: ${user.id}`)
 
+    const now = new Date().toISOString()
+
     const prompt = `
 You are a business analytics and data visualization expert.
-Based on the following sales, inventory, and financial data of a retail store:
+Today's date and time: ${salesData.currentDate || new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} at ${salesData.currentTime || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+Report generated at: ${salesData.reportGeneratedAt || now}
 
-${JSON.stringify(salesData, null, 2)}
+Based on the following comprehensive sales, inventory, and financial data of a retail store (prices in Nigerian Naira ₦):
+
+=== CORE BUSINESS KPIs ===
+- Total Revenue (All Time): ₦${(salesData.totalSales || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Total Products in Inventory: ${salesData.totalProducts || 0}
+- Orders in Last 7 Days: ${salesData.recentOrders || 0}
+- Low Stock Items (< 5 units): ${salesData.lowStockCount || 0}
+
+=== FINANCIAL HEALTH ===
+- Total Costs (COGS): ₦${(salesData.totalCosts || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Gross Profit: ₦${(salesData.grossProfit || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Profit Margin: ${(salesData.profitMargin || 0).toFixed(2)}%
+
+=== DAILY SALES (LAST 7 DAYS) ===
+${JSON.stringify(salesData.salesByDate || [], null, 2)}
+
+=== MONTHLY SALES TREND (LAST 6 MONTHS) ===
+${JSON.stringify(salesData.monthlySalesTrend || [], null, 2)}
+
+=== MONTHLY PROFIT / LOSS BREAKDOWN ===
+${JSON.stringify(salesData.profitLossData || [], null, 2)}
+
+=== TOP PRODUCTS BY REVENUE ===
+${JSON.stringify(salesData.topProducts || [], null, 2)}
+
+=== FULL PRODUCT PROFITABILITY ===
+${JSON.stringify(salesData.productProfitability || [], null, 2)}
+
+=== SALES BY CATEGORY ===
+${JSON.stringify(salesData.categorySales || [], null, 2)}
+
+=== LOW STOCK PRODUCTS (NEED RESTOCKING) ===
+${salesData.lowStockProducts && salesData.lowStockProducts.length > 0
+  ? salesData.lowStockProducts.map((p: any) => `- ${p.name}: ${p.stock_count} units left`).join('\n')
+  : 'All items are well stocked.'}
 
 Please provide two outputs in a single JSON response:
-1. "insights": An array of exactly 8 strings (insights). Each insight must be specific, practical, and contain numbers from the data when relevant. Cover these areas:
-   - 1-2 insights on OVERALL BUSINESS PERFORMANCE (sales trends, growth, customer behavior)
-   - 3-4 insights on PROFITABILITY & FINANCIAL HEALTH (profit margins, cost management, profitable products)
-   - 5-6 insights on INVENTORY & OPERATIONS (stock levels, product performance, operational efficiency)
-   - 7-8 insights on STRATEGIC RECOMMENDATIONS (specific actions to improve business, focus areas)
-   - Focus on actual numbers, profit margins, loss-making products or negative trends.
-   - Refer to currency in Nigerian Naira (NGN / ₦) as prices are recorded in Naira.
+1. "insights": An array of exactly 8 strings (insights). Each insight must be specific, practical, and contain actual numbers from the data when relevant. Cover these areas:
+   - 1-2 insights on OVERALL BUSINESS PERFORMANCE (sales trends, growth, recent orders vs historical)
+   - 3-4 insights on PROFITABILITY & FINANCIAL HEALTH (profit margins, COGS, most/least profitable products, monthly trends)
+   - 5-6 insights on INVENTORY & OPERATIONS (stock levels, which specific products are low, category performance, top sellers)
+   - 7-8 insights on STRATEGIC RECOMMENDATIONS (specific, actionable steps to improve this particular business given its data)
+   - Reference specific product names, exact figures, and date-based patterns where available.
+   - Refer to all currency values in Nigerian Naira (NGN / ₦).
 2. "chartRecommendation": A string under 100 characters suggesting ONE specific chart type that would be most valuable to add to this retail dashboard to help identify profit/loss patterns, product profitability, or financial trends.
 
 Format your response as a valid JSON object with keys "insights" and "chartRecommendation". Output only the JSON. Do not include markdown block wrappers (like \`\`\`json) or any explanation.

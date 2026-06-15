@@ -50,72 +50,129 @@ Deno.serve(async (req) => {
 
     console.log(`🤖 AI Accountant request for user: ${user.id}, query: "${message}"`)
 
-    // Fetch store metrics in parallel
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+    // Get current date/time context
+    const now = new Date()
+    const currentDateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    const currentTimeStr = now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString()
+    const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(now.getDate() - 30)
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(now.getDate() - 7)
 
-    const [productsRes, salesRes, lowStockRes, saleItemsRes] = await Promise.all([
-      supabaseClient.from('products').select('name, price, purchase_price, stock_count, category'),
-      supabaseClient.from('sales').select('total_amount, created_at'),
-      supabaseClient.from('products').select('name, stock_count').lt('stock_count', 5),
+    // Fetch ALL business data in parallel for full context
+    const [productsRes, allSalesRes, lowStockRes, todaySalesRes, week7SalesRes, saleItemsAllRes, saleItems30Res] = await Promise.all([
+      // Full product catalogue with all fields
+      supabaseClient.from('products')
+        .select('name, price, purchase_price, stock_count, category, barcode')
+        .eq('user_id', user.id),
+
+      // ALL sales ever (for total revenue, transaction count, history)
+      supabaseClient.from('sales')
+        .select('id, total_amount, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false }),
+
+      // Low stock (< 5 units)
+      supabaseClient.from('products')
+        .select('name, stock_count, category')
+        .eq('user_id', user.id)
+        .lt('stock_count', 5),
+
+      // Today's sales
+      supabaseClient.from('sales')
+        .select('id, total_amount, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', todayStart),
+
+      // Last 7 days sales
+      supabaseClient.from('sales')
+        .select('id, total_amount, created_at')
+        .eq('user_id', user.id)
+        .gte('created_at', sevenDaysAgo.toISOString()),
+
+      // ALL sale items ever (for full profitability picture)
+      supabaseClient.from('sale_items')
+        .select('name_at_sale, price_at_sale, quantity, created_at, product_id, sales!inner(user_id, created_at)')
+        .eq('sales.user_id', user.id),
+
+      // Last 30 days sale items (for recent product performance)
       supabaseClient.from('sale_items')
         .select('name_at_sale, price_at_sale, quantity, created_at, sales!inner(user_id)')
         .eq('sales.user_id', user.id)
-        .gte('created_at', thirtyDaysAgo.toISOString())
+        .gte('created_at', thirtyDaysAgo.toISOString()),
     ])
 
     const products = productsRes.data || []
-    const sales = salesRes.data || []
+    const allSales = allSalesRes.data || []
     const lowStock = lowStockRes.data || []
-    const saleItems = saleItemsRes.data || []
+    const todaySales = todaySalesRes.data || []
+    const week7Sales = week7SalesRes.data || []
+    const allSaleItems = saleItemsAllRes.data || []
+    const saleItems30 = saleItems30Res.data || []
 
-    // Calculate metrics
-    const totalRevenue = sales.reduce((sum, s) => sum + parseFloat(s.total_amount || 0), 0)
-    
-    const productPriceMap = new Map()
-    products.forEach(p => {
+    // Build purchase price map
+    const productPriceMap = new Map<string, number>()
+    const productCategoryMap = new Map<string, string>()
+    products.forEach((p: any) => {
       productPriceMap.set(p.name, parseFloat(p.purchase_price || 0))
+      productCategoryMap.set(p.name, p.category || 'Uncategorised')
     })
 
-    let totalCost30Days = 0
-    let totalRevenue30Days = 0
-    const productProfitMap = new Map()
+    // --- All-time totals ---
+    const totalRevenue = allSales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+    let totalCostAllTime = 0
+    allSaleItems.forEach((item: any) => {
+      totalCostAllTime += (productPriceMap.get(item.name_at_sale) || 0) * (item.quantity || 0)
+    })
+    const grossProfitAllTime = totalRevenue - totalCostAllTime
+    const marginAllTime = totalRevenue > 0 ? (grossProfitAllTime / totalRevenue) * 100 : 0
 
-    saleItems.forEach(item => {
+    // --- Today totals ---
+    const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+
+    // --- Last 7 days totals ---
+    const week7Revenue = week7Sales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+
+    // --- Last 30 days product breakdown ---
+    let revenue30 = 0, cost30 = 0
+    const productMap30 = new Map<string, any>()
+    const categoryMap30 = new Map<string, number>()
+    saleItems30.forEach((item: any) => {
       const qty = item.quantity || 0
       const price = parseFloat(item.price_at_sale || 0)
-      const revenue = price * qty
-      
-      const purchasePrice = productPriceMap.get(item.name_at_sale) || 0
-      const cost = purchasePrice * qty
-
-      totalRevenue30Days += revenue
-      totalCost30Days += cost
-
-      const existing = productProfitMap.get(item.name_at_sale) || { quantity: 0, revenue: 0, cost: 0 }
-      productProfitMap.set(item.name_at_sale, {
-        quantity: existing.quantity + qty,
-        revenue: existing.revenue + revenue,
-        cost: existing.cost + cost
-      })
+      const rev = price * qty
+      const cost = (productPriceMap.get(item.name_at_sale) || 0) * qty
+      revenue30 += rev
+      cost30 += cost
+      const cat = productCategoryMap.get(item.name_at_sale) || 'Uncategorised'
+      categoryMap30.set(cat, (categoryMap30.get(cat) || 0) + rev)
+      const ex = productMap30.get(item.name_at_sale) || { qty: 0, revenue: 0, cost: 0 }
+      productMap30.set(item.name_at_sale, { qty: ex.qty + qty, revenue: ex.revenue + rev, cost: ex.cost + cost })
     })
+    const profit30 = revenue30 - cost30
+    const margin30 = revenue30 > 0 ? (profit30 / revenue30) * 100 : 0
 
-    const profit30Days = totalRevenue30Days - totalCost30Days
-    const margin30Days = totalRevenue30Days > 0 ? (profit30Days / totalRevenue30Days) * 100 : 0
-
-    const topProducts = Array.from(productProfitMap.entries())
-      .map(([name, data]) => ({
-        name,
-        quantity: data.quantity,
-        revenue: data.revenue,
-        profit: data.revenue - data.cost,
-        margin: data.revenue > 0 ? ((data.revenue - data.cost) / data.revenue) * 100 : 0
-      }))
+    const topProducts30 = Array.from(productMap30.entries())
+      .map(([name, d]) => ({ name, quantity: d.qty, revenue: d.revenue, cost: d.cost, profit: d.revenue - d.cost, margin: d.revenue > 0 ? ((d.revenue - d.cost) / d.revenue) * 100 : 0 }))
       .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 5)
+      .slice(0, 10)
 
-    // Build a conversational system prompt
+    const categorySales30 = Array.from(categoryMap30.entries())
+      .map(([cat, val]) => ({ category: cat, revenue: val }))
+      .sort((a, b) => b.revenue - a.revenue)
+
+    // --- Daily sales for last 7 days ---
+    const dailyMap = new Map<string, { revenue: number; orders: number }>()
+    week7Sales.forEach((s: any) => {
+      const day = new Date(s.created_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      const ex = dailyMap.get(day) || { revenue: 0, orders: 0 }
+      dailyMap.set(day, { revenue: ex.revenue + parseFloat(s.total_amount || 0), orders: ex.orders + 1 })
+    })
+    const dailySales7 = Array.from(dailyMap.entries()).map(([date, d]) => ({ date, ...d }))
+
+    // Build a conversational system prompt with complete data
     const systemPrompt = `You are an AI Business Accountant named "Insight". You are friendly, conversational, and approachable — like a knowledgeable business partner chatting with the store owner.
+
+CURRENT DATE & TIME: ${currentDateStr} at ${currentTimeStr}
 
 IMPORTANT BEHAVIORAL RULES:
 - Be CONVERSATIONAL first. If the user says "hi", "hello", "how are you", "thanks", or makes casual chat, respond naturally and warmly like a friend. Do NOT dump data or analysis unprompted.
@@ -124,26 +181,46 @@ IMPORTANT BEHAVIORAL RULES:
 - Keep responses concise. Use short paragraphs. Only use tables or detailed breakdowns when the user specifically asks for details.
 - Remember the conversation context from previous messages. If the user follows up on something, continue naturally.
 - Use Markdown formatting when helpful, but don't overdo it for casual replies.
-- Refer to currency in Nigerian Naira (₦).
+- Refer to all currency in Nigerian Naira (₦).
+- You know exactly what today's date and time is — use it when answering time-sensitive questions like "what did I sell today?" or "how was yesterday?".
 
-You have access to the merchant's live store data (shown below). Use it ONLY when relevant to what the user is asking:
+You have COMPLETE ACCESS to the merchant's live store data. Use it ONLY when relevant:
 
-STORE METRICS:
-- Total Revenue (All time): ₦${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- Total Transactions: ${sales.length}
+═══ ALL-TIME BUSINESS SUMMARY ═══
+- Total Revenue: ₦${totalRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Total Transactions: ${allSales.length}
+- Total COGS: ₦${totalCostAllTime.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Gross Profit: ₦${grossProfitAllTime.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Profit Margin: ${marginAllTime.toFixed(1)}%
 - Active Products: ${products.length}
 
-LAST 30 DAYS:
-- Revenue: ₦${totalRevenue30Days.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- COGS: ₦${totalCost30Days.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- Gross Profit: ₦${profit30Days.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-- Profit Margin: ${margin30Days.toFixed(1)}%
+═══ TODAY (${now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}) ═══
+- Revenue: ₦${todayRevenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Orders: ${todaySales.length}
 
-TOP 5 PRODUCTS (LAST 30 DAYS):
-${topProducts.map((p, idx) => `${idx + 1}. ${p.name}: Qty ${p.quantity}, Revenue ₦${p.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}, Profit ₦${p.profit.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${p.margin.toFixed(1)}% margin)`).join('\n')}
+═══ LAST 7 DAYS ═══
+- Revenue: ₦${week7Revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Orders: ${week7Sales.length}
+- Daily Breakdown:
+${dailySales7.map(d => `  • ${d.date}: ₦${d.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${d.orders} orders)`).join('\n') || '  No sales this week.'}
 
-LOW STOCK (< 5 items):
-${lowStock.length > 0 ? lowStock.map(p => `- ${p.name}: ${p.stock_count} left`).join('\n') : "All items well stocked."}`
+═══ LAST 30 DAYS ═══
+- Revenue: ₦${revenue30.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- COGS: ₦${cost30.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Gross Profit: ₦${profit30.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+- Profit Margin: ${margin30.toFixed(1)}%
+
+TOP 10 PRODUCTS (LAST 30 DAYS):
+${topProducts30.map((p, i) => `${i + 1}. ${p.name}: Qty ${p.quantity} | Revenue ₦${p.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })} | Profit ₦${p.profit.toLocaleString('en-US', { minimumFractionDigits: 2 })} (${p.margin.toFixed(1)}%)`).join('\n') || 'No data.'}
+
+SALES BY CATEGORY (LAST 30 DAYS):
+${categorySales30.map(c => `• ${c.category}: ₦${c.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`).join('\n') || 'No category data.'}
+
+═══ FULL INVENTORY (${products.length} products) ═══
+${products.map((p: any) => `• ${p.name} | Selling: ₦${parseFloat(p.price || 0).toLocaleString()} | Cost: ₦${parseFloat(p.purchase_price || 0).toLocaleString()} | Stock: ${p.stock_count} | Category: ${p.category || 'None'}`).join('\n') || 'No products.'}
+
+═══ LOW STOCK ALERTS (< 5 units) ═══
+${lowStock.length > 0 ? lowStock.map((p: any) => `⚠️ ${p.name} (${p.category || 'No category'}): ${p.stock_count} left`).join('\n') : '✅ All items are well stocked.'}`
 
     // Build conversation messages array with history
     const conversationMessages = [

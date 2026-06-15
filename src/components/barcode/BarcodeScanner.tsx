@@ -9,13 +9,21 @@ interface BarcodeScannerProps {
   onOpenChange?: (open: boolean) => void;
 }
 
+/** Returns true when running on a touch-based mobile device */
+const isMobileDevice = () =>
+  /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+  (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent) === false);
+
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpenChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scanner, setScanner] = useState<DynamsoftScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const videoContainerCreated = useRef<boolean>(false);
   const isDestroyingRef = useRef<boolean>(false);
+
+  // On desktop the user must press a button to start the camera
+  const [scannerStarted, setScannerStarted] = useState<boolean>(isMobileDevice());
   
   // Support both controlled and uncontrolled modes
   const isControlled = open !== undefined && onOpenChange !== undefined;
@@ -51,6 +59,13 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
     if (isControlled && !open) {
       return;
     }
+
+    // On desktop, wait for the user to press the start button
+    if (!scannerStarted) {
+      return;
+    }
+
+    setIsLoading(true);
     
     let isMounted = true;
     let scannerInstance: DynamsoftScanner | null = null;
@@ -197,7 +212,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
         })();
       }
     };
-  }, [onDetected, open, onOpenChange, isControlled]);
+  }, [onDetected, open, onOpenChange, isControlled, scannerStarted]);
 
   // If we're in controlled mode and not open, render nothing
   if (isControlled && !open) {
@@ -212,6 +227,27 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
           <p className="text-sm text-gray-600">
             Please allow camera access when prompted
           </p>
+        </div>
+      ) : !scannerStarted ? (
+        /* Desktop: show start button instead of auto-launching camera */
+        <div className="flex flex-col items-center justify-center flex-1 min-h-[300px] bg-black rounded-2xl overflow-hidden gap-4">
+          <div className="flex flex-col items-center gap-3 text-white">
+            {/* Camera icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-16 h-16 text-indigo-400 opacity-80" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 0 1 5.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 0 0-1.134-.175 2.31 2.31 0 0 1-1.64-1.055l-.822-1.316a2.192 2.192 0 0 0-1.736-1.039 48.774 48.774 0 0 0-5.232 0 2.192 2.192 0 0 0-1.736 1.039l-.821 1.316Z" />
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 1 1-9 0 4.5 4.5 0 0 1 9 0ZM18.75 10.5h.008v.008h-.008V10.5Z" />
+            </svg>
+            <p className="text-slate-300 text-sm font-medium">Camera is ready to scan</p>
+          </div>
+          <button
+            onClick={() => setScannerStarted(true)}
+            className="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg transition-all duration-150 flex items-center gap-2"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+            </svg>
+            Start Scanner
+          </button>
         </div>
       ) : (
         <div 
@@ -236,7 +272,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
         </div>
       )}
       <p className="text-xs text-center mt-2.5 text-slate-400 dark:text-slate-500 font-medium flex-shrink-0">
-        Position barcode within the frame for automatic scanning
+        {scannerStarted
+          ? "Position barcode within the frame for automatic scanning"
+          : "Click 'Start Scanner' to activate the camera"}
       </p>
     </div>
   );

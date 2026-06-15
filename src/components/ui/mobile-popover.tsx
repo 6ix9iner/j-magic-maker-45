@@ -43,7 +43,7 @@ const MobilePopover = ({ isOpen, onClose, title, children }: MobilePopoverProps)
               </Button>
             </div>
             
-            <div className="p-5 flex-1 bg-transparent">
+            <div className="p-5 flex-1 bg-transparent overflow-hidden flex flex-col min-h-0">
               {children}
             </div>
             

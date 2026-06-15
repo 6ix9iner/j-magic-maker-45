@@ -1,13 +1,14 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from "@/lib/utils";
-import { Home, BarChart3, Package, Settings } from 'lucide-react';
+import { Home, BarChart3, Package, Settings, Bot } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import MobilePopover from '@/components/ui/mobile-popover';
+import SettingsPage from '@/pages/Settings';
 
 import Logo from './Logo';
 
@@ -17,11 +18,16 @@ const Layout = () => {
   const { user, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
+  // Close popover when navigating to different routes
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const navItems = [
     { name: "Home", path: "/scanner", icon: Home },
     { name: "Inventory", path: "/inventory", icon: Package },
     { name: "Dashboard", path: "/dashboard", icon: BarChart3 },
-    { name: "Settings", path: "/settings", icon: Settings }
+    { name: "AI", path: "/ai-accountant", icon: Bot }
   ];
 
   const handleSignOut = async () => {
@@ -40,11 +46,12 @@ const Layout = () => {
     return parts[0].substring(0, 2).toUpperCase();
   };
 
+
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
       {/* Top Navigation Bar - Transparent floating branding and avatar */}
       <motion.header 
-        className="w-full bg-transparent border-0 shadow-none z-10"
+        className={cn("w-full bg-transparent border-0 shadow-none z-10", !user && "absolute top-0 left-0")}
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.5 }}
@@ -87,28 +94,27 @@ const Layout = () => {
                 <MobilePopover 
                   isOpen={isMobileMenuOpen} 
                   onClose={() => setIsMobileMenuOpen(false)} 
-                  title="Account"
+                  title="Settings & Account"
                 >
-                  <div className="py-4">
-                    <div className="flex items-center gap-4 mb-6 bg-gradient-to-r from-indigo-50/50 via-white/40 to-violet-50/50 dark:from-indigo-950/20 dark:via-slate-900/20 dark:to-violet-950/20 backdrop-blur-md p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-                      <Avatar className="h-14 w-14 ring-2 ring-indigo-500/10 shadow-sm">
+                  <div className="flex flex-col h-full py-2">
+                    {/* User profile summary block */}
+                    <div className="flex items-center gap-3.5 mb-5 bg-gradient-to-r from-indigo-50/30 via-white/20 to-violet-50/30 dark:from-indigo-950/10 dark:via-slate-900/10 dark:to-violet-950/10 backdrop-blur-md p-3.5 rounded-2xl border border-slate-200/40 dark:border-slate-800/40 shadow-sm flex-shrink-0">
+                      <Avatar className="h-11 w-11 ring-2 ring-indigo-500/10 shadow-sm shrink-0">
                         <AvatarImage src="" />
-                        <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-lg font-bold">
+                        <AvatarFallback className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white text-base font-bold">
                           {getUserInitials()}
                         </AvatarFallback>
                       </Avatar>
-                      <div>
-                        <p className="font-bold text-slate-900 dark:text-slate-100 text-lg">{user?.email?.split('@')[0]}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">{user?.email}</p>
+                      <div className="min-w-0">
+                        <p className="font-bold text-slate-800 dark:text-slate-100 text-base truncate">{user?.email?.split('@')[0]}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">{user?.email}</p>
                       </div>
                     </div>
                     
-                    <Button 
-                      onClick={handleSignOut} 
-                      className="w-full h-11 bg-red-50/50 hover:bg-red-50 dark:bg-red-950/20 dark:hover:bg-red-950/30 text-red-600 dark:text-red-400 font-semibold rounded-xl border border-red-100/80 dark:border-red-900/30 shadow-sm active:scale-[0.98] transition-all"
-                    >
-                      <span className="mr-2">Sign Out</span>
-                    </Button>
+                    {/* Embedded Settings panel */}
+                    <div className="flex-1 overflow-hidden min-h-0">
+                      <SettingsPage isEmbed={true} />
+                    </div>
                   </div>
                 </MobilePopover>
               </div>

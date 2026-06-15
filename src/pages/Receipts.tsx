@@ -163,7 +163,7 @@ const Receipts = () => {
         <Button 
           variant="outline" 
           size="sm" 
-          onClick={() => navigate("/settings")}
+          onClick={() => navigate(-1)}
           className="h-9 w-9 p-0 rounded-xl border-slate-200 hover:bg-slate-100/50 shrink-0"
         >
           <ChevronLeft className="h-5 w-5" />

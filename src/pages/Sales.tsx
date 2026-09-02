@@ -4,13 +4,13 @@ import { ChevronDown, ChevronLeft, ChevronUp, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Receipt from "@/components/receipt/Receipt";
 import { exportSalesToCSV } from "@/utils/salesExport";
+import { getSales, getBusinessInfo } from "@/lib/offline/repository";
 
 interface SaleItemData {
   id: string;
@@ -62,46 +62,11 @@ const Sales = () => {
           return;
         }
 
-        // First fetch the sales data
-        const { data: salesData, error: salesError } = await supabase
-          .from("sales")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
-
-        if (salesError) {
-          throw salesError;
-        }
-
-        if (!salesData || salesData.length === 0) {
-          setSales([]);
-          setLoading(false);
-          return;
-        }
-
-        // For each sale, fetch its items
-        const salesWithItems = await Promise.all(
-          salesData.map(async (sale) => {
-            const { data: saleItems, error: itemsError } = await supabase
-              .from("sale_items")
-              .select("*")
-              .eq("sale_id", sale.id);
-
-            if (itemsError) {
-              console.error("Error fetching sale items:", itemsError);
-              return { ...sale, items: [] };
-            }
-
-            return { 
-              ...sale, 
-              items: saleItems || [],
-              isExpanded: false 
-            };
-          })
-        );
-
-        setSales(salesWithItems);
-        console.log("Sales data with items:", salesWithItems);
+        // Local-first on native (works offline, includes anything sold
+        // offline that hasn't synced yet), direct Supabase on web.
+        const salesData = await getSales(user.id);
+        setSales(salesData.map((s) => ({ ...s, isExpanded: false })));
+        console.log("Sales data with items:", salesData);
       } catch (error) {
         console.error("Error fetching sales:", error);
         toast.error("Failed to fetch sales data");
@@ -119,14 +84,7 @@ const Sales = () => {
       if (!user) return;
 
       try {
-        const { data, error } = await supabase
-          .from("business_info")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error) throw error;
-        
+        const data = await getBusinessInfo(user.id);
         if (data) {
           setBusinessInfo(data);
         }

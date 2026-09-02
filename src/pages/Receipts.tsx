@@ -4,13 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import BusinessInfoForm from "@/components/receipt/BusinessInfoForm";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Receipt from "@/components/receipt/Receipt";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { getBusinessInfo, getSales } from "@/lib/offline/repository";
 
 interface BusinessInfo {
   business_name: string;
@@ -61,13 +61,7 @@ const Receipts = () => {
       }
 
       try {
-        const { data, error } = await supabase
-          .from("business_info")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle();
-
-        if (error) throw error;
+        const data = await getBusinessInfo(user.id);
 
         if (data) {
           setBusinessInfo(data);
@@ -92,32 +86,10 @@ const Receipts = () => {
       if (!user) return;
 
       try {
-        // Fetch the most recent sale
-        const { data: salesData, error: salesError } = await supabase
-          .from("sales")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (salesError) throw salesError;
-        
-        if (!salesData) return;
-
-        // Fetch items for this sale
-        const { data: items, error: itemsError } = await supabase
-          .from("sale_items")
-          .select("*")
-          .eq("sale_id", salesData.id);
-
-        if (itemsError) throw itemsError;
-
-        setRecentSale({
-          ...salesData,
-          items: items || []
-        });
-
+        const sales = await getSales(user.id);
+        if (sales.length > 0) {
+          setRecentSale(sales[0]);
+        }
       } catch (error: any) {
         console.error("Error fetching recent sale:", error);
       }
@@ -129,15 +101,9 @@ const Receipts = () => {
   const handleBusinessInfoSaved = async () => {
     // Refresh business info data
     if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from("business_info")
-        .select("*")
-        .eq("user_id", user.id)
-        .maybeSingle();
 
-      if (error) throw error;
+    try {
+      const data = await getBusinessInfo(user.id);
 
       if (data) {
         setBusinessInfo(data);

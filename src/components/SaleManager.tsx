@@ -1,5 +1,5 @@
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
@@ -8,6 +8,8 @@ import SaleSummary from './sale/SaleSummary';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import Receipt from './receipt/Receipt';
 import { sendPushNotification } from '@/utils/pushNotificationUtils';
+import { completeSale as completeSaleInStore, getBusinessInfo } from '@/lib/offline/repository';
+import { useOfflineSync } from '@/hooks/useOfflineSync';
 
 interface Product {
   id: string;
@@ -61,6 +63,7 @@ const SaleManager = forwardRef((props, ref) => {
   const [completedSale, setCompletedSale] = useState<CompletedSale | null>(null);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const { online } = useOfflineSync();
 
   const addItem = (product: Product, quantity: number) => {
     // Check if item already exists in sale
@@ -119,14 +122,7 @@ const SaleManager = forwardRef((props, ref) => {
 
   const fetchBusinessInfo = async (userId: string) => {
     try {
-      const { data, error } = await supabase
-        .from("business_info")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (error) throw error;
-      return data;
+      return await getBusinessInfo(userId);
     } catch (error) {
       console.error("Error fetching business info:", error);
       return null;
@@ -145,66 +141,17 @@ const SaleManager = forwardRef((props, ref) => {
     }
 
     setIsProcessing(true);
-    
+    const isNative = Capacitor.isNativePlatform();
+
     try {
-      // Create the sale record with user_id
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .insert({
-          total_amount: calculateTotal(),
-          payment_method: 'cash', // Default payment method
-          user_id: user.id, // Set user_id to current authenticated user
-          cashier_id: user.id
-        })
-        .select('id')
-        .single();
+      // Local-first on native: this writes the sale/items/stock change to
+      // the on-device database immediately and (if offline) queues it for
+      // sync - the sale and its receipt are available right away either
+      // way. On web this is a thin passthrough to Supabase, same as before.
+      const completedSaleData = await completeSaleInStore(user.id, user.id, items);
 
-      if (saleError) {
-        console.error("Sale error:", saleError);
-        throw new Error(`Failed to create sale: ${saleError.message}`);
-      }
-      
-      if (!saleData || !saleData.id) {
-        throw new Error("No sale ID returned");
-      }
-      
-      // Add sale items
-      const saleItems = items.map(item => ({
-        sale_id: saleData.id,
-        product_id: item.product.id,
-        quantity: item.quantity,
-        price_at_sale: item.product.price,
-        barcode_at_sale: item.product.barcode,
-        name_at_sale: item.product.name
-      }));
-
-      const { error: itemsError } = await supabase
-        .from('sale_items')
-        .insert(saleItems);
-
-      if (itemsError) {
-        console.error("Sale items error:", itemsError);
-        throw new Error(`Failed to add sale items: ${itemsError.message}`);
-      }
-      
-      // Update product stock counts
-      for (const item of items) {
-        const { error: stockError } = await supabase
-          .from('products')
-          .update({ 
-            stock_count: item.product.stock_count - item.quantity,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', item.product.id)
-          .eq('user_id', user.id); // Ensure we're only updating the user's own products
-
-        if (stockError) {
-          console.error("Stock update error:", stockError);
-          throw new Error(`Failed to update stock: ${stockError.message}`);
-        }
-      }
-
-      // 🔔 Send sale completion notification
+      // 🔔 Send sale completion notification (best-effort - silently
+      // no-ops if there's no connectivity right now).
       try {
         await sendPushNotification({
           user_id: user.id,
@@ -212,7 +159,7 @@ const SaleManager = forwardRef((props, ref) => {
           body: `Sale of $${calculateTotal().toFixed(2)} completed successfully with ${items.length} items`,
           notification_type: 'sale_completed',
           data: {
-            sale_id: saleData.id,
+            sale_id: completedSaleData.id,
             total_amount: calculateTotal(),
             items_count: items.length,
             timestamp: new Date().toISOString()
@@ -223,39 +170,16 @@ const SaleManager = forwardRef((props, ref) => {
         console.error('❌ Failed to send sale completion notification:', notifError);
       }
 
-      // Get the completed sale data with items
-      const { data: completedSaleData, error: completedSaleError } = await supabase
-        .from('sales')
-        .select('*')
-        .eq('id', saleData.id)
-        .single();
-
-      if (completedSaleError) {
-        throw completedSaleError;
-      }
-
-      const { data: saleItemsData, error: saleItemsError } = await supabase
-        .from('sale_items')
-        .select('*')
-        .eq('sale_id', saleData.id);
-
-      if (saleItemsError) {
-        throw saleItemsError;
-      }
-
       // Fetch business info for the receipt
       const businessInfoData = await fetchBusinessInfo(user.id);
-      
+
       // If we have business info, show the receipt and send receipt notification
       if (businessInfoData) {
         setBusinessInfo(businessInfoData);
-        setCompletedSale({
-          ...completedSaleData,
-          items: saleItemsData || []
-        });
+        setCompletedSale(completedSaleData);
         setShowReceiptModal(true);
 
-        // 🧾 Send receipt generated notification
+        // 🧾 Send receipt generated notification (best-effort)
         try {
           await sendPushNotification({
             user_id: user.id,
@@ -263,7 +187,7 @@ const SaleManager = forwardRef((props, ref) => {
             body: `Receipt for sale of $${calculateTotal().toFixed(2)} has been generated and is ready to view`,
             notification_type: 'receipt_generated',
             data: {
-              sale_id: saleData.id,
+              sale_id: completedSaleData.id,
               total_amount: calculateTotal(),
               business_name: businessInfoData.business_name,
               timestamp: new Date().toISOString()
@@ -278,7 +202,11 @@ const SaleManager = forwardRef((props, ref) => {
         toast.info("Sale completed! Set up your business information to generate receipts.");
       }
 
-      toast.success("Sale completed successfully!");
+      toast.success(
+        isNative && !online
+          ? "Sale completed offline! It will sync automatically once you're back online."
+          : "Sale completed successfully!"
+      );
       setItems([]);
     } catch (error: any) {
       console.error("Error completing sale:", error);

@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import {
+  getProducts as getProductsFromStore,
+  createProduct as createProductInStore,
+  updateProduct as updateProductInStore,
+  deleteProduct as deleteProductInStore,
+  barcodeExists,
+  getBusinessInfo,
+} from '@/lib/offline/repository';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
@@ -91,13 +98,7 @@ const Inventory = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('business_info')
-        .select('inventory_password_hash')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
+      const data = await getBusinessInfo(user.id);
 
       const hasPassword = data?.inventory_password_hash;
       setInventoryPasswordHash(hasPassword);
@@ -139,13 +140,7 @@ const Inventory = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('name');
-
-      if (error) throw error;
+      const data = await getProductsFromStore(user.id);
       setProducts(data as Product[] || []);
     } catch (error: any) {
       console.error('Error fetching products:', error);
@@ -205,57 +200,36 @@ const Inventory = () => {
         return;
       }
       
-      if (isEditing) {
-        // Update existing product
-        const { error } = await supabase
-          .from('products')
-          .update({
-            name: currentProduct.name,
-            barcode: currentProduct.barcode,
-            price: currentProduct.price,
-            purchase_price: currentProduct.purchase_price,
-            stock_count: currentProduct.stock_count,
-            category: currentProduct.category,
-            updated_at: new Date().toISOString(),
-          })
-          .eq('id', currentProduct.id)
-          .eq('user_id', user.id); // Ensure we're only updating the user's own products
-
-        if (error) throw error;
+      if (isEditing && currentProduct.id) {
+        // Update existing product - local-first on native (works offline
+        // and queues the sync), direct Supabase on web.
+        await updateProductInStore(user.id, currentProduct.id, {
+          name: currentProduct.name!,
+          barcode: currentProduct.barcode!,
+          price: currentProduct.price!,
+          purchase_price: currentProduct.purchase_price!,
+          stock_count: currentProduct.stock_count!,
+          category: currentProduct.category ?? null,
+        });
         toast.success('Product updated successfully');
       } else {
         // Check if barcode already exists for THIS USER'S products only
-        const { data: existingProduct, error: checkError } = await supabase
-          .from('products')
-          .select('id')
-          .eq('barcode', currentProduct.barcode)
-          .eq('user_id', user.id)  // Filter by user_id to ensure we only check current user's products
-          .maybeSingle();
-
-        if (checkError) throw checkError;
-          
-        if (existingProduct) {
+        if (await barcodeExists(user.id, currentProduct.barcode!)) {
           toast.error('A product with this barcode already exists in your inventory');
           return;
         }
 
-        // Create new product with user_id explicitly set
-        const { error } = await supabase
-          .from('products')
-          .insert({
-            name: currentProduct.name,
-            barcode: currentProduct.barcode,
-            price: currentProduct.price,
-            purchase_price: currentProduct.purchase_price,
-            stock_count: currentProduct.stock_count,
-            category: currentProduct.category,
-            user_id: user.id // Explicitly set user_id
-          });
-
-        if (error) throw error;
+        await createProductInStore(user.id, {
+          name: currentProduct.name!,
+          barcode: currentProduct.barcode!,
+          price: currentProduct.price!,
+          purchase_price: currentProduct.purchase_price!,
+          stock_count: currentProduct.stock_count!,
+          category: currentProduct.category ?? null,
+        });
         toast.success('Product added successfully');
       }
-      
+
       setIsDialogOpen(false);
       fetchProducts();
     } catch (error: any) {
@@ -273,13 +247,7 @@ const Inventory = () => {
     if (!productToDelete || !user) return;
 
     try {
-      const { error } = await supabase
-        .from('products')
-        .delete()
-        .eq('id', productToDelete.id)
-        .eq('user_id', user.id); // Ensure we're only deleting the user's own products
-
-      if (error) throw error;
+      await deleteProductInStore(user.id, productToDelete.id);
 
       toast.success('Product deleted successfully');
       setIsDeleteDialogOpen(false);

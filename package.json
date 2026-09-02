@@ -64,6 +64,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
+    "dexie": "^4.4.5",
     "dynamsoft-javascript-barcode": "^9.6.42",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.10.1",
@@ -86,6 +87,7 @@
     "sonner": "^1.5.0",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "uuid": "^14.0.2",
     "vaul": "^0.9.3",
     "zod": "^3.23.8"
   },

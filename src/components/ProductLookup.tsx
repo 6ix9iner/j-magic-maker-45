@@ -1,12 +1,12 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
+import { getProductByBarcode } from '@/lib/offline/repository';
 
 // Define a minimal product interface with only the fields we need
 interface Product {
@@ -39,28 +39,21 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
       setError(null);
       
       try {
-        // Fetch product with user_id filter to ensure data isolation
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .eq('barcode', barcodeValue)
-          .eq('user_id', user.id)
-          .maybeSingle();
-            
-        if (error) throw error;
-        
+        // Local-first on native (works offline), direct Supabase on web -
+        // see lib/offline/repository.ts.
+        const data = await getProductByBarcode(user.id, barcodeValue);
+
         if (data) {
-          // Type-safe mapping of database result to our Product interface
           const productData: Product = {
             id: data.id,
             barcode: data.barcode,
-            name: data.name, 
+            name: data.name,
             price: data.price,
             stock_count: data.stock_count,
             category: data.category,
             user_id: data.user_id
           };
-          
+
           setProduct(productData);
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);

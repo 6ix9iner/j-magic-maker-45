@@ -11,6 +11,7 @@ import MobilePopover from '@/components/ui/mobile-popover';
 import SettingsPage from '@/pages/Settings';
 
 import Logo from './Logo';
+import OfflineStatusBadge from './OfflineStatusBadge';
 
 const Layout = () => {
   const location = useLocation();
@@ -63,11 +64,12 @@ const Layout = () => {
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
-            <Link to="/" className="flex items-center">
+            <Link to="/" className="flex items-center gap-2.5">
               <Logo size={34} />
+              <OfflineStatusBadge />
             </Link>
           </motion.div>
-          
+
           {user && (
             <motion.div 
               className="flex items-center gap-2"

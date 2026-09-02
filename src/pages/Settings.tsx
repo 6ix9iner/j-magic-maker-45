@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
+import { getBusinessInfo } from "@/lib/offline/repository";
 import InventoryPasswordSettings from "@/components/settings/InventoryPasswordSettings";
 
 interface SettingsProps {
@@ -31,14 +31,7 @@ const Settings: React.FC<SettingsProps> = ({ isEmbed = false }) => {
     }
 
     try {
-      const { data, error } = await supabase
-        .from('business_info')
-        .select('inventory_password_hash')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      
+      const data = await getBusinessInfo(user.id);
       setHasInventoryPassword(!!data?.inventory_password_hash);
     } catch (error) {
       console.error('Error checking inventory password status:', error);

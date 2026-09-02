@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { getBusinessInfo, saveBusinessInfo } from "@/lib/offline/repository";
 import { useAuth } from "@/contexts/AuthContext";
 
 interface InventoryPasswordSettingsProps {
@@ -38,14 +38,8 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
     if (!user) return false;
     
     try {
-      const { data, error } = await supabase
-        .from('business_info')
-        .select('inventory_password_hash')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      const data = await getBusinessInfo(user.id);
 
-      if (error) throw error;
-      
       const hashedInput = hashPassword(password);
       return data?.inventory_password_hash === hashedInput;
     } catch (error) {
@@ -99,25 +93,23 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
       // Hash the new password
       const hashedNewPassword = hashPassword(newPassword);
 
-      // Update or create business info with new password
-      const { error } = await supabase
-        .from('business_info')
-        .upsert({
-          user_id: user.id,
-          inventory_password_hash: hashedNewPassword,
-          // Include required fields with defaults if they don't exist
-          business_name: 'My Business',
-          address: 'Business Address',
-          city: 'City',
-          state: 'State',
-          zip_code: '00000',
-          phone: '000-000-0000',
-          email: user.email || 'business@example.com'
-        }, {
-          onConflict: 'user_id'
-        });
-
-      if (error) throw error;
+      // Update or create business info with new password - preserve
+      // whatever business info already exists rather than clobbering it
+      // with placeholders.
+      const existing = await getBusinessInfo(user.id);
+      await saveBusinessInfo(user.id, {
+        business_name: existing?.business_name || 'My Business',
+        address: existing?.address || 'Business Address',
+        city: existing?.city || 'City',
+        state: existing?.state || 'State',
+        zip_code: existing?.zip_code || '00000',
+        phone: existing?.phone || '000-000-0000',
+        email: existing?.email || user.email || 'business@example.com',
+        website: existing?.website ?? null,
+        tax_id: existing?.tax_id ?? null,
+        thank_you_message: existing?.thank_you_message ?? null,
+        inventory_password_hash: hashedNewPassword,
+      });
 
       toast.success(hasPassword ? 'Inventory password updated successfully' : 'Inventory password set successfully');
       
@@ -157,13 +149,11 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
         return;
       }
 
-      // Remove password by setting it to null
-      const { error } = await supabase
-        .from('business_info')
-        .update({ inventory_password_hash: null })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
+      // Remove password by setting it to null, preserving everything else.
+      const existing = await getBusinessInfo(user.id);
+      if (existing) {
+        await saveBusinessInfo(user.id, { ...existing, inventory_password_hash: null });
+      }
 
       toast.success('Inventory password protection removed');
       

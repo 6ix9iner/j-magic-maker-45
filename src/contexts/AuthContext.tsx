@@ -4,6 +4,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { sendPushNotification } from '@/utils/pushNotificationUtils';
 import { Capacitor } from '@capacitor/core';
+import { startSyncEngine } from '@/lib/offline/syncEngine';
 
 type AuthContextType = {
   user: User | null;
@@ -60,6 +61,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Start the offline sync engine once we know who's logged in. Native
+  // only - on web there is no local queue to drive (see lib/offline).
+  useEffect(() => {
+    if (user?.id && Capacitor.isNativePlatform()) {
+      startSyncEngine(user.id);
+    }
+  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     try {

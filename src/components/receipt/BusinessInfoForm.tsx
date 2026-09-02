@@ -3,7 +3,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { saveBusinessInfo } from "@/lib/offline/repository";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import {
@@ -61,28 +61,21 @@ const BusinessInfoForm = ({ onSaved, initialData }: BusinessInfoFormProps) => {
     }
 
     try {
-      const { error } = await supabase
-        .from("business_info")
-        .upsert(
-          {
-            user_id: user.id,
-            business_name: data.businessName,
-            address: data.address,
-            city: data.city,
-            state: data.state,
-            zip_code: data.zipCode,
-            phone: data.phone,
-            email: data.email,
-            website: data.website || null,
-            tax_id: data.taxId || null,
-            thank_you_message: data.thankYouMessage || null,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: "user_id" }
-        );
+      // Local-first on native (works offline, queues the sync), direct
+      // Supabase upsert on web.
+      await saveBusinessInfo(user.id, {
+        business_name: data.businessName,
+        address: data.address,
+        city: data.city,
+        state: data.state,
+        zip_code: data.zipCode,
+        phone: data.phone,
+        email: data.email,
+        website: data.website || null,
+        tax_id: data.taxId || null,
+        thank_you_message: data.thankYouMessage || null,
+      });
 
-      if (error) throw error;
-      
       toast.success("Business information saved successfully");
       onSaved();
     } catch (error: any) {

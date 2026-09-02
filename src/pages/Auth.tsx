@@ -371,7 +371,7 @@ const Auth = () => {
 
         {/* Footer Info inside the same vertical flex group */}
         <div className="w-full text-center text-[11px] text-slate-400 dark:text-slate-500 leading-relaxed font-normal mt-2">
-          By continuing, you agree to Insight Inventory's{' '}
+          By continuing, you agree to MySkrib's{' '}
           <a href="#" className="underline hover:text-slate-600 dark:hover:text-slate-350">
             Consumer Terms
           </a>{' '}

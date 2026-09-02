@@ -37,7 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               await sendPushNotification({
                 user_id: currentSession.user.id,
                 title: '👋 Welcome Back!',
-                body: 'You have successfully logged in to Insight Inventory',
+                body: 'You have successfully logged in to MySkrib',
                 notification_type: 'login'
               });
             } catch (error) {
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           await sendPushNotification({
             user_id: user.id,
             title: '👋 Goodbye!',
-            body: 'You have signed out of Insight Inventory',
+            body: 'You have signed out of MySkrib',
             notification_type: 'logout'
           });
           // Small delay to ensure notification is sent

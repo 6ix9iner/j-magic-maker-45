@@ -53,7 +53,7 @@ const Welcome = () => {
 
   const testimonials = [
     {
-      quote: "Insight Inventory transformed our business operations completely. Our inventory management has never been more efficient.",
+      quote: "MySkrib transformed our business operations completely. Our inventory management has never been more efficient.",
       author: "Jane Cooper",
       role: "CEO, Retail Solutions"
     },
@@ -83,7 +83,7 @@ const Welcome = () => {
           <div className="animate-on-scroll">
             <h1 className="text-5xl sm:text-6xl font-extrabold tracking-tight mb-8 drop-shadow-lg">
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-blue-200">
-                Welcome to Insight Inventory
+                Welcome to MySkrib
               </span>
             </h1>
             <p className="text-xl sm:text-2xl text-blue-100 mb-12 max-w-3xl mx-auto">
@@ -208,7 +208,7 @@ const Welcome = () => {
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl sm:text-4xl font-bold mb-6 animate-on-scroll">Ready to streamline your inventory management?</h2>
           <p className="text-xl text-blue-100 mb-10 animate-on-scroll">
-            Join thousands of businesses that trust Insight Inventory to run their operations efficiently.
+            Join thousands of businesses that trust MySkrib to run their operations efficiently.
           </p>
           {!user && (
             <Button 

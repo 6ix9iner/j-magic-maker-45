@@ -19,24 +19,24 @@ const SaleSummary = ({
   onCancelSale
 }: SaleSummaryProps) => {
   return (
-    <div className="-mx-5 -mb-5 mt-4 rounded-b-3xl border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col gap-3">
+    <div className="-mx-5 -mb-5 mt-2 rounded-b-3xl border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex flex-col gap-2">
       <div className="w-full flex items-baseline justify-between">
-        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
           Total {itemCount > 0 && `(${itemCount} item${itemCount !== 1 ? 's' : ''})`}
         </span>
-        <span className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">₦{total.toFixed(2)}</span>
+        <span className="text-xl font-extrabold text-slate-800 dark:text-slate-100">₦{total.toFixed(2)}</span>
       </div>
       <div className="w-full flex gap-2">
         <Button
           variant="outline"
-          className="h-12 rounded-xl border-slate-200 text-slate-600 font-semibold"
+          className="h-10 rounded-xl border-slate-200 text-slate-600 font-semibold"
           onClick={onCancelSale}
           disabled={isProcessing}
         >
           Cancel
         </Button>
         <Button
-          className="flex-1 h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold shadow-sm active:scale-[0.98] transition-all"
+          className="flex-1 h-10 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold shadow-sm active:scale-[0.98] transition-all"
           onClick={onCompleteSale}
           disabled={total === 0 || isProcessing}
         >

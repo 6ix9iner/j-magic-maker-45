@@ -235,7 +235,7 @@ const SaleManager = forwardRef((props, ref) => {
   return (
     <>
       <div className="w-full h-full rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col min-h-0">
-        <div className="flex-shrink-0 flex items-center gap-2 mb-3">
+        <div className="flex-shrink-0 flex items-center gap-2 mb-2">
           <ShoppingCart className="h-4 w-4 text-indigo-600" />
           <h3 className="font-bold text-base text-slate-800 dark:text-slate-100">Current Sale</h3>
         </div>

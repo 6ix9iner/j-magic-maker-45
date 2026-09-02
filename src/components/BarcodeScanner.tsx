@@ -1,7 +1,7 @@
 // This component now serves as a compatibility layer for existing imports
 // It simply re-exports the scanner functionality from ScannerPage
-import React, { useState, useEffect } from 'react';
-import { ScanBarcode, Camera } from "lucide-react";
+import React, { useState, useEffect, useRef } from 'react';
+import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
@@ -10,13 +10,19 @@ import { getDynamsoftLicenseKey } from '@/components/barcode/BarcodeConfigUtils'
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Capacitor } from '@capacitor/core';
 import MlKitScanner from '@/components/barcode/MlKitScanner';
-import BarcodeReaderComponent from '@/components/barcode/BarcodeScanner';
+
 interface BarcodeScannerProps {
   onDetected: (code: string) => void;
   onScan?: (code: string, symbology: string) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
+
+// On native platforms (iOS/Android) this ALWAYS uses ML Kit. On web it
+// ALWAYS uses Dynamsoft. There is no runtime switching between the two -
+// each platform has exactly one scanner engine.
+const useMlKit = Capacitor.isNativePlatform();
+
 const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   onDetected,
   onScan,
@@ -26,10 +32,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [isScannerReady, setIsScannerReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
   const [showInitMessage, setShowInitMessage] = useState(false);
   const isMobile = useIsMobile();
   // Track dialog open state for proper scanner initialization
-  const dialogOpenRef = React.useRef(false);
+  const dialogOpenRef = useRef(false);
 
   // Handle controlled mode when open/onOpenChange are provided
   useEffect(() => {
@@ -42,7 +49,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   // scanning is handled entirely by the native ML Kit activity, so there's
   // nothing to initialize here and no Dynamsoft license/engine is loaded.
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) {
+    if (useMlKit) {
       setIsScannerReady(true);
       return;
     }
@@ -70,7 +77,46 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       isInitStarted = false;
     };
   }, []);
+
+  const handleScan = (code: string, symbology: string = "Unknown") => {
+    // Call both callback types for backward compatibility
+    onDetected(code);
+    if (onScan) {
+      onScan(code, symbology);
+    }
+    handleDialogClose();
+  };
+
+  // Native: the ML Kit camera Activity IS the UI - it's a real full-screen
+  // Android Activity, not something we render inside our own WebView. So we
+  // never open a Dialog/Sheet of our own here (that just produced a
+  // confusing dialog-behind-camera double layer); we only start the native
+  // scan and listen for its result.
+  const startNativeScan = async () => {
+    setIsScanning(true);
+    let mlkitListener: any = null;
+    try {
+      mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
+        const code = (d && (d.code || d.value)) || null;
+        if (code) {
+          handleScan(code, (d && d.symbology) || "ML Kit");
+        }
+        mlkitListener?.remove();
+        setIsScanning(false);
+      });
+      await MlKitScanner.startScan();
+    } catch (e) {
+      console.error('Error starting ML Kit scanner', e);
+      setIsScanning(false);
+      mlkitListener?.remove?.();
+    }
+  };
+
   const handleDialogOpen = () => {
+    if (useMlKit) {
+      startNativeScan();
+      return;
+    }
     setShowInitMessage(true);
     setIsOpen(true);
     dialogOpenRef.current = true;
@@ -85,31 +131,21 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   };
   const handleDialogClose = () => {
     setIsOpen(false);
+    setIsScanning(false);
     dialogOpenRef.current = false;
     if (onOpenChange) {
       onOpenChange(false);
     }
   };
-  const handleScan = (code: string, symbology: string = "Unknown") => {
-    // Call both callback types for backward compatibility
-    onDetected(code);
-    if (onScan) {
-      onScan(code, symbology);
-    }
-    handleDialogClose();
-  };
-  // On native platforms (iOS/Android) this ALWAYS uses ML Kit. On web it
-  // ALWAYS uses Dynamsoft. There is no runtime switching between the two -
-  // each platform has exactly one scanner engine.
-  const useMlKit = Capacitor.isNativePlatform();
 
+  // Web-only Dynamsoft dialog scanner. Native never reaches this - the
+  // camera Activity is native UI, handled by startNativeScan() above.
   const SimpleBarcodeScanner = ({
     onClose
   }: {
     onClose: () => void;
   }) => {
     const containerRef = React.useRef<HTMLDivElement>(null);
-    const [scanner, setScanner] = React.useState<DynamsoftScanner | null>(null);
     const [error, setError] = React.useState<string | null>(null);
     const videoContainerCreated = React.useRef<boolean>(false);
     const scannerInstanceRef = React.useRef<DynamsoftScanner | null>(null);
@@ -118,7 +154,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     React.useEffect(() => {
       if (!dialogOpenRef.current) return;
       let isMounted = true;
-      let mlkitListener: any = null;
       isDestroyingRef.current = false;
 
       // Create the video container element required by Dynamsoft
@@ -154,8 +189,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           settings.deblurLevel = 2;
           await scannerInstance.updateRuntimeSettings(settings);
           if (isMounted && dialogOpenRef.current && !isDestroyingRef.current) {
-            setScanner(scannerInstance);
-
             // Set up callback for barcode detection
             scannerInstance.onUnduplicatedRead = (txt, result) => {
               console.log("Dialog barcode detected (Dynamsoft):", txt, result);
@@ -191,36 +224,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         }
       };
 
-      const startMlKit = async () => {
-        try {
-          await MlKitScanner.startScan();
-
-          // Capacitor style listener
-          try {
-            mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
-              const code = (d && (d.code || d.value)) || null;
-              if (code && isMounted) {
-                handleScan(code, (d && d.symbology) || "ML Kit");
-              }
-            });
-          } catch (e) {
-            console.warn('Failed to attach mlkit listener', e);
-          }
-        } catch (e) {
-          console.error('Error starting MlKit plugin', e);
-          setError('Failed to start ML Kit scanner');
-        }
-      };
-
-      if (useMlKit) {
-        startMlKit();
-      } else {
-        setupScanner();
-      }
+      setupScanner();
 
       // Cleanup function
       return () => {
-        console.log("SimpleBarcodeScanner component unmounting, engine:", useMlKit ? "mlkit" : "dynamsoft");
+        console.log("SimpleBarcodeScanner component unmounting");
         isMounted = false;
         isDestroyingRef.current = true;
         videoContainerCreated.current = false;
@@ -233,7 +241,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             console.log("Dialog video container removed");
           }
         }
-        
+
         const scannerInstance = scannerInstanceRef.current;
         if (scannerInstance) {
           (async () => {
@@ -257,16 +265,6 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           })();
           scannerInstanceRef.current = null;
         }
-
-        try {
-          if (mlkitListener && mlkitListener.remove) {
-            mlkitListener.remove();
-          }
-        } catch (e) {}
-
-        try {
-          MlKitScanner.stopScan();
-        } catch (e) {}
       };
     }, []);
 
@@ -294,34 +292,19 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </div>
         ) : (
           <>
-            <div 
-              ref={containerRef} 
-              className="relative w-full aspect-[4/3] bg-slate-950/90 rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-inner" 
+            <div
+              ref={containerRef}
+              className="relative w-full aspect-[4/3] bg-slate-950/90 rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-inner"
               style={{ minHeight: '300px' }}
             >
-              {useMlKit ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white p-6">
-                  <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 animate-pulse mb-4 shadow-lg shadow-indigo-500/20">
-                    <Camera className="w-8 h-8" />
-                  </div>
-                  <p className="font-semibold text-lg">Native Scanner Active</p>
-                  <p className="text-sm text-slate-400 text-center mt-2 max-w-xs">
-                    A native camera window has opened to scan your barcode.
-                  </p>
-                </div>
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="w-full h-1 bg-indigo-600 opacity-90 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse"></div>
-                </div>
-              )}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-full h-1 bg-indigo-600 opacity-90 shadow-[0_0_12px_rgba(99,102,241,0.8)] animate-pulse"></div>
+              </div>
             </div>
-            
+
             <div className="w-full my-4 px-4 py-2.5 bg-slate-50/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-xl">
               <p className="text-xs text-center text-slate-850 dark:text-slate-150 font-semibold leading-relaxed">
-                {useMlKit
-                  ? "Close the native camera when done scanning"
-                  : "Position barcode within the frame for automatic scanning"
-                }
+                Position barcode within the frame for automatic scanning
               </p>
             </div>
 
@@ -333,46 +316,51 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       </div>
     );
   };
+
   return <>
       {/* Only render the button if we're not in controlled mode */}
       {open === undefined && (
-        <Button onClick={handleDialogOpen} disabled={isInitializing} className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-sm hover:shadow active:scale-[0.98] transition-all">
+        <Button onClick={handleDialogOpen} disabled={isInitializing || isScanning} className="w-full h-11 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-semibold shadow-sm hover:shadow active:scale-[0.98] transition-all">
           <ScanBarcode className="w-5 h-5 mr-2" />
-          {isInitializing ? "Initializing..." : "Scan Barcode"}
+          {isScanning ? "Opening camera..." : isInitializing ? "Initializing..." : "Scan Barcode"}
         </Button>
       )}
 
-      {isMobile ? (
-        <Sheet open={isOpen} onOpenChange={open => {
-          setIsOpen(open);
-          if (onOpenChange) onOpenChange(open);
-          dialogOpenRef.current = open;
-        }}>
-          <SheetContent side="bottom" className="rounded-t-3xl border-t border-slate-100 dark:border-slate-800 p-6 bg-white dark:bg-slate-900 h-[80vh] flex flex-col">
-            <div className="pb-4 border-b border-slate-50 dark:border-slate-800 mb-4">
-              <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Scan Barcode</h2>
-              <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
-                Position barcode within view for automatic scanning
-              </p>
-            </div>
-            
-            {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
-          </SheetContent>
-        </Sheet>
-      ) : (
-        <Dialog open={isOpen} onOpenChange={open => {
-          setIsOpen(open);
-          if (onOpenChange) onOpenChange(open);
-          dialogOpenRef.current = open;
-        }}>
-          <DialogContent className="sm:max-w-md rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 bg-white dark:bg-slate-900">
-            <DialogHeader className="pb-2">
-              <DialogTitle className="text-slate-800 dark:text-slate-100 font-bold text-lg">Scan Barcode</DialogTitle>
-            </DialogHeader>
-            
-            {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
-          </DialogContent>
-        </Dialog>
+      {/* Native has no dialog/sheet of its own - the ML Kit camera Activity
+          is the entire UI while scanning (see startNativeScan above). */}
+      {!useMlKit && (
+        isMobile ? (
+          <Sheet open={isOpen} onOpenChange={open => {
+            setIsOpen(open);
+            if (onOpenChange) onOpenChange(open);
+            dialogOpenRef.current = open;
+          }}>
+            <SheetContent side="bottom" className="rounded-t-3xl border-t border-slate-100 dark:border-slate-800 p-6 bg-white dark:bg-slate-900 h-[80vh] flex flex-col">
+              <div className="pb-4 border-b border-slate-50 dark:border-slate-800 mb-4">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Scan Barcode</h2>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-1">
+                  Position barcode within view for automatic scanning
+                </p>
+              </div>
+
+              {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
+            </SheetContent>
+          </Sheet>
+        ) : (
+          <Dialog open={isOpen} onOpenChange={open => {
+            setIsOpen(open);
+            if (onOpenChange) onOpenChange(open);
+            dialogOpenRef.current = open;
+          }}>
+            <DialogContent className="sm:max-w-md rounded-3xl border border-slate-100 dark:border-slate-800 shadow-xl p-6 bg-white dark:bg-slate-900">
+              <DialogHeader className="pb-2">
+                <DialogTitle className="text-slate-800 dark:text-slate-100 font-bold text-lg">Scan Barcode</DialogTitle>
+              </DialogHeader>
+
+              {isOpen && <SimpleBarcodeScanner onClose={handleDialogClose} />}
+            </DialogContent>
+          </Dialog>
+        )
       )}
     </>;
 };

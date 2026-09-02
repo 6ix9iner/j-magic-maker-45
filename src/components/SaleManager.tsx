@@ -1,6 +1,6 @@
 import React, { useState, useImperativeHandle, forwardRef } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ShoppingCart } from 'lucide-react';
 import { toast } from "sonner";
 import { useAuth } from '@/contexts/AuthContext';
 import SaleTable from './sale/SaleTable';
@@ -234,24 +234,24 @@ const SaleManager = forwardRef((props, ref) => {
 
   return (
     <>
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>Current Sale</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <SaleTable 
-            items={items}
-            onUpdateQuantity={updateQuantity}
-            onRemoveItem={removeItem}
-          />
-        </CardContent>
+      <div className="w-full rounded-3xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm p-5 flex flex-col">
+        <div className="flex items-center gap-2 mb-3">
+          <ShoppingCart className="h-4 w-4 text-indigo-600" />
+          <h3 className="font-bold text-base text-slate-800 dark:text-slate-100">Current Sale</h3>
+        </div>
+        <SaleTable
+          items={items}
+          onUpdateQuantity={updateQuantity}
+          onRemoveItem={removeItem}
+        />
         <SaleSummary
           total={calculateTotal()}
+          itemCount={items.length}
           isProcessing={isProcessing}
           onCompleteSale={completeSale}
           onCancelSale={cancelSale}
         />
-      </Card>
+      </div>
 
       {/* Receipt Modal */}
       {showReceiptModal && completedSale && businessInfo && (

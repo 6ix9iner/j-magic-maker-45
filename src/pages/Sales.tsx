@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { ChevronDown, ChevronLeft, ChevronUp, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -203,91 +202,67 @@ const Sales = () => {
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
             </div>
           ) : sales.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead></TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Transaction ID</TableHead>
-                    <TableHead>Payment Method</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sales.map((sale, index) => (
-                    <React.Fragment key={sale.id}>
-                      <TableRow className="cursor-pointer" onClick={() => toggleSaleDetails(index)}>
-                        <TableCell>
-                          {sale.isExpanded ? 
-                            <ChevronUp className="h-4 w-4" /> :
-                            <ChevronDown className="h-4 w-4" />
-                          }
-                        </TableCell>
-                        <TableCell>{formatDate(sale.created_at)}</TableCell>
-                        <TableCell>{sale.transaction_id || "N/A"}</TableCell>
-                        <TableCell>{sale.payment_method || "Cash"}</TableCell>
-                        <TableCell className="text-right font-medium">{formatCurrency(sale.total_amount)}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleViewReceipt(sale);
-                            }}
-                          >
-                            Receipt
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                      {sale.isExpanded && (
-                        <TableRow key={`${sale.id}-details`}>
-                          <TableCell colSpan={6}>
-                            <div className="bg-slate-50/70 dark:bg-slate-800/40 p-4 rounded-2xl border border-slate-100/50 dark:border-slate-800">
-                              <h4 className="font-semibold text-sm text-slate-700 dark:text-slate-300 mb-2">Sale Items:</h4>
-                              {sale.items && sale.items.length > 0 ? (
-                                <Table>
-                                  <TableHeader>
-                                    <TableRow>
-                                      <TableHead>Item</TableHead>
-                                      <TableHead>Price</TableHead>
-                                      <TableHead>Quantity</TableHead>
-                                      <TableHead className="text-right">Subtotal</TableHead>
-                                    </TableRow>
-                                  </TableHeader>
-                                  <TableBody>
-                                    {sale.items.map((item) => (
-                                      <TableRow key={item.id}>
-                                        <TableCell>
-                                          {item.name_at_sale || "Unknown Item"}
-                                          {item.barcode_at_sale && (
-                                            <div className="text-xs text-muted-foreground">
-                                              {item.barcode_at_sale}
-                                            </div>
-                                          )}
-                                        </TableCell>
-                                        <TableCell>{formatCurrency(item.price_at_sale)}</TableCell>
-                                        <TableCell>{item.quantity}</TableCell>
-                                        <TableCell className="text-right">
-                                          {formatCurrency(item.price_at_sale * item.quantity)}
-                                        </TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              ) : (
-                                <p className="text-sm text-gray-500">No item details available</p>
-                              )}
+            <div className="divide-y divide-slate-100 dark:divide-slate-800">
+              {sales.map((sale, index) => (
+                <div key={sale.id}>
+                  <button
+                    type="button"
+                    onClick={() => toggleSaleDetails(index)}
+                    className="w-full flex items-center gap-3 py-3.5 text-left"
+                  >
+                    <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                      {sale.isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{formatDate(sale.created_at)}</p>
+                      <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                        {sale.payment_method || "Cash"}{sale.transaction_id ? ` · ${sale.transaction_id}` : ""}
+                      </p>
+                    </div>
+                    <span className="font-bold text-sm text-slate-800 dark:text-slate-100 shrink-0">
+                      {formatCurrency(sale.total_amount)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 rounded-lg text-xs shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleViewReceipt(sale);
+                      }}
+                    >
+                      Receipt
+                    </Button>
+                  </button>
+
+                  {sale.isExpanded && (
+                    <div className="mb-3 -mt-1 bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-100/50 dark:border-slate-800">
+                      <h4 className="font-semibold text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">Items</h4>
+                      {sale.items && sale.items.length > 0 ? (
+                        <div className="divide-y divide-slate-200/60 dark:divide-slate-700/60">
+                          {sale.items.map((item) => (
+                            <div key={item.id} className="flex items-center gap-3 py-2 text-sm">
+                              <div className="min-w-0 flex-1">
+                                <p className="font-medium text-slate-700 dark:text-slate-200 truncate">
+                                  {item.name_at_sale || "Unknown Item"}
+                                </p>
+                                <p className="text-xs text-slate-400 dark:text-slate-500">
+                                  {item.quantity} × {formatCurrency(item.price_at_sale)}
+                                </p>
+                              </div>
+                              <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
+                                {formatCurrency(item.price_at_sale * item.quantity)}
+                              </span>
                             </div>
-                          </TableCell>
-                        </TableRow>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500">No item details available</p>
                       )}
-                    </React.Fragment>
-                  ))}
-                </TableBody>
-              </Table>
+                    </div>
+                  )}
+                </div>
+              ))}
             </div>
           ) : (
             <div className="text-center py-8 text-gray-500">

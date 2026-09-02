@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ShoppingCart } from 'lucide-react';
 import SaleItem from './SaleItem';
 
 interface Product {
@@ -27,36 +27,27 @@ interface SaleTableProps {
 const SaleTable = ({ items, onUpdateQuantity, onRemoveItem }: SaleTableProps) => {
   if (items.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No items in current sale. Scan products to add them.
+      <div className="flex flex-col items-center justify-center gap-2.5 min-h-[220px] text-center text-slate-400 dark:text-slate-500">
+        <ShoppingCart className="h-9 w-9 opacity-40" />
+        <p className="text-sm font-medium">No items in current sale</p>
+        <p className="text-xs">Scan a product to add it here</p>
       </div>
     );
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Item</TableHead>
-          <TableHead>Price</TableHead>
-          <TableHead>Qty</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead></TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {items.map((item, index) => (
-          <SaleItem
-            key={item.product.id}
-            product={item.product}
-            quantity={item.quantity}
-            index={index}
-            onUpdateQuantity={onUpdateQuantity}
-            onRemoveItem={onRemoveItem}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+      {items.map((item, index) => (
+        <SaleItem
+          key={item.product.id}
+          product={item.product}
+          quantity={item.quantity}
+          index={index}
+          onUpdateQuantity={onUpdateQuantity}
+          onRemoveItem={onRemoveItem}
+        />
+      ))}
+    </div>
   );
 };
 

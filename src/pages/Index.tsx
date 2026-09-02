@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
+import { ScanBarcode, X } from 'lucide-react';
 import BarcodeScannerCompat from '@/components/BarcodeScanner';
 import BarcodeScannerInline from '@/components/barcode/BarcodeScanner';
-import BarcodeResult from '@/components/BarcodeResult';
 import ProductLookup from '@/components/ProductLookup';
 import SaleManager from '@/components/SaleManager';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from 'sonner';
 
@@ -35,46 +37,97 @@ const Index = () => {
     setBarcodeValue(null);
   }, []);
 
+  const handleAddToSale = useCallback((product: any, quantity: number) => {
+    if (saleManagerRef?.current?.addItem) {
+      saleManagerRef.current.addItem(product, quantity);
+      toast.success(`Added ${quantity} ${product.name} to sale`);
+    }
+    // Dismiss the result so the user is immediately ready to scan the
+    // next item, instead of having to manually clear it every time.
+    clearResult();
+  }, [saleManagerRef, clearResult]);
+
+  if (isMobile) {
+    // Mobile: one single scrolling flow (scanner, then the current sale
+    // list) instead of two independently-scrolling panes stacked on top
+    // of each other. Scan results appear in a bottom sheet that overlays
+    // the page rather than pushing content around, so the user's place
+    // in the sale list never jumps.
+    return (
+      <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
+        <div className="max-w-lg w-full mx-auto flex flex-col flex-1 overflow-hidden min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 pb-32 space-y-4">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="flex items-center gap-3 rounded-2xl bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 px-4 py-3"
+            >
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
+                <ScanBarcode className="h-4.5 w-4.5 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: 0.1 }}
+            >
+              <SaleManager ref={saleManagerRef} />
+            </motion.div>
+          </div>
+        </div>
+
+        <Sheet open={!!barcodeValue} onOpenChange={(open) => !open && clearResult()}>
+          <SheetContent side="bottom" className="rounded-t-3xl border-t border-slate-100 dark:border-slate-800 p-0 bg-white dark:bg-slate-900 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 pt-6 pb-2 flex-shrink-0">
+              <div className="min-w-0">
+                <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100">Scanned Product</h2>
+                <p className="text-xs text-slate-400 dark:text-slate-500 font-mono truncate">{barcodeValue}</p>
+              </div>
+              <Button variant="ghost" size="icon" onClick={clearResult} className="rounded-full flex-shrink-0">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 pb-6">
+              {barcodeValue && (
+                <ProductLookup barcodeValue={barcodeValue} onAddToSale={handleAddToSale} />
+              )}
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1 max-w-7xl mx-auto">
-      {/* 2-column layout on Desktop, stacked on Mobile */}
+      {/* 2-column layout on Desktop */}
       <div className="w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 overflow-hidden min-h-0">
-        
+
         {/* Left Column - Scanner and Product Info */}
         <div className="lg:col-span-5 flex flex-col overflow-hidden min-h-0 h-full">
           <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 mt-2 flex items-center gap-2 flex-shrink-0">
             <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
             Scan & Lookup
           </h2>
-          
+
           <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
             {barcodeValue ? (
               <div className="flex-1 overflow-y-auto pr-1 space-y-4">
-                <BarcodeResult barcodeValue={barcodeValue} onClear={clearResult} />
-                <ProductLookup 
-                  barcodeValue={barcodeValue} 
-                  onAddToSale={(product, quantity) => {
-                    if (saleManagerRef?.current?.addItem) {
-                      saleManagerRef.current.addItem(product, quantity);
-                      toast.success(`Added ${quantity} ${product.name} to sale`);
-                    }
-                  }} 
+                <ProductLookup
+                  barcodeValue={barcodeValue}
+                  onAddToSale={handleAddToSale}
                 />
               </div>
             ) : (
               <div className="flex-grow flex flex-col min-h-0 relative rounded-3xl overflow-hidden bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 flex-1">
-                {isMobile ? (
-                  <div className="flex-grow flex flex-col items-center justify-center p-6 text-center space-y-4">
-                    <p className="text-sm text-slate-400 font-medium">Scan barcodes with your camera</p>
-                    <div className="w-full max-w-xs">
-                      <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex-grow min-h-0 flex flex-col relative">
-                    <BarcodeScannerInline onDetected={handleBarcodeDetected} />
-                  </div>
-                )}
+                <div className="w-full h-full flex-grow min-h-0 flex flex-col relative">
+                  <BarcodeScannerInline onDetected={handleBarcodeDetected} />
+                </div>
               </div>
             )}
           </div>
@@ -86,13 +139,12 @@ const Index = () => {
             <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
             Current Sale
           </h2>
-          
+
           <div className="flex-grow overflow-y-auto min-h-0 pb-24 pr-1">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
-              className="premium-card p-5 rounded-3xl border border-slate-100 bg-white dark:bg-slate-900 shadow-sm"
             >
               <SaleManager ref={saleManagerRef} />
             </motion.div>

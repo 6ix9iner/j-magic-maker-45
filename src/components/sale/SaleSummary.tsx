@@ -1,44 +1,55 @@
 
 import React from 'react';
-import { CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 
 interface SaleSummaryProps {
   total: number;
+  itemCount: number;
   isProcessing: boolean;
   onCompleteSale: () => void;
   onCancelSale: () => void;
 }
 
-const SaleSummary = ({ 
-  total, 
-  isProcessing, 
-  onCompleteSale, 
-  onCancelSale 
+const SaleSummary = ({
+  total,
+  itemCount,
+  isProcessing,
+  onCompleteSale,
+  onCancelSale
 }: SaleSummaryProps) => {
   return (
-    <CardFooter className="flex flex-col space-y-4">
-      <div className="w-full flex justify-between text-lg font-bold">
-        <span>Total:</span>
-        <span>₦{total.toFixed(2)}</span>
+    <div className="-mx-5 -mb-5 mt-4 rounded-b-3xl border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-4 flex flex-col gap-3">
+      <div className="w-full flex items-baseline justify-between">
+        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Total {itemCount > 0 && `(${itemCount} item${itemCount !== 1 ? 's' : ''})`}
+        </span>
+        <span className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">₦{total.toFixed(2)}</span>
       </div>
-      <div className="w-full flex space-x-2">
-        <Button 
-          variant="outline" 
-          className="flex-1"
+      <div className="w-full flex gap-2">
+        <Button
+          variant="outline"
+          className="h-12 rounded-xl border-slate-200 text-slate-600 font-semibold"
           onClick={onCancelSale}
+          disabled={isProcessing}
         >
           Cancel
         </Button>
-        <Button 
-          className="flex-1"
+        <Button
+          className="flex-1 h-12 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white font-bold shadow-sm active:scale-[0.98] transition-all"
           onClick={onCompleteSale}
           disabled={total === 0 || isProcessing}
         >
-          {isProcessing ? "Processing..." : "Complete Sale"}
+          {isProcessing ? (
+            <span className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Processing...
+            </span>
+          ) : (
+            "Complete Sale"
+          )}
         </Button>
       </div>
-    </CardFooter>
+    </div>
   );
 };
 

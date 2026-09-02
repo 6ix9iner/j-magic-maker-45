@@ -235,7 +235,7 @@ const Auth = () => {
               <div className="flex flex-col items-center gap-3 text-center">
                 <Logo size={42} textClassName="text-2xl font-bold" />
                 <h1 className="text-3xl font-semibold tracking-tight leading-tight mt-2 text-slate-800 dark:text-slate-200">
-                  Simplify your inventory with Insight
+                  Simplify your inventory with MySkrib
                 </h1>
               </div>
 

@@ -48,37 +48,36 @@ const Index = () => {
   }, [saleManagerRef, clearResult]);
 
   if (isMobile) {
-    // Mobile: one single scrolling flow (scanner, then the current sale
-    // list) instead of two independently-scrolling panes stacked on top
-    // of each other. Scan results appear in a bottom sheet that overlays
-    // the page rather than pushing content around, so the user's place
-    // in the sale list never jumps.
+    // Mobile: the page itself never scrolls - the scan bar and the
+    // Current Sale card both stay fixed in place on screen. Only the
+    // item list *inside* the card scrolls as products are added (see
+    // SaleManager). Scan results appear in a bottom sheet overlaying
+    // the page rather than pushing anything around.
     return (
       <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
         <div className="max-w-lg w-full mx-auto flex flex-col flex-1 overflow-hidden min-h-0">
-          <div className="flex-1 overflow-y-auto min-h-0 pb-32 space-y-4">
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="flex items-center gap-3 rounded-2xl bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 px-4 py-3"
-            >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
-                <ScanBarcode className="h-4.5 w-4.5 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
-              </div>
-            </motion.div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+            className="flex-shrink-0 flex items-center gap-3 rounded-2xl bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 px-4 py-3"
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
+              <ScanBarcode className="h-4.5 w-4.5 text-white" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
+            </div>
+          </motion.div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
-            >
-              <SaleManager ref={saleManagerRef} />
-            </motion.div>
-          </div>
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            className="flex-1 min-h-0 mt-4 pb-24"
+          >
+            <SaleManager ref={saleManagerRef} />
+          </motion.div>
         </div>
 
         <Sheet open={!!barcodeValue} onOpenChange={(open) => !open && clearResult()}>

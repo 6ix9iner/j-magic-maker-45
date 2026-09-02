@@ -1,0 +1,12 @@
+android
+ios
+repo-clean
+New folder
+_
+node_modules
+dist
+supabase/.temp
+.supabase
+jdk-17.0.14_windows-x64_bin.exe
+android_relaunch.ps1
+vite.config.ts.timestamp-*

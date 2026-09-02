@@ -49,3 +49,5 @@ android/gradle-output.txt
 vite.config.ts.timestamp-*
 supabase/.temp/
 .supabase/
+.vercel
+.env*

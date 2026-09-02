@@ -17,29 +17,31 @@ export const Logo: React.FC<LogoProps> = ({
 }) => {
   return (
     <div className={`flex items-center gap-2.5 select-none ${className}`}>
-      {/* Sleek SVG Icon representing MS (MySkrib) & charts / metrics */}
-      <svg 
-        width={size} 
-        height={size} 
-        viewBox="0 0 32 32" 
-        fill="none" 
+      {/* Reed Stylus & Tablet: a clay ledger tablet crossed by a stylus stroke
+          that doubles as an upward sales line — the scribe's tool of record. */}
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 64 64"
+        fill="none"
         xmlns="http://www.w3.org/2000/svg"
         className={`shrink-0 transition-transform hover:scale-105 duration-200 ${iconClassName}`}
       >
-        {/* Left Column (My - Indigo/Violet Gradient) */}
-        <rect x="6" y="14" width="6" height="12" rx="3" fill="url(#logo-grad-indigo)" />
-        <circle cx="9" cy="8" r="3" fill="url(#logo-grad-indigo)" />
+        {/* Tablet (Indigo/Violet Gradient) */}
+        <rect x="10" y="14" width="34" height="40" rx="7" fill="url(#logo-grad-tablet)" />
+        <rect x="16" y="24" width="18" height="2.4" rx="1.2" fill="#ffffff" opacity="0.38" />
+        <rect x="16" y="32" width="18" height="2.4" rx="1.2" fill="#ffffff" opacity="0.3" />
+        <rect x="16" y="40" width="14" height="2.4" rx="1.2" fill="#ffffff" opacity="0.24" />
 
-        {/* Right Column (Skrib - Sales & Inventory Growth - Emerald/Green Gradient) */}
-        <rect x="16" y="8" width="6" height="18" rx="3" fill="url(#logo-grad-emerald)" />
-        <circle cx="19" cy="3" r="3" fill="url(#logo-grad-emerald)" />
-        
+        {/* Stylus stroke (Emerald Gradient) */}
+        <polygon points="29,53 38,57 58,13 51,9" fill="url(#logo-grad-stylus)" />
+
         <defs>
-          <linearGradient id="logo-grad-indigo" x1="6" y1="8" x2="12" y2="26" gradientUnits="userSpaceOnUse">
+          <linearGradient id="logo-grad-tablet" x1="10" y1="14" x2="44" y2="54" gradientUnits="userSpaceOnUse">
             <stop stopColor="#6366f1" />
             <stop offset="1" stopColor="#4f46e5" />
           </linearGradient>
-          <linearGradient id="logo-grad-emerald" x1="16" y1="3" x2="22" y2="26" gradientUnits="userSpaceOnUse">
+          <linearGradient id="logo-grad-stylus" x1="29" y1="57" x2="58" y2="9" gradientUnits="userSpaceOnUse">
             <stop stopColor="#10b981" />
             <stop offset="1" stopColor="#059669" />
           </linearGradient>

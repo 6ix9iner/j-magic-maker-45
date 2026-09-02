@@ -28,16 +28,16 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5 }}
     >
-      <motion.div 
+      <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="relative mb-8"
+        className="relative mb-3"
       >
         <div className="w-28 h-28 rounded-full bg-white dark:bg-slate-900 shadow-xl shadow-indigo-500/5 flex items-center justify-center border border-slate-100/80 dark:border-slate-800/80">
-          <Logo size={52} />
+          <Logo size={52} iconOnly />
         </div>
-        <motion.div 
+        <motion.div
           className="absolute -inset-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -46,14 +46,14 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
           <div className="absolute inset-0 rounded-full border-4 border-indigo-500/10 animate-ping" />
         </motion.div>
       </motion.div>
-      
+
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3, duration: 0.6 }}
         className="flex flex-col items-center"
       >
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-850 dark:text-slate-100 tracking-tight mb-2">
+        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-850 dark:text-slate-100 tracking-tight mb-1">
           MySkrib
         </h1>
         <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-8">

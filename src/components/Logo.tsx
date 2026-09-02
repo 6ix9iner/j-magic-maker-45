@@ -50,8 +50,7 @@ export const Logo: React.FC<LogoProps> = ({
       
       {!iconOnly && (
         <span className={`font-bold tracking-tight text-slate-900 dark:text-white flex items-center leading-none text-lg ${textClassName}`}>
-          <span className="text-indigo-600 font-extrabold">My</span>
-          <span className="text-slate-800 dark:text-slate-100 ml-1 font-semibold">Skrib</span>
+          <span className="text-indigo-600 font-extrabold">My</span><span className="text-slate-800 dark:text-slate-100 font-semibold">Skrib</span>
         </span>
       )}
     </div>

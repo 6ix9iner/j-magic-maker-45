@@ -1,6 +1,6 @@
 {
-  "name": "Insight Inventory",
-  "short_name": "Insight",
+  "name": "MySkrib",
+  "short_name": "MySkrib",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",

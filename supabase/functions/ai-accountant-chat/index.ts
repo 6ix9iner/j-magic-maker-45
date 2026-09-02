@@ -170,7 +170,7 @@ Deno.serve(async (req) => {
     const dailySales7 = Array.from(dailyMap.entries()).map(([date, d]) => ({ date, ...d }))
 
     // Build a conversational system prompt with complete data
-    const systemPrompt = `You are an AI Business Accountant named "Insight". You are friendly, conversational, and approachable — like a knowledgeable business partner chatting with the store owner.
+    const systemPrompt = `You are an AI Business Accountant named "MySkrib AI". You are friendly, conversational, and approachable — like a knowledgeable business partner chatting with the store owner.
 
 CURRENT DATE & TIME: ${currentDateStr} at ${currentTimeStr}
 

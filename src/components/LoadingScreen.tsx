@@ -54,7 +54,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ duration = 2000 }) => {
         className="flex flex-col items-center"
       >
         <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-850 dark:text-slate-100 tracking-tight mb-2">
-          Insight Inventory
+          MySkrib
         </h1>
         <p className="text-sm font-semibold text-slate-400 dark:text-slate-500 mb-8">
           Powering smarter business decisions

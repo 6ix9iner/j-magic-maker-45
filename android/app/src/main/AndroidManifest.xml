@@ -36,6 +36,16 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
             </intent-filter>
+
+            <!-- OAuth (Google/Apple) redirect callback: Supabase/Google send the
+                 browser here after sign-in via this custom scheme, which Android
+                 routes straight back into the app instead of a dead browser tab. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="com.posapp.app" android:host="login-callback" />
+            </intent-filter>
         </activity>
 
         <!-- ML Kit scan activity (CameraX + ML Kit barcode) -->

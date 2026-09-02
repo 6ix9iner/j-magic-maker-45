@@ -2,12 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { Capacitor } from '@capacitor/core';
+import { Browser } from '@capacitor/browser';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '@/components/Logo';
+
+// Native (Android/iOS) OAuth deep-link callback - see AuthContext.tsx's
+// appUrlOpen listener, AndroidManifest.xml's intent-filter, and Info.plist's
+// CFBundleURLTypes for the other ends of this. window.location.origin on
+// native resolves to https://localhost, which is useless as a redirect
+// target - the browser has to come back through this custom scheme instead.
+const NATIVE_OAUTH_REDIRECT = 'com.posapp.app://login-callback';
 
 const Auth = () => {
   const { user } = useAuth();
@@ -39,41 +48,45 @@ const Auth = () => {
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val);
   };
 
-  const handleGoogleLogin = async () => {
+  const signInWithProvider = async (provider: 'google' | 'apple') => {
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/scanner`
+      if (Capacitor.isNativePlatform()) {
+        // Get the provider's auth URL from Supabase without letting the SDK
+        // try to navigate the (nonexistent, on native) current page there -
+        // then open it ourselves in an in-app browser tab. The tab closes
+        // itself once AuthContext's appUrlOpen listener catches the
+        // com.posapp.app://login-callback redirect and completes sign-in.
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: NATIVE_OAUTH_REDIRECT,
+            skipBrowserRedirect: true,
+          },
+        });
+        if (error) throw error;
+        if (data?.url) {
+          await Browser.open({ url: data.url });
         }
-      });
-      if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider,
+          options: {
+            redirectTo: `${window.location.origin}/scanner`
+          }
+        });
+        if (error) throw error;
+      }
     } catch (error: any) {
-      console.error('Google login error:', error);
-      toast.error(error.message || 'Failed to start Google sign-in');
+      console.error(`${provider} login error:`, error);
+      toast.error(error.message || `Failed to start ${provider} sign-in`);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleAppleLogin = async () => {
-    setIsSubmitting(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: `${window.location.origin}/scanner`
-        }
-      });
-      if (error) throw error;
-    } catch (error: any) {
-      console.error('Apple login error:', error);
-      toast.error(error.message || 'Failed to start Apple sign-in');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  const handleGoogleLogin = () => signInWithProvider('google');
+  const handleAppleLogin = () => signInWithProvider('apple');
 
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();

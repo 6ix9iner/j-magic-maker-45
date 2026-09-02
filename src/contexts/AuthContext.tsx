@@ -4,6 +4,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { toast } from 'sonner';
 import { sendPushNotification } from '@/utils/pushNotificationUtils';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Browser } from '@capacitor/browser';
 import { startSyncEngine } from '@/lib/offline/syncEngine';
 
 type AuthContextType = {
@@ -60,6 +62,72 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
+  }, []);
+
+  // Native OAuth (Google/Apple) deep-link callback. On native platforms
+  // sign-in opens the system browser (see Auth.tsx), which redirects to
+  // com.posapp.app://login-callback?code=... once done - Android/iOS route
+  // that straight back into the app (see AndroidManifest.xml / Info.plist)
+  // and this listener finishes the sign-in by exchanging the code for a
+  // session, then closes the browser tab that was left open.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    const listenerPromise = CapacitorApp.addListener('appUrlOpen', async ({ url }) => {
+      console.log('🔗 appUrlOpen:', url);
+      if (!url.startsWith('com.posapp.app://login-callback')) return;
+
+      // Supabase can return either a PKCE `?code=...` (query string) or an
+      // implicit-flow `#access_token=...&refresh_token=...` (URL fragment) -
+      // this project's Google provider returns the latter, so both are
+      // handled here rather than assuming one.
+      const parsed = new URL(url);
+      const searchParams = new URLSearchParams(parsed.search);
+      const hashParams = new URLSearchParams(parsed.hash.replace(/^#/, ''));
+
+      const code = searchParams.get('code');
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+
+      if (!code && !(accessToken && refreshToken)) {
+        console.log('🔗 login-callback had no code/tokens (stale/replayed intent) - ignoring');
+        return;
+      }
+
+      // The native intent gets cleared after first delivery (see
+      // MainActivity#onNewIntent), but guard here too in case a duplicate
+      // slips through - these are single-use, so retrying one we've
+      // already handled would just fail and pop a bogus error toast.
+      const dedupeKey = code || accessToken || '';
+      const lastHandledKey = sessionStorage.getItem('oauth_last_key');
+      if (lastHandledKey === dedupeKey) {
+        console.log('🔗 login-callback already handled this session - ignoring');
+        return;
+      }
+      sessionStorage.setItem('oauth_last_key', dedupeKey);
+
+      try {
+        if (accessToken && refreshToken) {
+          console.log('🔗 setting session from OAuth tokens...');
+          const { error } = await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+          if (error) throw error;
+        } else if (code) {
+          console.log('🔗 exchanging OAuth code for session...');
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        }
+        console.log('🔗 OAuth sign-in succeeded');
+      } catch (error: any) {
+        console.error('OAuth callback error:', error?.message || error);
+        toast.error(error?.message || 'Sign-in failed');
+      } finally {
+        Browser.close().catch(() => {});
+      }
+    });
+
+    return () => {
+      listenerPromise.then((listener) => listener.remove());
+    };
   }, []);
 
   // Start the offline sync engine once we know who's logged in. Native

@@ -33,8 +33,10 @@ public class MlKitScanner extends Plugin {
                     if (ACTION_BARCODE.equals(intent.getAction())) {
                         String code = intent.getStringExtra("code");
                         if (code == null) return;
+                        String symbology = intent.getStringExtra("symbology");
                         JSObject data = new JSObject();
                         data.put("code", code);
+                        data.put("symbology", symbology != null ? symbology : "ML Kit");
                         notifyListeners("mlkitBarcodeDetected", data);
                     }
                 }

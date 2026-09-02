@@ -38,8 +38,14 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
   }, [open, onOpenChange]);
 
-  // Initialize barcode reader
+  // Initialize the Dynamsoft barcode reader - web only. On native platforms
+  // scanning is handled entirely by the native ML Kit activity, so there's
+  // nothing to initialize here and no Dynamsoft license/engine is loaded.
   useEffect(() => {
+    if (Capacitor.isNativePlatform()) {
+      setIsScannerReady(true);
+      return;
+    }
     let isInitStarted = false;
     const initBarcodeReader = async () => {
       if (isInitStarted) return;
@@ -92,6 +98,11 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     }
     handleDialogClose();
   };
+  // On native platforms (iOS/Android) this ALWAYS uses ML Kit. On web it
+  // ALWAYS uses Dynamsoft. There is no runtime switching between the two -
+  // each platform has exactly one scanner engine.
+  const useMlKit = Capacitor.isNativePlatform();
+
   const SimpleBarcodeScanner = ({
     onClose
   }: {
@@ -100,17 +111,9 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     const containerRef = React.useRef<HTMLDivElement>(null);
     const [scanner, setScanner] = React.useState<DynamsoftScanner | null>(null);
     const [error, setError] = React.useState<string | null>(null);
-    const [mlKitAvailable, setMlKitAvailable] = React.useState(false);
-    const [selectedScanner, setSelectedScanner] = React.useState<'dynamsoft' | 'mlkit'>('dynamsoft');
     const videoContainerCreated = React.useRef<boolean>(false);
     const scannerInstanceRef = React.useRef<DynamsoftScanner | null>(null);
     const isDestroyingRef = React.useRef<boolean>(false);
-
-    React.useEffect(() => {
-      if (Capacitor.isNativePlatform()) {
-        setMlKitAvailable(true);
-      }
-    }, []);
 
     React.useEffect(() => {
       if (!dialogOpenRef.current) return;
@@ -197,7 +200,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
               const code = (d && (d.code || d.value)) || null;
               if (code && isMounted) {
-                handleScan(code, "ML Kit");
+                handleScan(code, (d && d.symbology) || "ML Kit");
               }
             });
           } catch (e) {
@@ -209,7 +212,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
         }
       };
 
-      if (selectedScanner === 'mlkit') {
+      if (useMlKit) {
         startMlKit();
       } else {
         setupScanner();
@@ -217,7 +220,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
 
       // Cleanup function
       return () => {
-        console.log("SimpleBarcodeScanner component unmounting, selected:", selectedScanner);
+        console.log("SimpleBarcodeScanner component unmounting, engine:", useMlKit ? "mlkit" : "dynamsoft");
         isMounted = false;
         isDestroyingRef.current = true;
         videoContainerCreated.current = false;
@@ -265,31 +268,10 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           MlKitScanner.stopScan();
         } catch (e) {}
       };
-    }, [selectedScanner]);
+    }, []);
 
     return (
       <div className="flex flex-col items-center p-4 bg-white dark:bg-slate-900 w-full">
-        {mlKitAvailable && (
-          <div className="flex items-center gap-2 mb-4 w-full justify-center">
-            <Button 
-              variant={selectedScanner === 'dynamsoft' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedScanner('dynamsoft')}
-              className="rounded-full px-4"
-            >
-              Dynamsoft
-            </Button>
-            <Button 
-              variant={selectedScanner === 'mlkit' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setSelectedScanner('mlkit')}
-              className="rounded-full px-4"
-            >
-              ML Kit (Native)
-            </Button>
-          </div>
-        )}
-
         {showInitMessage && (
           <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center">
             <div className="text-center p-6 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl border border-slate-200/50 dark:border-slate-800/50 shadow-lg max-w-[250px] animate-pulse">
@@ -317,7 +299,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
               className="relative w-full aspect-[4/3] bg-slate-950/90 rounded-2xl overflow-hidden border border-slate-200/50 dark:border-slate-800 shadow-inner" 
               style={{ minHeight: '300px' }}
             >
-              {selectedScanner === 'mlkit' ? (
+              {useMlKit ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 text-white p-6">
                   <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-indigo-600 animate-pulse mb-4 shadow-lg shadow-indigo-500/20">
                     <Camera className="w-8 h-8" />
@@ -336,7 +318,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
             
             <div className="w-full my-4 px-4 py-2.5 bg-slate-50/60 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200/50 dark:border-slate-800/50 rounded-xl">
               <p className="text-xs text-center text-slate-850 dark:text-slate-150 font-semibold leading-relaxed">
-                {selectedScanner === 'mlkit' 
+                {useMlKit
                   ? "Close the native camera when done scanning"
                   : "Position barcode within the frame for automatic scanning"
                 }

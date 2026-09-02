@@ -27,7 +27,7 @@ interface SaleTableProps {
 const SaleTable = ({ items, onUpdateQuantity, onRemoveItem }: SaleTableProps) => {
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2.5 min-h-[220px] text-center text-slate-400 dark:text-slate-500">
+      <div className="flex flex-col items-center justify-center gap-2.5 h-full text-center text-slate-400 dark:text-slate-500">
         <ShoppingCart className="h-9 w-9 opacity-40" />
         <p className="text-sm font-medium">No items in current sale</p>
         <p className="text-xs">Scan a product to add it here</p>

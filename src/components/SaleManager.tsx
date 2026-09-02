@@ -239,11 +239,13 @@ const SaleManager = forwardRef((props, ref) => {
           <ShoppingCart className="h-4 w-4 text-indigo-600" />
           <h3 className="font-bold text-base text-slate-800 dark:text-slate-100">Current Sale</h3>
         </div>
-        <SaleTable
-          items={items}
-          onUpdateQuantity={updateQuantity}
-          onRemoveItem={removeItem}
-        />
+        <div className="h-[220px] overflow-y-auto -mx-1 px-1">
+          <SaleTable
+            items={items}
+            onUpdateQuantity={updateQuantity}
+            onRemoveItem={removeItem}
+          />
+        </div>
         <SaleSummary
           total={calculateTotal()}
           itemCount={items.length}

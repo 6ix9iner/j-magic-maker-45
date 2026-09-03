@@ -59,7 +59,7 @@ const ProductList = ({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       {sortedProducts.map((product) => (
         <ProductCard
           key={product.id}

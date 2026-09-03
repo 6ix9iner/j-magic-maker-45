@@ -8,6 +8,7 @@ import {
   getBusinessInfo,
 } from '@/lib/offline/repository';
 import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
@@ -284,30 +285,37 @@ const Inventory = () => {
   return (
     <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
       <div className="max-w-7xl w-full mx-auto flex flex-col flex-1 overflow-hidden min-h-0">
-        <header className="flex-shrink-0 mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
-              Inventory Management
+        <header className="flex-shrink-0 mb-2 sm:mb-6 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2 truncate">
+              <span className="w-1.5 h-4 sm:h-6 bg-indigo-600 rounded-full shrink-0"></span>
+              <span className="truncate">Inventory Management</span>
             </h1>
-            <p className="mt-1 text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">
+            <p className="hidden sm:block mt-1 text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">
               Manage your products and stock levels
             </p>
           </div>
-          <Button onClick={openNewProductDialog} className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all">Add New Product</Button>
+          <Button
+            onClick={openNewProductDialog}
+            size="sm"
+            className="h-9 sm:h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all shrink-0 px-3 sm:px-4"
+          >
+            <Plus className="h-4 w-4 sm:mr-1.5" />
+            <span className="hidden sm:inline">Add New Product</span>
+          </Button>
         </header>
 
         <div className="flex-shrink-0">
-          <SearchBox 
+          <SearchBox
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
           />
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 pb-24 mt-6">
+        <div className="flex-1 overflow-y-auto min-h-0 pb-20 sm:pb-24 mt-2 sm:mt-6">
           <Card className="border border-slate-100 dark:border-slate-800 shadow-sm rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-            <CardHeader className="px-5 py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-              <CardTitle className="text-base sm:text-lg font-bold text-slate-800 dark:text-slate-100">Products</CardTitle>
+            <CardHeader className="px-4 py-2 sm:px-5 sm:py-4 border-b border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+              <CardTitle className="text-sm sm:text-lg font-bold text-slate-800 dark:text-slate-100">Products</CardTitle>
             </CardHeader>
           <CardContent className="p-0 sm:p-4">
             <ProductList

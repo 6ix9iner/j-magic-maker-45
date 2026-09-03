@@ -35,13 +35,13 @@ const ProductCard = ({ product, onClick, onDelete }: ProductCardProps) => {
       className="cursor-pointer hover:shadow-md transition-shadow duration-200 border border-gray-200"
       onClick={onClick}
     >
-      <CardContent className="p-4">
-        <div className="flex justify-between items-start mb-2">
-          <h3 className="font-semibold text-lg text-gray-900 truncate flex-1 mr-2">
+      <CardContent className="p-3 sm:p-4">
+        <div className="flex justify-between items-start mb-1.5 sm:mb-2">
+          <h3 className="font-semibold text-base sm:text-lg text-gray-900 truncate flex-1 mr-2">
             {product.name}
           </h3>
-          <div className="flex items-center gap-2">
-            <Badge 
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <Badge
               variant={product.stock_count < 5 ? "destructive" : "secondary"}
               className="text-xs"
             >
@@ -51,14 +51,14 @@ const ProductCard = ({ product, onClick, onDelete }: ProductCardProps) => {
               variant="outline"
               size="sm"
               onClick={handleDelete}
-              className="h-8 w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
+              className="h-7 w-7 sm:h-8 sm:w-8 p-0 hover:bg-destructive hover:text-destructive-foreground"
             >
-              <Trash2 className="h-4 w-4" />
+              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
-        
-        <div className="text-sm text-gray-600 mb-3">
+
+        <div className="text-xs sm:text-sm text-gray-600 mb-1.5 sm:mb-3">
           <p className="font-medium">Barcode: {product.barcode}</p>
           {product.category && (
             <p className="text-gray-500">Category: {product.category}</p>

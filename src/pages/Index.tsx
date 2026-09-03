@@ -1,9 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { ScanBarcode, X } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import BarcodeScannerCompat from '@/components/BarcodeScanner';
 import BarcodeScannerInline from '@/components/barcode/BarcodeScanner';
 import ProductLookup from '@/components/ProductLookup';
+import ProductSearchDialog from '@/components/ProductSearchDialog';
 import SaleManager from '@/components/SaleManager';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
@@ -12,6 +13,7 @@ import { toast } from 'sonner';
 
 const Index = () => {
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [saleManagerRef, setSaleManagerRef] = useState<React.RefObject<any> | null>(null);
   const isMobile = useIsMobile();
 
@@ -35,6 +37,15 @@ const Index = () => {
 
   const clearResult = useCallback(() => {
     setBarcodeValue(null);
+  }, []);
+
+  // Alternative to scanning: picking a product from the search sheet feeds
+  // its barcode into the exact same lookup + "add to sale" flow a real
+  // scan would use, just skipping the "Barcode detected" toast since
+  // nothing was actually scanned.
+  const handleSearchSelect = useCallback((barcode: string) => {
+    setIsSearchOpen(false);
+    setBarcodeValue(barcode);
   }, []);
 
   const handleAddToSale = useCallback((product: any, quantity: number) => {
@@ -62,9 +73,14 @@ const Index = () => {
             transition={{ duration: 0.3 }}
             className="flex-shrink-0 flex items-center gap-3 rounded-2xl bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 px-4 py-3"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
-              <ScanBarcode className="h-4.5 w-4.5 text-white" />
-            </div>
+            <button
+              type="button"
+              onClick={() => setIsSearchOpen(true)}
+              className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0 active:scale-95 transition-transform"
+              aria-label="Search for a product to add to sale"
+            >
+              <Search className="h-4.5 w-4.5 text-white" />
+            </button>
             <div className="flex-1 min-w-0">
               <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
             </div>
@@ -98,6 +114,12 @@ const Index = () => {
             </div>
           </SheetContent>
         </Sheet>
+
+        <ProductSearchDialog
+          open={isSearchOpen}
+          onOpenChange={setIsSearchOpen}
+          onSelectBarcode={handleSearchSelect}
+        />
       </div>
     );
   }
@@ -109,10 +131,21 @@ const Index = () => {
 
         {/* Left Column - Scanner and Product Info */}
         <div className="lg:col-span-5 flex flex-col overflow-hidden min-h-0 h-full">
-          <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 mt-2 flex items-center gap-2 flex-shrink-0">
-            <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
-            Scan & Lookup
-          </h2>
+          <div className="mb-4 mt-2 flex-shrink-0 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              <span className="w-1.5 h-4 bg-indigo-600 rounded-full"></span>
+              Scan & Lookup
+            </h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSearchOpen(true)}
+              className="h-8 rounded-lg text-xs gap-1.5"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Search Product
+            </Button>
+          </div>
 
           <div className="flex-grow flex flex-col min-h-0 overflow-hidden">
             {barcodeValue ? (
@@ -151,6 +184,12 @@ const Index = () => {
         </div>
 
       </div>
+
+      <ProductSearchDialog
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        onSelectBarcode={handleSearchSelect}
+      />
     </div>
   );
 };

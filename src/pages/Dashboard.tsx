@@ -66,39 +66,39 @@ const Dashboard = () => {
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
-      <div className="w-full max-w-7xl mx-auto flex flex-col flex-1 overflow-hidden min-h-0 space-y-5">
-        <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="w-full max-w-7xl mx-auto flex flex-col flex-1 overflow-hidden min-h-0 space-y-2 sm:space-y-5">
+        <header className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              <span className="w-1.5 h-6 bg-indigo-600 rounded-full"></span>
+            <h1 className="text-xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 tracking-tight flex items-center gap-2">
+              <span className="w-1.5 h-5 sm:h-6 bg-indigo-600 rounded-full"></span>
               Dashboard
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-400 dark:text-slate-500 font-medium">
               {currentDay}, {currentMonth} {currentDate}
             </p>
           </div>
-          
-          <div className="flex items-center gap-2 mt-2 sm:mt-0 self-end">
-            <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI}>
-              <Sparkles className="h-4 w-4 mr-1" />
+
+          <div className="flex items-center gap-2 mt-1 sm:mt-0 self-end">
+            <Button variant="outline" size="sm" onClick={refreshAIInsights} disabled={isLoadingAI} className="h-8 sm:h-9 text-xs sm:text-sm">
+              <Sparkles className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
               {isLoadingAI ? 'Analyzing...' : 'Get AI Insights'}
             </Button>
-            
-            <Button variant="outline" size="sm" onClick={navigateToInventory}>
-              <LayoutGrid className="h-4 w-4 mr-1" />
+
+            <Button variant="outline" size="sm" onClick={navigateToInventory} className="h-8 sm:h-9 text-xs sm:text-sm">
+              <LayoutGrid className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
               Inventory
             </Button>
 
             {error && (
-              <Button variant="outline" size="sm" onClick={handleRetry}>
-                <RefreshCw className="h-4 w-4 mr-1" />
+              <Button variant="outline" size="sm" onClick={handleRetry} className="h-8 sm:h-9 text-xs sm:text-sm">
+                <RefreshCw className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1" />
                 Retry
               </Button>
             )}
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-24 space-y-5">
+        <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-20 sm:pb-24 space-y-3 sm:space-y-5">
 
         {/* Strategic KPI Section */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4 md:gap-6">

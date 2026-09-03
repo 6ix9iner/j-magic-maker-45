@@ -24,6 +24,7 @@
             android:label="@string/title_activity_main"
             android:theme="@style/AppTheme.NoActionBarLaunch"
             android:launchMode="singleTask"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,6 +52,7 @@
         <!-- ML Kit scan activity (CameraX + ML Kit barcode) -->
         <activity android:name=".plugins.MlKitScanActivity"
             android:exported="false"
+            android:screenOrientation="portrait"
             android:theme="@style/TranslucentScannerTheme" />
 
         <provider

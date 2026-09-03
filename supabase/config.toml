@@ -18,3 +18,7 @@ verify_jwt = true
 enabled = true
 verify_jwt = true
 
+[functions.generate-ai-recommendation]
+enabled = true
+verify_jwt = true
+

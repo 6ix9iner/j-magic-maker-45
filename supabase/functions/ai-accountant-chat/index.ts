@@ -241,31 +241,38 @@ ${lowStock.length > 0 ? lowStock.map((p: any) => `⚠️ ${p.name} (${p.category
     // Add the current user message
     conversationMessages.push({ role: 'user', content: message })
 
-    // Call Qwen 3.7 Max API
-    const QWEN_API_KEY = Deno.env.get('QWEN_API_KEY') || 'sk-ws-H.HRYRXI.YGas.MEUCIQCjhjsLgbLABxARSY6wP2fKJy3rKoZHPdTjIYfFedD3hgIgHe1JRzdDexdL3cUZf_UT8JJDljoN_otpRdFYGiZLOds'
-    const QWEN_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
+    // Call Kimi K3 via Alibaba Cloud Model Studio (DashScope compatible-mode API)
+    const KIMI_API_KEY = Deno.env.get('KIMI_API_KEY')
+    const KIMI_WORKSPACE_ID = Deno.env.get('KIMI_WORKSPACE_ID')
+    if (!KIMI_API_KEY) {
+      throw new Error('KIMI_API_KEY is not configured')
+    }
+    const KIMI_BASE_URL = 'https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions'
 
-    const qwenResponse = await fetch(QWEN_BASE_URL, {
+    const kimiHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${KIMI_API_KEY}`,
+    }
+    if (KIMI_WORKSPACE_ID) kimiHeaders['X-DashScope-WorkSpace'] = KIMI_WORKSPACE_ID
+
+    const kimiResponse = await fetch(KIMI_BASE_URL, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${QWEN_API_KEY}`
-      },
+      headers: kimiHeaders,
       body: JSON.stringify({
-        model: 'qwen3.7-max',
+        model: 'kimi-k3',
         messages: conversationMessages,
         temperature: 0.7
       })
     })
 
-    if (!qwenResponse.ok) {
-      const errorText = await qwenResponse.text()
-      console.error('Qwen API error:', errorText)
-      throw new Error(`Qwen API responded with status ${qwenResponse.status}`)
+    if (!kimiResponse.ok) {
+      const errorText = await kimiResponse.text()
+      console.error('Kimi API error:', errorText)
+      throw new Error(`Kimi API responded with status ${kimiResponse.status}: ${errorText}`)
     }
 
-    const qwenData = await qwenResponse.json()
-    const reply = qwenData.choices?.[0]?.message?.content || 'I could not generate a response.'
+    const kimiData = await kimiResponse.json()
+    const reply = kimiData.choices?.[0]?.message?.content || 'I could not generate a response.'
 
     return new Response(
       JSON.stringify({ response: reply }),

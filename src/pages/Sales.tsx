@@ -1,16 +1,28 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronUp, Download } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronUp, Download, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import Receipt from "@/components/receipt/Receipt";
 import { exportSalesToCSV } from "@/utils/salesExport";
-import { getSales, getBusinessInfo } from "@/lib/offline/repository";
+import { getSales, getBusinessInfo, deleteSale } from "@/lib/offline/repository";
 import { pickFitClass, MONEY_FIT_STEPS_SM } from "@/utils/fitText";
+import { hashResourcePassword } from "@/utils/resourcePassword";
+import SalesPasswordPrompt from "@/components/sales/SalesPasswordPrompt";
 
 interface SaleItemData {
   id: string;
@@ -53,30 +65,85 @@ const Sales = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
 
+  // Sales history is optionally password-protected, same pattern as
+  // Inventory (see Inventory.tsx / SalesPasswordSettings.tsx).
+  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
+  const [isSalesUnlocked, setIsSalesUnlocked] = useState(false);
+  const [salesPasswordHash, setSalesPasswordHash] = useState<string | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+
+  const [saleToDelete, setSaleToDelete] = useState<SaleData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   useEffect(() => {
-    const fetchSales = async () => {
-      try {
-        if (!user) {
-          setSales([]);
-          setLoading(false);
-          return;
-        }
-
-        // Local-first on native (works offline, includes anything sold
-        // offline that hasn't synced yet), direct Supabase on web.
-        const salesData = await getSales(user.id);
-        setSales(salesData.map((s) => ({ ...s, isExpanded: false })));
-        console.log("Sales data with items:", salesData);
-      } catch (error) {
-        console.error("Error fetching sales:", error);
-        toast.error("Failed to fetch sales data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSales();
+    setIsSalesUnlocked(false);
+    if (user) checkSalesPassword();
   }, [user]);
+
+  useEffect(() => {
+    return () => {
+      setIsSalesUnlocked(false);
+      setIsPasswordPromptOpen(false);
+    };
+  }, []);
+
+  const checkSalesPassword = async () => {
+    if (!user) return;
+    setIsCheckingAccess(true);
+    try {
+      const data = await getBusinessInfo(user.id);
+      const hasPassword = data?.sales_password_hash;
+      setSalesPasswordHash(hasPassword || null);
+      if (hasPassword) {
+        setIsPasswordPromptOpen(true);
+        setIsCheckingAccess(false);
+      } else {
+        setIsSalesUnlocked(true);
+        setIsCheckingAccess(false);
+        fetchSales();
+      }
+    } catch (error) {
+      console.error('Error checking sales password:', error);
+      toast.error('Failed to verify access');
+      navigate('/dashboard');
+    }
+  };
+
+  const verifySalesPassword = async (password: string): Promise<boolean> => {
+    if (!salesPasswordHash) return false;
+    return hashResourcePassword(password) === salesPasswordHash;
+  };
+
+  const handlePasswordSuccess = () => {
+    setIsSalesUnlocked(true);
+    setIsPasswordPromptOpen(false);
+    fetchSales();
+  };
+
+  const handlePasswordCancel = () => {
+    setIsPasswordPromptOpen(false);
+    navigate('/dashboard');
+  };
+
+  const fetchSales = async () => {
+    try {
+      if (!user) {
+        setSales([]);
+        setLoading(false);
+        return;
+      }
+
+      // Local-first on native (works offline, includes anything sold
+      // offline that hasn't synced yet), direct Supabase on web.
+      const salesData = await getSales(user.id);
+      setSales(salesData.map((s) => ({ ...s, isExpanded: false })));
+    } catch (error) {
+      console.error("Error fetching sales data:", error);
+      toast.error("Failed to fetch sales data");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Fetch business info when needed
   useEffect(() => {
@@ -101,9 +168,9 @@ const Sales = () => {
   const toggleSaleDetails = (index: number) => {
     setSales(prevSales => {
       const updatedSales = [...prevSales];
-      updatedSales[index] = { 
-        ...updatedSales[index], 
-        isExpanded: !updatedSales[index].isExpanded 
+      updatedSales[index] = {
+        ...updatedSales[index],
+        isExpanded: !updatedSales[index].isExpanded
       };
       return updatedSales;
     });
@@ -161,12 +228,50 @@ const Sales = () => {
     }
   };
 
+  const confirmDeleteSale = async () => {
+    if (!saleToDelete || !user) return;
+    setIsDeleting(true);
+    try {
+      await deleteSale(user.id, saleToDelete.id);
+      setSales((prev) => prev.filter((s) => s.id !== saleToDelete.id));
+      toast.success("Sale deleted - stock has been restored.");
+      setSaleToDelete(null);
+    } catch (error: any) {
+      console.error("Error deleting sale:", error);
+      toast.error(error.message || "Failed to delete sale");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Don't render sales content until password is verified (if one is set).
+  if (!isSalesUnlocked) {
+    return (
+      <>
+        <SalesPasswordPrompt
+          isOpen={isPasswordPromptOpen}
+          onSuccess={handlePasswordSuccess}
+          onCancel={handlePasswordCancel}
+          onVerifyPassword={verifySalesPassword}
+        />
+        {isCheckingAccess && (
+          <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-gray-600">Checking access permissions...</p>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden min-h-0 pt-2 pb-4 px-1">
       <div className="flex-shrink-0 flex items-center gap-3 mb-6">
-        <Button 
-          variant="outline" 
-          size="sm" 
+        <Button
+          variant="outline"
+          size="sm"
           onClick={() => navigate(-1)}
           className="h-9 w-9 p-0 rounded-xl border-slate-200 hover:bg-slate-100/50 shrink-0"
         >
@@ -187,7 +292,7 @@ const Sales = () => {
               <CardDescription className="text-xs text-slate-400 dark:text-slate-500 font-medium">Your personal sales transaction history</CardDescription>
             </div>
             {sales.length > 0 && (
-              <Button 
+              <Button
                 onClick={handleDownloadSales}
                 className="h-9 rounded-xl text-xs bg-indigo-600 hover:bg-indigo-700 text-white font-semibold flex items-center gap-1.5 px-3"
               >
@@ -229,7 +334,7 @@ const Sales = () => {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start justify-between gap-3 pl-12 sm:pl-0 sm:justify-end sm:shrink-0 min-w-0">
+                    <div className="flex items-start justify-between gap-2 pl-12 sm:pl-0 sm:justify-end sm:shrink-0 min-w-0">
                       <span className={`min-w-0 break-words text-right leading-tight font-bold text-slate-800 dark:text-slate-100 tabular-nums ${pickFitClass(formatCurrency(sale.total_amount), MONEY_FIT_STEPS_SM)}`}>
                         {formatCurrency(sale.total_amount)}
                       </span>
@@ -243,6 +348,18 @@ const Sales = () => {
                         }}
                       >
                         Receipt
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg shrink-0 text-slate-400 hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSaleToDelete(sale);
+                        }}
+                        aria-label="Delete sale"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </div>
@@ -296,6 +413,34 @@ const Sales = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!saleToDelete} onOpenChange={(open) => !open && setSaleToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this sale?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {saleToDelete && (
+                <>
+                  This will permanently remove the {formatCurrency(saleToDelete.total_amount)} sale from{" "}
+                  {formatDate(saleToDelete.created_at)} and restore the items it contained back to your inventory
+                  stock. This cannot be undone.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteSale}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Deleting..." : "Delete Sale"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

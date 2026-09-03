@@ -22,3 +22,11 @@ verify_jwt = true
 enabled = true
 verify_jwt = true
 
+[functions.request-resource-password-reset]
+enabled = true
+verify_jwt = true
+
+[functions.reset-resource-password]
+enabled = true
+verify_jwt = false
+

@@ -105,6 +105,18 @@ async function applyOne(item: SyncQueueItem): Promise<void> {
       await offlineDb.sales.update(item.entityId, { pendingSync: 0 });
       break;
     }
+    case 'sale_delete': {
+      // The sale is already gone from local Dexie by the time this runs
+      // (repository.ts's deleteSale() removes it locally right away) -
+      // this just mirrors that removal server-side. delete_sale() is a
+      // safe no-op if the sale never actually made it to the server (e.g.
+      // its 'sale_create' queue item was successfully cancelled instead
+      // of syncing), so this is safe to queue unconditionally.
+      const { sale_id } = item.payload as { sale_id: string };
+      const { error } = await supabase.rpc('delete_sale', { p_sale_id: sale_id });
+      if (error) throw error;
+      break;
+    }
     case 'business_info_upsert': {
       const { error } = await supabase.from('business_info').upsert(item.payload, { onConflict: 'user_id' });
       if (error) throw error;

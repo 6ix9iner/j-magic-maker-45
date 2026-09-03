@@ -65,6 +65,7 @@ export interface LocalBusinessInfo {
   tax_id: string | null;
   thank_you_message: string | null;
   inventory_password_hash: string | null;
+  sales_password_hash: string | null;
   created_at: string;
   updated_at: string;
   pendingSync: 0 | 1;
@@ -75,6 +76,7 @@ export type SyncOpType =
   | 'product_update'
   | 'product_delete'
   | 'sale_create'
+  | 'sale_delete'
   | 'business_info_upsert';
 
 export interface SyncQueueItem {

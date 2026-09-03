@@ -69,6 +69,7 @@ export type Database = {
           email: string
           id: string
           inventory_password_hash: string | null
+          sales_password_hash: string | null
           phone: string
           state: string
           tax_id: string | null
@@ -86,6 +87,7 @@ export type Database = {
           email: string
           id?: string
           inventory_password_hash?: string | null
+          sales_password_hash?: string | null
           phone: string
           state: string
           tax_id?: string | null
@@ -103,6 +105,7 @@ export type Database = {
           email?: string
           id?: string
           inventory_password_hash?: string | null
+          sales_password_hash?: string | null
           phone?: string
           state?: string
           tax_id?: string | null
@@ -542,6 +545,10 @@ export type Database = {
           p_sale_item_id?: string | null
           p_sale_id?: string | null
         }
+        Returns: undefined
+      }
+      delete_sale: {
+        Args: { p_sale_id: string }
         Returns: undefined
       }
       get_top_brands: {

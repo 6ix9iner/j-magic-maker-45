@@ -7,14 +7,14 @@ import { Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { getBusinessInfo, saveBusinessInfo } from "@/lib/offline/repository";
 import { useAuth } from "@/contexts/AuthContext";
-import { hashResourcePassword as hashPassword } from "@/utils/resourcePassword";
+import { hashResourcePassword } from "@/utils/resourcePassword";
 
-interface InventoryPasswordSettingsProps {
+interface SalesPasswordSettingsProps {
   hasPassword: boolean;
   onPasswordChange: () => void;
 }
 
-const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryPasswordSettingsProps) => {
+const SalesPasswordSettings = ({ hasPassword, onPasswordChange }: SalesPasswordSettingsProps) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -29,9 +29,7 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
 
     try {
       const data = await getBusinessInfo(user.id);
-
-      const hashedInput = hashPassword(password);
-      return data?.inventory_password_hash === hashedInput;
+      return data?.sales_password_hash === hashResourcePassword(password);
     } catch (error) {
       console.error('Error verifying password:', error);
       return false;
@@ -40,13 +38,12 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!user) {
       toast.error('You must be logged in');
       return;
     }
 
-    // Validate inputs
     if (hasPassword && !currentPassword) {
       toast.error('Please enter your current password');
       return;
@@ -70,7 +67,6 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
     setIsLoading(true);
 
     try {
-      // Verify current password if one exists
       if (hasPassword) {
         const isCurrentValid = await verifyCurrentPassword(currentPassword);
         if (!isCurrentValid) {
@@ -80,12 +76,10 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
         }
       }
 
-      // Hash the new password
-      const hashedNewPassword = hashPassword(newPassword);
+      const hashedNewPassword = hashResourcePassword(newPassword);
 
-      // Update or create business info with new password - preserve
-      // whatever business info already exists rather than clobbering it
-      // with placeholders.
+      // Preserve whatever business info already exists rather than
+      // clobbering it with placeholders.
       const existing = await getBusinessInfo(user.id);
       await saveBusinessInfo(user.id, {
         business_name: existing?.business_name || 'My Business',
@@ -98,16 +92,16 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
         website: existing?.website ?? null,
         tax_id: existing?.tax_id ?? null,
         thank_you_message: existing?.thank_you_message ?? null,
-        inventory_password_hash: hashedNewPassword,
+        inventory_password_hash: existing?.inventory_password_hash ?? null,
+        sales_password_hash: hashedNewPassword,
       });
 
-      toast.success(hasPassword ? 'Inventory password updated successfully' : 'Inventory password set successfully');
-      
-      // Clear form
+      toast.success(hasPassword ? 'Sales password updated successfully' : 'Sales password set successfully');
+
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
+
       onPasswordChange();
     } catch (error) {
       console.error('Error setting password:', error);
@@ -131,7 +125,6 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
     setIsLoading(true);
 
     try {
-      // Verify current password
       const isCurrentValid = await verifyCurrentPassword(currentPassword);
       if (!isCurrentValid) {
         toast.error('Current password is incorrect');
@@ -139,19 +132,17 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
         return;
       }
 
-      // Remove password by setting it to null, preserving everything else.
       const existing = await getBusinessInfo(user.id);
       if (existing) {
-        await saveBusinessInfo(user.id, { ...existing, inventory_password_hash: null });
+        await saveBusinessInfo(user.id, { ...existing, sales_password_hash: null });
       }
 
-      toast.success('Inventory password protection removed');
-      
-      // Clear form
+      toast.success('Sales password protection removed');
+
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      
+
       onPasswordChange();
     } catch (error) {
       console.error('Error removing password:', error);
@@ -166,12 +157,12 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Shield className="h-5 w-5" />
-          Inventory Security
+          Sales Security
         </CardTitle>
         <CardDescription>
-          {hasPassword 
-            ? 'Manage your inventory password protection settings'
-            : 'Set up password protection for your inventory'
+          {hasPassword
+            ? 'Manage your sales history password protection settings'
+            : 'Optionally require a password to view your sales history'
           }
         </CardDescription>
       </CardHeader>
@@ -179,10 +170,10 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
         <form onSubmit={handleSubmit} className="space-y-4">
           {hasPassword && (
             <div className="space-y-2">
-              <Label htmlFor="current-password">Current Password</Label>
+              <Label htmlFor="sales-current-password">Current Password</Label>
               <div className="relative">
                 <Input
-                  id="current-password"
+                  id="sales-current-password"
                   type={showCurrentPassword ? "text" : "password"}
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
@@ -203,12 +194,12 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="new-password">
+            <Label htmlFor="sales-new-password">
               {hasPassword ? 'New Password' : 'Password'}
             </Label>
             <div className="relative">
               <Input
-                id="new-password"
+                id="sales-new-password"
                 type={showNewPassword ? "text" : "password"}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
@@ -229,10 +220,10 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="confirm-password">Confirm Password</Label>
+            <Label htmlFor="sales-confirm-password">Confirm Password</Label>
             <div className="relative">
               <Input
-                id="confirm-password"
+                id="sales-confirm-password"
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -258,12 +249,12 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
               className="flex items-center gap-2 w-full sm:w-auto"
             >
               <Lock className="h-4 w-4" />
-              {isLoading 
-                ? 'Updating...' 
+              {isLoading
+                ? 'Updating...'
                 : hasPassword ? 'Update Password' : 'Set Password'
               }
             </Button>
-            
+
             {hasPassword && (
               <Button
                 type="button"
@@ -282,4 +273,4 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
   );
 };
 
-export default InventoryPasswordSettings;
+export default SalesPasswordSettings;

@@ -9,6 +9,7 @@ import {
 } from '@/lib/offline/repository';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { hashResourcePassword } from '@/utils/resourcePassword';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
@@ -83,17 +84,6 @@ const Inventory = () => {
     };
   }, []);
 
-  // Simple hash function for password verification
-  const hashPassword = (password: string): string => {
-    let hash = 0;
-    for (let i = 0; i < password.length; i++) {
-      const char = password.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
-    }
-    return hash.toString();
-  };
-
   const checkInventoryPassword = async () => {
     if (!user) return;
 
@@ -121,7 +111,7 @@ const Inventory = () => {
   const verifyPassword = async (password: string): Promise<boolean> => {
     if (!inventoryPasswordHash) return false;
     
-    const hashedInput = hashPassword(password);
+    const hashedInput = hashResourcePassword(password);
     return hashedInput === inventoryPasswordHash;
   };
 

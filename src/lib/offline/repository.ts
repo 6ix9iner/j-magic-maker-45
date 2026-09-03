@@ -73,6 +73,7 @@ export interface BusinessInfo {
   tax_id?: string | null;
   thank_you_message?: string | null;
   inventory_password_hash?: string | null;
+  sales_password_hash?: string | null;
 }
 
 const isNative = () => Capacitor.isNativePlatform();
@@ -260,7 +261,14 @@ export async function saveBusinessInfo(userId: string, data: BusinessInfo): Prom
     website: data.website ?? null,
     tax_id: data.tax_id ?? null,
     thank_you_message: data.thank_you_message ?? null,
-    inventory_password_hash: data.inventory_password_hash ?? existing?.inventory_password_hash ?? null,
+    // `!== undefined` (not `??`) so an explicit `null` - "clear the
+    // password" - actually takes effect instead of falling back to the
+    // existing hash. `??` treats null and undefined the same, which
+    // silently broke "Remove Protection" on native: it always passes
+    // `{ ...existing, inventory_password_hash: null }`, and `??` would
+    // have quietly kept the old hash instead of clearing it.
+    inventory_password_hash: data.inventory_password_hash !== undefined ? data.inventory_password_hash : (existing?.inventory_password_hash ?? null),
+    sales_password_hash: data.sales_password_hash !== undefined ? data.sales_password_hash : (existing?.sales_password_hash ?? null),
     created_at: existing?.created_at || now,
     updated_at: now,
     pendingSync: 1,
@@ -412,4 +420,63 @@ export async function getSales(userId: string): Promise<CompletedSale[]> {
     });
   }
   return result;
+}
+
+/**
+ * Deletes a completed sale - for correcting a mistake, not routine
+ * business. Restores the stock it had decremented (best-effort per line
+ * item: a line with no product_id, e.g. a since-deleted product, is
+ * simply skipped) and removes the sale + its items everywhere the data
+ * lives - locally, on the server, and any pending sync queue entry for it.
+ */
+export async function deleteSale(userId: string, saleId: string): Promise<void> {
+  if (!isNative()) {
+    const { error } = await supabase.rpc('delete_sale', { p_sale_id: saleId });
+    if (error) throw error;
+    return;
+  }
+
+  // All Dexie operations only, deliberately - no awaited network calls
+  // inside this transaction (see pullFromServer's history: an awaited
+  // fetch mid-transaction can silently roll back every write in it).
+  await offlineDb.transaction('rw', offlineDb.sales, offlineDb.saleItems, offlineDb.products, offlineDb.syncQueue, async () => {
+    const items = await offlineDb.saleItems.where({ sale_id: saleId }).toArray();
+    for (const it of items) {
+      if (!it.product_id) continue;
+      const product = await offlineDb.products.get(it.product_id);
+      if (product) {
+        await offlineDb.products.update(it.product_id, {
+          stock_count: product.stock_count + it.quantity,
+          updated_at: new Date().toISOString(),
+        });
+      }
+    }
+
+    await offlineDb.saleItems.bulkDelete(items.map((it) => it.id));
+    await offlineDb.sales.delete(saleId);
+
+    // If this sale was never actually synced yet (still queued as a
+    // 'sale_create'), cancel that queued create outright rather than
+    // syncing a create-then-delete round trip.
+    const queuedCreates = await offlineDb.syncQueue.where({ type: 'sale_create' }).and((q) => q.entityId === saleId).toArray();
+    if (queuedCreates.length > 0) {
+      await offlineDb.syncQueue.bulkDelete(queuedCreates.map((q) => q.id!));
+    }
+
+    // Always also queue the actual delete: if the create had already gone
+    // through (or is mid-flight right now), this is what removes it
+    // server-side. delete_sale() is a safe no-op if the sale was never
+    // actually created there (e.g. the create above was successfully
+    // cancelled), so queuing it unconditionally is never harmful.
+    await offlineDb.syncQueue.add({
+      type: 'sale_delete',
+      entityId: saleId,
+      payload: { sale_id: saleId },
+      createdAt: new Date().toISOString(),
+      attempts: 0,
+      lastError: null,
+    });
+  });
+  await refreshPendingCount();
+  kickSync();
 }

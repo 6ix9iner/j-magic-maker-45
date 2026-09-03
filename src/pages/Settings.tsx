@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Separator } from "@/components/ui/separator";
 import { getBusinessInfo } from "@/lib/offline/repository";
 import InventoryPasswordSettings from "@/components/settings/InventoryPasswordSettings";
+import SalesPasswordSettings from "@/components/settings/SalesPasswordSettings";
 
 interface SettingsProps {
   isEmbed?: boolean;
@@ -18,13 +19,14 @@ const Settings: React.FC<SettingsProps> = ({ isEmbed = false }) => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
   const [hasInventoryPassword, setHasInventoryPassword] = useState<boolean>(false);
+  const [hasSalesPassword, setHasSalesPassword] = useState<boolean>(false);
   const [isLoadingPasswordStatus, setIsLoadingPasswordStatus] = useState<boolean>(true);
 
   useEffect(() => {
-    checkInventoryPasswordStatus();
+    checkPasswordStatus();
   }, [user]);
 
-  const checkInventoryPasswordStatus = async () => {
+  const checkPasswordStatus = async () => {
     if (!user) {
       setIsLoadingPasswordStatus(false);
       return;
@@ -33,15 +35,16 @@ const Settings: React.FC<SettingsProps> = ({ isEmbed = false }) => {
     try {
       const data = await getBusinessInfo(user.id);
       setHasInventoryPassword(!!data?.inventory_password_hash);
+      setHasSalesPassword(!!data?.sales_password_hash);
     } catch (error) {
-      console.error('Error checking inventory password status:', error);
+      console.error('Error checking password status:', error);
     } finally {
       setIsLoadingPasswordStatus(false);
     }
   };
 
   const handlePasswordChange = () => {
-    checkInventoryPasswordStatus();
+    checkPasswordStatus();
   };
 
   const handleSignOut = async () => {
@@ -184,7 +187,7 @@ const Settings: React.FC<SettingsProps> = ({ isEmbed = false }) => {
 
           <Separator className="my-5 border-slate-100 dark:border-slate-800" />
 
-          {/* Inventory Security Section */}
+          {/* Inventory & Sales Security Section */}
           <div className="mb-6">
             <h2 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">Security</h2>
             {isLoadingPasswordStatus ? (
@@ -195,10 +198,16 @@ const Settings: React.FC<SettingsProps> = ({ isEmbed = false }) => {
                 </CardContent>
               </Card>
             ) : (
-              <InventoryPasswordSettings
-                hasPassword={hasInventoryPassword}
-                onPasswordChange={handlePasswordChange}
-              />
+              <div className="grid gap-4 lg:grid-cols-2">
+                <InventoryPasswordSettings
+                  hasPassword={hasInventoryPassword}
+                  onPasswordChange={handlePasswordChange}
+                />
+                <SalesPasswordSettings
+                  hasPassword={hasSalesPassword}
+                  onPasswordChange={handlePasswordChange}
+                />
+              </div>
             )}
           </div>
 

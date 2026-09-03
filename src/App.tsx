@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import PasswordReset from "./pages/PasswordReset";
+import ResetResourcePassword from "./pages/ResetResourcePassword";
 import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
@@ -115,6 +116,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } />
           <Route path="/ai-accountant" element={<AIAccountant />} />
+          <Route path="/reset-resource-password" element={<ResetResourcePassword />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

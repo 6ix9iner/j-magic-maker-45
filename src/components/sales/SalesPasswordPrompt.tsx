@@ -7,14 +7,14 @@ import { Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { requestResourcePasswordReset } from "@/utils/resourcePassword";
 
-interface InventoryPasswordPromptProps {
+interface SalesPasswordPromptProps {
   isOpen: boolean;
   onSuccess: () => void;
   onCancel: () => void;
   onVerifyPassword: (password: string) => Promise<boolean>;
 }
 
-const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword }: InventoryPasswordPromptProps) => {
+const SalesPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword }: SalesPasswordPromptProps) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -23,8 +23,8 @@ const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword
   const handleForgotPassword = async () => {
     setIsSendingReset(true);
     try {
-      await requestResourcePasswordReset('inventory');
-      toast.success('Check your email for a link to set a new Inventory password.');
+      await requestResourcePasswordReset('sales');
+      toast.success('Check your email for a link to set a new Sales password.');
     } catch (error: any) {
       toast.error(error.message || 'Failed to send reset email. Please try again.');
     } finally {
@@ -34,16 +34,16 @@ const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!password.trim()) {
-      toast.error('Please enter your inventory password');
+      toast.error('Please enter your sales password');
       return;
     }
 
     setIsVerifying(true);
     try {
       const isValid = await onVerifyPassword(password);
-      
+
       if (isValid) {
         toast.success('Access granted');
         setPassword('');
@@ -71,23 +71,23 @@ const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword
             <div className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400 shrink-0">
               <Lock className="h-5 w-5" />
             </div>
-            Inventory Access Required
+            Sales Access Required
           </DialogTitle>
           <DialogDescription className="text-slate-400 dark:text-slate-500 font-medium text-xs sm:text-sm mt-1.5">
-            Enter your inventory password to access the inventory management system.
+            Enter your sales password to access your sales history and records.
           </DialogDescription>
         </DialogHeader>
-        
+
         <form onSubmit={handleSubmit} className="space-y-5 mt-2">
           <div className="space-y-2">
-            <Label htmlFor="inventory-password" className="text-slate-700 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider">Password</Label>
+            <Label htmlFor="sales-password" className="text-slate-700 dark:text-slate-300 font-semibold text-xs uppercase tracking-wider">Password</Label>
             <div className="relative">
               <Input
-                id="inventory-password"
+                id="sales-password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter inventory password"
+                placeholder="Enter sales password"
                 className="h-11 pl-4 pr-11 rounded-xl border border-slate-200 focus-visible:ring-indigo-600 focus-visible:ring-1 focus-visible:ring-offset-0 bg-slate-50/50"
                 autoComplete="off"
                 autoFocus
@@ -131,7 +131,7 @@ const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword
               disabled={isVerifying || !password.trim()}
               className="h-10 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold shadow-sm active:scale-95 transition-all"
             >
-              {isVerifying ? 'Verifying...' : 'Access Inventory'}
+              {isVerifying ? 'Verifying...' : 'Access Sales'}
             </Button>
           </DialogFooter>
         </form>
@@ -140,4 +140,4 @@ const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword
   );
 };
 
-export default InventoryPasswordPrompt;
+export default SalesPasswordPrompt;

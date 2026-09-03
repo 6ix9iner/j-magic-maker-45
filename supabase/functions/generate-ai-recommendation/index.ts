@@ -237,7 +237,8 @@ Respond with ONLY a JSON object, no markdown, no code fences:
           { role: 'system', content: 'You are a precise, concise business growth advisor. You only output valid JSON when asked to.' },
           { role: 'user', content: prompt },
         ],
-        temperature: 0.4,
+        // Note: kimi-k3 is a reasoning model and rejects `temperature`
+        // (InternalError.Algo.InvalidParameter) - don't send it.
       }),
     })
 

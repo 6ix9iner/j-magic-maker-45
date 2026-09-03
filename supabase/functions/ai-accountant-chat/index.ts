@@ -260,8 +260,9 @@ ${lowStock.length > 0 ? lowStock.map((p: any) => `⚠️ ${p.name} (${p.category
       headers: kimiHeaders,
       body: JSON.stringify({
         model: 'kimi-k3',
-        messages: conversationMessages,
-        temperature: 0.7
+        messages: conversationMessages
+        // Note: kimi-k3 is a reasoning model and rejects `temperature`
+        // (InternalError.Algo.InvalidParameter) - don't send it.
       })
     })
 

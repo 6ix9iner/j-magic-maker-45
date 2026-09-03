@@ -54,7 +54,13 @@ Deno.serve(async (req) => {
       android_accent_color: notification_type === 'sale_completed' ? 'FF22C55E' : 
                            notification_type === 'receipt_generated' ? 'FF3B82F6' : 'FF6366F1',
       android_visibility: 1, // Public visibility
-      android_channel_id: 'sales_notifications',
+      // NOTE: previously set android_channel_id: 'sales_notifications' here,
+      // but no channel with that ID actually exists in the OneSignal
+      // dashboard (Settings > Android > Channels), which made OneSignal
+      // reject every notification with "Could not find android_channel_id"
+      // whenever there was a real device to deliver to - every push
+      // notification in the app was silently failing. Omitting it lets
+      // OneSignal fall back to its default channel instead.
       // Force display even if app is in foreground
       content_available: true,
       mutable_content: true
@@ -88,7 +94,12 @@ Deno.serve(async (req) => {
       }
     }
 
-    const success = oneSignalResponse.ok && oneSignalResult.id
+    // Coerced to a real boolean: `a && b` returns b itself (here,
+    // oneSignalResult.id - a UUID string) when both are truthy, not `true`.
+    // That string was silently breaking every successful insert below
+    // (notification_logs.success is a boolean column) - every failed send
+    // logged fine, every successful one never did.
+    const success = Boolean(oneSignalResponse.ok && oneSignalResult.id)
     console.log('🎯 OneSignal notification result:', { success, result: oneSignalResult })
 
     // Create Supabase client for logging
@@ -128,8 +139,8 @@ Deno.serve(async (req) => {
     console.log('🎉 OneSignal notification sent successfully with ID:', oneSignalResult.id)
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         result: oneSignalResult,
         notification_id: oneSignalResult.id,
         message: 'Push notification sent successfully'

@@ -128,8 +128,9 @@ Format your response as a valid JSON object with keys "insights" and "chartRecom
         messages: [
           { role: 'system', content: 'You are a precise data analysis assistant.' },
           { role: 'user', content: prompt }
-        ],
-        temperature: 0.3
+        ]
+        // Note: kimi-k3 is a reasoning model and rejects `temperature`
+        // (InternalError.Algo.InvalidParameter) - don't send it.
       })
     })
 

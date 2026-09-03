@@ -106,6 +106,24 @@ class OfflineDatabase extends Dexie {
       businessInfo: 'user_id',
       syncQueue: '++id, type, createdAt',
     });
+    // v2: pullFromServer() (syncEngine.ts) queries products/sales with
+    // `.where({ pendingSync: 1 })` to avoid clobbering rows with unsynced
+    // local edits - but `pendingSync` was never declared as an indexed
+    // field on either table in v1, so Dexie threw a SchemaError on that
+    // very first query every time. That exception aborted the whole pull
+    // silently (caught far upstream), which meant a device's local
+    // products/sales NEVER actually refreshed from the server after their
+    // initial creation - explains stale stock counts and products created
+    // on another session/after a reinstall never showing up locally.
+    // Dexie requires a version bump (not just editing v1's schema) to add
+    // an index to an already-created store on existing installs.
+    this.version(2).stores({
+      products: 'id, user_id, barcode, [user_id+barcode], deleted, pendingSync',
+      sales: 'id, user_id, created_at, pendingSync',
+      saleItems: 'id, sale_id, product_id',
+      businessInfo: 'user_id',
+      syncQueue: '++id, type, createdAt',
+    });
   }
 }
 

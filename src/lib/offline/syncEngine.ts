@@ -165,11 +165,34 @@ export async function drainSyncQueue(): Promise<void> {
  * reasonably fresh offline cache to work from.
  */
 export async function pullFromServer(userId: string): Promise<void> {
-  const [{ data: products }, { data: businessInfo }, { data: sales }] = await Promise.all([
+  const [
+    { data: products, error: productsError },
+    { data: businessInfo, error: businessInfoError },
+    { data: sales, error: salesError },
+  ] = await Promise.all([
     supabase.from('products').select('*').eq('user_id', userId),
     supabase.from('business_info').select('*').eq('user_id', userId).maybeSingle(),
     supabase.from('sales').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
   ]);
+  if (productsError) console.error('pullFromServer: products fetch failed', productsError);
+  if (businessInfoError) console.error('pullFromServer: business_info fetch failed', businessInfoError);
+  if (salesError) console.error('pullFromServer: sales fetch failed', salesError);
+
+  // Sale items depend on which sale ids came back above, but MUST be
+  // fetched here - before the Dexie transaction opens below - and not
+  // awaited from inside it. Awaiting a network call partway through an
+  // IndexedDB transaction breaks the browser's transaction scope (it can
+  // auto-close while the fetch is in flight), throwing and rolling back
+  // EVERY write already made in that same transaction - which is why
+  // products/business info/sales were all silently failing to update
+  // together whenever a user had any sales history at all.
+  let saleItems: any[] | null = null;
+  if (sales && sales.length > 0) {
+    const saleIds = sales.map((s: any) => s.id);
+    const { data: items, error: itemsError } = await supabase.from('sale_items').select('*').in('sale_id', saleIds);
+    if (itemsError) console.error('pullFromServer: sale_items fetch failed', itemsError);
+    saleItems = items ?? null;
+  }
 
   await offlineDb.transaction('rw', offlineDb.products, offlineDb.businessInfo, offlineDb.sales, offlineDb.saleItems, async () => {
     if (products) {
@@ -188,18 +211,13 @@ export async function pullFromServer(userId: string): Promise<void> {
     }
     if (sales) {
       const pendingSaleIds = new Set((await offlineDb.sales.where({ pendingSync: 1 }).primaryKeys()) as string[]);
-      const saleIds: string[] = [];
       for (const s of sales) {
         if (pendingSaleIds.has(s.id)) continue;
         await offlineDb.sales.put({ ...s, pendingSync: 0 });
-        saleIds.push(s.id);
       }
-      if (saleIds.length > 0) {
-        const { data: items } = await supabase.from('sale_items').select('*').in('sale_id', saleIds);
-        if (items) {
-          for (const it of items) {
-            await offlineDb.saleItems.put(it);
-          }
+      if (saleItems) {
+        for (const it of saleItems) {
+          await offlineDb.saleItems.put(it);
         }
       }
     }
@@ -223,7 +241,7 @@ export function startSyncEngine(userId: string): void {
     emit();
     if (status.connected && currentUserId) {
       await drainSyncQueue();
-      await pullFromServer(currentUserId).catch((e) => console.error('pullFromServer failed', e));
+      await pullFromServer(currentUserId).catch((e) => console.error(`pullFromServer failed: ${e?.name || ''} ${e?.message || String(e)}`, e?.stack || ''));
     }
   };
 

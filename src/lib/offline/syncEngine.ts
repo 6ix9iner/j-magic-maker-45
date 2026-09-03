@@ -84,11 +84,20 @@ async function applyOne(item: SyncQueueItem): Promise<void> {
       // see supabase/migrations/20260902_decrement_stock.sql. This is what
       // makes it safe for two devices to sell the same product offline and
       // sync later without clobbering each other's count.
+      //
+      // p_sale_item_id makes the call idempotent: if this queue item gets
+      // retried (e.g. the app is killed after the RPC succeeds but before
+      // `sales.update(pendingSync: 0)` below runs, so drainSyncQueue tries
+      // this same item again next launch), the ledger it writes to
+      // (stock_decrement_ledger, keyed by sale_item_id) makes every retry
+      // after the first one a no-op instead of double-decrementing stock.
       for (const it of items) {
         if (!it.product_id) continue;
         const { error: stockError } = await supabase.rpc('decrement_stock', {
           p_product_id: it.product_id,
           p_qty: it.quantity,
+          p_sale_item_id: it.id,
+          p_sale_id: it.sale_id,
         });
         if (stockError) throw stockError;
       }

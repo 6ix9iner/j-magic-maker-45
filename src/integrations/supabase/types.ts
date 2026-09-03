@@ -536,7 +536,12 @@ export type Database = {
     Functions: {
       bytea_to_text: { Args: { data: string }; Returns: string }
       decrement_stock: {
-        Args: { p_product_id: string; p_qty: number }
+        Args: {
+          p_product_id: string
+          p_qty: number
+          p_sale_item_id?: string | null
+          p_sale_id?: string | null
+        }
         Returns: undefined
       }
       get_top_brands: {

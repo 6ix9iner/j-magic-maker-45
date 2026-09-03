@@ -9,6 +9,7 @@ import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-jav
 import { getDynamsoftLicenseKey } from '@/components/barcode/BarcodeConfigUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import MlKitScanner from '@/components/barcode/MlKitScanner';
 
 interface BarcodeScannerProps {
@@ -95,20 +96,38 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   const startNativeScan = async () => {
     setIsScanning(true);
     let mlkitListener: any = null;
+    let resumeListener: any = null;
+    const cleanup = () => {
+      mlkitListener?.remove?.();
+      resumeListener?.remove?.();
+      mlkitListener = null;
+      resumeListener = null;
+      setIsScanning(false);
+    };
     try {
       mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
         const code = (d && (d.code || d.value)) || null;
         if (code) {
           handleScan(code, (d && d.symbology) || "ML Kit");
         }
-        mlkitListener?.remove();
-        setIsScanning(false);
+        cleanup();
+      });
+      // Safety net: the native camera Activity finishes silently (no
+      // event of any kind) if the user taps its own Cancel button, or if
+      // it errors out - only a successful detection was ever cleaning up
+      // isScanning, so cancelling left the "Scan Barcode" button stuck
+      // showing "Opening camera..." until something else (like leaving
+      // the page) happened to remount this component. Returning to the
+      // app from the camera Activity always fires a resume event
+      // regardless of how the scan ended, so use that to guarantee
+      // isScanning gets cleared either way.
+      resumeListener = await CapacitorApp.addListener('resume', () => {
+        cleanup();
       });
       await MlKitScanner.startScan();
     } catch (e) {
       console.error('Error starting ML Kit scanner', e);
-      setIsScanning(false);
-      mlkitListener?.remove?.();
+      cleanup();
     }
   };
 

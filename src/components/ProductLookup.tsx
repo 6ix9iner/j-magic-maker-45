@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductByBarcode } from '@/lib/offline/repository';
+import { pickFitClass, MONEY_FIT_STEPS_BASE } from '@/utils/fitText';
 
 // Define a minimal product interface with only the fields we need
 interface Product {
@@ -107,17 +108,19 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
           </div>
           
           <div className="grid grid-cols-2 gap-4">
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Price</p>
-              <p className="text-lg font-medium">₦{product.price.toFixed(2)}</p>
+              <p className={`min-w-0 break-words leading-tight font-medium tabular-nums ${pickFitClass(`₦${product.price.toFixed(2)}`, MONEY_FIT_STEPS_BASE)}`}>
+                ₦{product.price.toFixed(2)}
+              </p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">In Stock</p>
-              <p className="text-lg font-medium">{product.stock_count}</p>
+              <p className="text-lg font-medium truncate">{product.stock_count}</p>
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-muted-foreground">Category</p>
-              <p className="text-lg font-medium">{product.category || 'N/A'}</p>
+              <p className="text-lg font-medium truncate">{product.category || 'N/A'}</p>
             </div>
           </div>
 

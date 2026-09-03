@@ -66,13 +66,13 @@ const ProductCard = ({ product, onClick, onDelete }: ProductCardProps) => {
         </div>
         
         <div className="flex justify-between items-center">
-          <div className="flex gap-4">
-            <span className="text-sm">
-              <span className="font-medium text-gray-700">Price:</span> 
+          <div className="flex flex-wrap gap-x-4 gap-y-1 min-w-0">
+            <span className="text-sm break-all">
+              <span className="font-medium text-gray-700">Price:</span>
               <span className="text-green-600 font-semibold"> ₦{parseFloat(product.price.toString()).toFixed(2)}</span>
             </span>
-            <span className="text-sm">
-              <span className="font-medium text-gray-700">Cost:</span> 
+            <span className="text-sm break-all">
+              <span className="font-medium text-gray-700">Cost:</span>
               <span className="text-gray-600"> ₦{parseFloat(product.purchase_price.toString()).toFixed(2)}</span>
             </span>
           </div>

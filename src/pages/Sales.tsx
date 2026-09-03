@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import Receipt from "@/components/receipt/Receipt";
 import { exportSalesToCSV } from "@/utils/salesExport";
 import { getSales, getBusinessInfo } from "@/lib/offline/repository";
+import { pickFitClass, MONEY_FIT_STEPS_SM } from "@/utils/fitText";
 
 interface SaleItemData {
   id: string;
@@ -196,7 +197,7 @@ const Sales = () => {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-3.5 sm:px-6">
           {loading ? (
             <div className="flex justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-700"></div>
@@ -205,35 +206,46 @@ const Sales = () => {
             <div className="divide-y divide-slate-100 dark:divide-slate-800">
               {sales.map((sale, index) => (
                 <div key={sale.id}>
-                  <button
-                    type="button"
+                  <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => toggleSaleDetails(index)}
-                    className="w-full flex items-center gap-3 py-3.5 text-left"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        toggleSaleDetails(index);
+                      }
+                    }}
+                    className="w-full flex flex-col gap-2 py-3.5 text-left cursor-pointer sm:flex-row sm:items-center sm:gap-3"
                   >
-                    <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
-                      {sale.isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="h-9 w-9 rounded-full bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0">
+                        {sale.isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-sm text-slate-800 dark:text-slate-100 truncate">{formatDate(sale.created_at)}</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
+                          {sale.payment_method || "Cash"}{sale.transaction_id ? ` · ${sale.transaction_id}` : ""}
+                        </p>
+                      </div>
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-100">{formatDate(sale.created_at)}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
-                        {sale.payment_method || "Cash"}{sale.transaction_id ? ` · ${sale.transaction_id}` : ""}
-                      </p>
+                    <div className="flex items-start justify-between gap-3 pl-12 sm:pl-0 sm:justify-end sm:shrink-0 min-w-0">
+                      <span className={`min-w-0 break-words text-right leading-tight font-bold text-slate-800 dark:text-slate-100 tabular-nums ${pickFitClass(formatCurrency(sale.total_amount), MONEY_FIT_STEPS_SM)}`}>
+                        {formatCurrency(sale.total_amount)}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-8 rounded-lg text-xs shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleViewReceipt(sale);
+                        }}
+                      >
+                        Receipt
+                      </Button>
                     </div>
-                    <span className="font-bold text-sm text-slate-800 dark:text-slate-100 shrink-0">
-                      {formatCurrency(sale.total_amount)}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-8 rounded-lg text-xs shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleViewReceipt(sale);
-                      }}
-                    >
-                      Receipt
-                    </Button>
-                  </button>
+                  </div>
 
                   {sale.isExpanded && (
                     <div className="mb-3 -mt-1 bg-slate-50/70 dark:bg-slate-800/40 p-3.5 rounded-2xl border border-slate-100/50 dark:border-slate-800">
@@ -246,11 +258,11 @@ const Sales = () => {
                                 <p className="font-medium text-slate-700 dark:text-slate-200 truncate">
                                   {item.name_at_sale || "Unknown Item"}
                                 </p>
-                                <p className="text-xs text-slate-400 dark:text-slate-500">
+                                <p className="text-xs text-slate-400 dark:text-slate-500 truncate">
                                   {item.quantity} × {formatCurrency(item.price_at_sale)}
                                 </p>
                               </div>
-                              <span className="font-semibold text-slate-700 dark:text-slate-200 shrink-0">
+                              <span className={`min-w-0 max-w-[45%] break-words text-right leading-tight font-semibold text-slate-700 dark:text-slate-200 tabular-nums ${pickFitClass(formatCurrency(item.price_at_sale * item.quantity), MONEY_FIT_STEPS_SM)}`}>
                                 {formatCurrency(item.price_at_sale * item.quantity)}
                               </span>
                             </div>

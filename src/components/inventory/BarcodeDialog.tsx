@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { motion } from "framer-motion";
 import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
 import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import MlKitScanner from '@/components/barcode/MlKitScanner';
 
 interface BarcodeDialogProps {
@@ -32,6 +33,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     if (!useMlKit || !isOpen) return;
     let isMounted = true;
     let mlkitListener: any = null;
+    let resumeListener: any = null;
 
     (async () => {
       try {
@@ -39,6 +41,17 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
           const code = (d && (d.code || d.value)) || null;
           if (code && isMounted) {
             onDetected(code);
+            onClose();
+          }
+        });
+        // Safety net: the native camera Activity finishes silently (no
+        // event at all) if the user cancels it or it errors out - only a
+        // successful detection was ever calling onClose(), so cancelling
+        // left isOpen stuck true and the scan button unresponsive.
+        // Returning to the app always fires a resume event regardless of
+        // how the scan ended, so use that to close the dialog either way.
+        resumeListener = await CapacitorApp.addListener('resume', () => {
+          if (isMounted) {
             onClose();
           }
         });
@@ -54,6 +67,7 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
     return () => {
       isMounted = false;
       mlkitListener?.remove?.();
+      resumeListener?.remove?.();
       MlKitScanner.stopScan().catch(() => {});
     };
   }, [isOpen, onDetected, onClose]);

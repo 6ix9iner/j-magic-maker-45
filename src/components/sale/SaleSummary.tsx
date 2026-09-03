@@ -2,6 +2,7 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
+import { pickFitClass, MONEY_FIT_STEPS_XL } from "@/utils/fitText";
 
 interface SaleSummaryProps {
   total: number;
@@ -18,13 +19,18 @@ const SaleSummary = ({
   onCompleteSale,
   onCancelSale
 }: SaleSummaryProps) => {
+  const totalText = `₦${total.toFixed(2)}`;
   return (
     <div className="-mx-5 -mb-5 mt-2 rounded-b-3xl border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 flex flex-col gap-2">
-      <div className="w-full flex items-baseline justify-between">
-        <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+      <div className="w-full flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+        <span className="shrink-0 text-xs font-semibold text-slate-500 dark:text-slate-400">
           Total {itemCount > 0 && `(${itemCount} item${itemCount !== 1 ? 's' : ''})`}
         </span>
-        <span className="text-xl font-extrabold text-slate-800 dark:text-slate-100">₦{total.toFixed(2)}</span>
+        {/* Never truncate the total - if it's still too wide even at the
+            smallest step, wrap rather than hide digits. */}
+        <span className={`min-w-0 break-words text-right font-extrabold text-slate-800 dark:text-slate-100 tabular-nums ${pickFitClass(totalText, MONEY_FIT_STEPS_XL)}`}>
+          {totalText}
+        </span>
       </div>
       <div className="w-full flex gap-2">
         <Button

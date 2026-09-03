@@ -2,6 +2,19 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
+import { pickFitClass, FitTextStep } from '@/utils/fitText';
+
+// MetricCard tiles sit two-per-row on mobile, so their headline value needs
+// to shrink (not overflow/clip) once a currency amount grows a lot of
+// digits (e.g. ₦50,000,000,000.00).
+const METRIC_VALUE_FIT_STEPS: FitTextStep[] = [
+  { max: 8, class: "text-xl sm:text-2xl" },
+  { max: 10, class: "text-lg sm:text-xl" },
+  { max: 12, class: "text-base sm:text-lg" },
+  { max: 15, class: "text-sm sm:text-base" },
+  { max: 19, class: "text-xs sm:text-sm" },
+  { max: Infinity, class: "text-[10px] sm:text-xs" },
+];
 
 interface MetricCardProps {
   title: string;
@@ -55,8 +68,11 @@ const MetricCard: React.FC<MetricCardProps> = ({
           </div>
         )}
       </CardHeader>
-      <CardContent className="px-4 pb-4 pt-1">
-        <div className={`text-xl sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 ${valueClassName}`}>
+      <CardContent className="px-4 pb-4 pt-1 min-w-0">
+        {/* Never truncate a real number - if it's still too wide even at
+            the smallest step, let it wrap onto a 2nd line rather than
+            hiding digits behind an ellipsis. */}
+        <div className={`min-w-0 break-words leading-tight font-bold tracking-tight text-slate-900 dark:text-slate-100 tabular-nums ${pickFitClass(String(formattedValue), METRIC_VALUE_FIT_STEPS)} ${valueClassName}`}>
           {formattedValue}
         </div>
         {description && (

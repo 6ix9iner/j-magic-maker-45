@@ -28,6 +28,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
         console.log('🔐 Auth event:', event);
+
+        // On native, never let a spurious null session evict someone from
+        // their own offline-cached data. autoRefreshToken's background
+        // timer tries to refresh the access token before it expires, and
+        // if that fetch fails because there's no network, some supabase-js
+        // versions surface it as a session-cleared event even though
+        // nothing about the user's actual login is invalid - it's just a
+        // network hiccup. Since ProtectedRoute (App.tsx) redirects to
+        // /auth the instant `user` is null, that bug would boot an
+        // offline user off the scanner entirely. Only an explicit
+        // SIGNED_OUT (a real, user-initiated logout) should clear the
+        // session here; anything else that comes through with no session
+        // is treated as transient and ignored.
+        if (Capacitor.isNativePlatform() && !currentSession && event !== 'SIGNED_OUT') {
+          console.log('🔐 Ignoring transient null-session event while native (not a real sign-out):', event);
+          return;
+        }
+
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
 
@@ -58,6 +76,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
       setSession(currentSession);
       setUser(currentSession?.user ?? null);
+      setLoading(false);
+    }).catch((error) => {
+      // If this rejects (e.g. a cold start with no network, where reading
+      // the session requires a token refresh that can't reach the
+      // server), we must still resolve `loading` - otherwise
+      // ProtectedRoute/PublicRoute (App.tsx) are stuck showing the
+      // spinner forever instead of falling back to whatever's cached.
+      console.error('🔐 getSession() failed (likely offline):', error);
       setLoading(false);
     });
 

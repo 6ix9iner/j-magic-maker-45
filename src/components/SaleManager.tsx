@@ -150,25 +150,29 @@ const SaleManager = forwardRef((props, ref) => {
       // way. On web this is a thin passthrough to Supabase, same as before.
       const completedSaleData = await completeSaleInStore(user.id, user.id, items);
 
-      // 🔔 Send sale completion notification (best-effort - silently
-      // no-ops if there's no connectivity right now).
-      try {
-        await sendPushNotification({
-          user_id: user.id,
-          title: '💰 Sale Completed!',
-          body: `Sale of $${calculateTotal().toFixed(2)} completed successfully with ${items.length} items`,
-          notification_type: 'sale_completed',
-          data: {
-            sale_id: completedSaleData.id,
-            total_amount: calculateTotal(),
-            items_count: items.length,
-            timestamp: new Date().toISOString()
-          }
-        });
+      // 🔔 Send sale completion notification (best-effort). Deliberately
+      // NOT awaited: this calls a Supabase edge function over the network,
+      // and when offline that request doesn't fail fast - it just hangs
+      // until some OS-level timeout, which used to leave the "Processing…"
+      // button stuck forever even though the sale itself was already saved
+      // locally. Fire-and-forget so a slow/absent network can never block
+      // the sale-completion flow.
+      sendPushNotification({
+        user_id: user.id,
+        title: '💰 Sale Completed!',
+        body: `Sale of $${calculateTotal().toFixed(2)} completed successfully with ${items.length} items`,
+        notification_type: 'sale_completed',
+        data: {
+          sale_id: completedSaleData.id,
+          total_amount: calculateTotal(),
+          items_count: items.length,
+          timestamp: new Date().toISOString()
+        }
+      }).then(() => {
         console.log('✅ Sale completion notification sent');
-      } catch (notifError) {
+      }).catch((notifError) => {
         console.error('❌ Failed to send sale completion notification:', notifError);
-      }
+      });
 
       // Fetch business info for the receipt
       const businessInfoData = await fetchBusinessInfo(user.id);
@@ -179,24 +183,24 @@ const SaleManager = forwardRef((props, ref) => {
         setCompletedSale(completedSaleData);
         setShowReceiptModal(true);
 
-        // 🧾 Send receipt generated notification (best-effort)
-        try {
-          await sendPushNotification({
-            user_id: user.id,
-            title: '🧾 Receipt Generated!',
-            body: `Receipt for sale of $${calculateTotal().toFixed(2)} has been generated and is ready to view`,
-            notification_type: 'receipt_generated',
-            data: {
-              sale_id: completedSaleData.id,
-              total_amount: calculateTotal(),
-              business_name: businessInfoData.business_name,
-              timestamp: new Date().toISOString()
-            }
-          });
+        // 🧾 Send receipt generated notification (best-effort, also
+        // fire-and-forget for the same reason as above).
+        sendPushNotification({
+          user_id: user.id,
+          title: '🧾 Receipt Generated!',
+          body: `Receipt for sale of $${calculateTotal().toFixed(2)} has been generated and is ready to view`,
+          notification_type: 'receipt_generated',
+          data: {
+            sale_id: completedSaleData.id,
+            total_amount: calculateTotal(),
+            business_name: businessInfoData.business_name,
+            timestamp: new Date().toISOString()
+          }
+        }).then(() => {
           console.log('✅ Receipt generated notification sent');
-        } catch (notifError) {
+        }).catch((notifError) => {
           console.error('❌ Failed to send receipt notification:', notifError);
-        }
+        });
       } else {
         // No business info found, show a message
         toast.info("Sale completed! Set up your business information to generate receipts.");

@@ -171,21 +171,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      // Send logout notification on native platform before signing out
+      // Send logout notification on native platform before signing out.
+      // Fire-and-forget, not awaited: this hits a Supabase edge function
+      // over the network, and when offline that request just hangs
+      // instead of failing fast - awaiting it here used to block sign-out
+      // entirely while offline.
       if (user && Capacitor.isNativePlatform()) {
-        try {
-          console.log('📤 Sending logout notification');
-          await sendPushNotification({
-            user_id: user.id,
-            title: '👋 Goodbye!',
-            body: 'You have signed out of MySkrib',
-            notification_type: 'logout'
-          });
-          // Small delay to ensure notification is sent
-          await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (error) {
+        console.log('📤 Sending logout notification');
+        sendPushNotification({
+          user_id: user.id,
+          title: '👋 Goodbye!',
+          body: 'You have signed out of MySkrib',
+          notification_type: 'logout'
+        }).catch((error) => {
           console.error('Failed to send logout notification:', error);
-        }
+        });
       }
 
       const { error } = await supabase.auth.signOut();

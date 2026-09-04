@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
     // Initialize Supabase Client with caller's authorization header
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      Deno.env.get('APP_PUBLISHABLE_KEY') ?? '',
       {
         global: {
           headers: { Authorization: authHeader },

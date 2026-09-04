@@ -104,7 +104,6 @@ const AppRoutes = () => {
               <Settings />
             </ProtectedRoute>
           } />
-          {/* AI Accountant removed */}
           <Route path="/sales" element={
             <ProtectedRoute>
               <Sales />
@@ -115,7 +114,11 @@ const AppRoutes = () => {
               <Receipts />
             </ProtectedRoute>
           } />
-          <Route path="/ai-accountant" element={<AIAccountant />} />
+          <Route path="/ai-accountant" element={
+            <ProtectedRoute>
+              <AIAccountant />
+            </ProtectedRoute>
+          } />
           <Route path="/reset-resource-password" element={<ResetResourcePassword />} />
           <Route path="*" element={<NotFound />} />
         </Route>

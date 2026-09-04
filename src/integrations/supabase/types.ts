@@ -60,6 +60,30 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_accountant_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          sender: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          sender: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          sender?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       business_info: {
         Row: {
           address: string

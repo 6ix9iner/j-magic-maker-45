@@ -29,7 +29,10 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
   const [product, setProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [quantity, setQuantity] = useState(1);
+  // Kept as a string so the field can be fully cleared while typing (e.g.
+  // to overwrite the default "1") instead of snapping back to the last
+  // valid number on every keystroke. Parsed to a number only when needed.
+  const [quantity, setQuantity] = useState('1');
   const { user } = useAuth();
 
   useEffect(() => {
@@ -136,23 +139,39 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
                     max={product.stock_count}
                     value={quantity}
                     onChange={(e) => {
-                      const value = parseInt(e.target.value);
-                      if (!isNaN(value) && value > 0) {
-                        setQuantity(value);
+                      const raw = e.target.value;
+                      // Allow the field to sit empty while the user is
+                      // typing/deleting - don't force it back to a number
+                      // on every keystroke, only digits are accepted.
+                      if (raw === '' || /^\d+$/.test(raw)) {
+                        setQuantity(raw);
+                      }
+                    }}
+                    onFocus={(e) => e.target.select()}
+                    onBlur={() => {
+                      // Once they're done editing, fall back to a valid
+                      // minimum instead of leaving it blank.
+                      if (quantity === '' || parseInt(quantity, 10) < 1) {
+                        setQuantity('1');
                       }
                     }}
                     className="w-24"
                   />
                 </div>
-                <Button 
+                <Button
                   onClick={() => {
+                    const qty = parseInt(quantity, 10);
+                    if (!qty || qty < 1) {
+                      toast.error('Enter a valid quantity');
+                      return;
+                    }
                     if (product && onAddToSale) {
-                      if (quantity > product.stock_count) {
+                      if (qty > product.stock_count) {
                         toast.error(`Only ${product.stock_count} items in stock`);
                         return;
                       }
-                      onAddToSale(product, quantity);
-                      toast.success(`Added ${quantity} x ${product.name} to sale`);
+                      onAddToSale(product, qty);
+                      toast.success(`Added ${qty} x ${product.name} to sale`);
                     }
                   }}
                   className="flex-1"

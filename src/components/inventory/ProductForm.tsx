@@ -114,7 +114,7 @@ const ProductForm = ({
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <label htmlFor="price" className="text-right font-medium text-sm">
-            Price
+            Selling Price
           </label>
           <Input
             id="price"

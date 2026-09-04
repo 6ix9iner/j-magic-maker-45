@@ -23,8 +23,12 @@ npm install
 npm run dev        # start the Vite dev server
 ```
 
-Copy `.env.local.example` (or ask a maintainer) for the Supabase project URL
-and anon key expected by `src/integrations/supabase/client.ts`.
+No `.env` setup is needed to run the app: the Supabase project URL and
+publishable key are constants in
+[`src/integrations/supabase/client.ts`](src/integrations/supabase/client.ts)
+(the publishable key is meant to be public - it's safe to ship in client
+code). `.env.local` in this repo only holds a Vercel CLI token used for
+`vercel` commands, not app config.
 
 ### Building for native
 
@@ -53,10 +57,12 @@ android/, ios/    Native Capacitor projects
 
 - Every table is protected by Postgres Row Level Security, scoped to
   `auth.uid()`.
-- Edge functions that need elevated access read the service_role key from
-  the platform-managed `SUPABASE_SERVICE_ROLE_KEY` environment variable —
-  **never hardcode it**, in a script or anywhere else. It grants full,
-  RLS-bypassing access to every user's data.
+- The project uses Supabase's new-style API keys, not the legacy
+  anon/service_role JWTs. Edge functions that need elevated access read it
+  from the `APP_SECRET_KEY` project secret; the client uses `APP_PUBLISHABLE_KEY`.
+  **Never hardcode either one** in a script or anywhere else - `APP_SECRET_KEY`
+  grants full, RLS-bypassing access to every user's data.
 - Optional per-screen passwords (Inventory/Sales lock) are separate from the
-  account login password and are stored as salted SHA-256 hashes — see
+  account login password and are stored as PBKDF2-SHA256 hashes (100k
+  iterations, random salt per password) — see
   [`src/utils/resourcePassword.ts`](src/utils/resourcePassword.ts).

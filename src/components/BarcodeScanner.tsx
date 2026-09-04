@@ -1,5 +1,6 @@
-// This component now serves as a compatibility layer for existing imports
-// It simply re-exports the scanner functionality from ScannerPage
+// The mobile-layout barcode scanner used on the main scan screen (Index).
+// Native platforms (iOS/Android) always use ML Kit; the web build always
+// uses Dynamsoft - see `useMlKit` below, there's no runtime switching.
 import React, { useState, useEffect, useRef } from 'react';
 import { ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";

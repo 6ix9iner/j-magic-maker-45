@@ -7,7 +7,7 @@ import { Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { getBusinessInfo, saveBusinessInfo } from "@/lib/offline/repository";
 import { useAuth } from "@/contexts/AuthContext";
-import { hashResourcePassword } from "@/utils/resourcePassword";
+import { hashResourcePassword, verifyResourcePassword } from "@/utils/resourcePassword";
 
 interface SalesPasswordSettingsProps {
   hasPassword: boolean;
@@ -29,7 +29,7 @@ const SalesPasswordSettings = ({ hasPassword, onPasswordChange }: SalesPasswordS
 
     try {
       const data = await getBusinessInfo(user.id);
-      return data?.sales_password_hash === hashResourcePassword(password);
+      return verifyResourcePassword(password, data?.sales_password_hash);
     } catch (error) {
       console.error('Error verifying password:', error);
       return false;
@@ -76,7 +76,7 @@ const SalesPasswordSettings = ({ hasPassword, onPasswordChange }: SalesPasswordS
         }
       }
 
-      const hashedNewPassword = hashResourcePassword(newPassword);
+      const hashedNewPassword = await hashResourcePassword(newPassword);
 
       // Preserve whatever business info already exists rather than
       // clobbering it with placeholders.

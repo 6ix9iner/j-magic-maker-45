@@ -6,10 +6,11 @@ import {
   deleteProduct as deleteProductInStore,
   barcodeExists,
   getBusinessInfo,
+  saveBusinessInfo,
 } from '@/lib/offline/repository';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { hashResourcePassword } from '@/utils/resourcePassword';
+import { hashResourcePassword, verifyResourcePassword } from '@/utils/resourcePassword';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
@@ -110,9 +111,27 @@ const Inventory = () => {
 
   const verifyPassword = async (password: string): Promise<boolean> => {
     if (!inventoryPasswordHash) return false;
-    
-    const hashedInput = hashResourcePassword(password);
-    return hashedInput === inventoryPasswordHash;
+
+    const isCorrect = await verifyResourcePassword(password, inventoryPasswordHash);
+
+    // Transparently upgrade old, non-cryptographic hashes to the new
+    // PBKDF2 format now that we know the password is correct - the user
+    // never notices, but their stored hash gets meaningfully stronger.
+    if (isCorrect && !inventoryPasswordHash.startsWith('pbkdf2$') && user) {
+      try {
+        const info = await getBusinessInfo(user.id);
+        if (info) {
+          const upgradedHash = await hashResourcePassword(password);
+          await saveBusinessInfo(user.id, { ...info, inventory_password_hash: upgradedHash });
+          setInventoryPasswordHash(upgradedHash);
+        }
+      } catch (error) {
+        console.error('Failed to upgrade inventory password hash:', error);
+        // Non-fatal - the legacy hash still verifies correctly next time.
+      }
+    }
+
+    return isCorrect;
   };
 
   const handlePasswordSuccess = () => {

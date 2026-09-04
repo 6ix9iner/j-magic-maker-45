@@ -5,18 +5,29 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Mirrors the simple hash used client-side (InventoryPasswordSettings.tsx /
-// SalesPasswordSettings.tsx) so a hash written here verifies correctly
-// against what the app checks on unlock. Not cryptographic - this is a
-// secondary screen lock, not the account password.
-function hashPassword(password: string): string {
-  let hash = 0
-  for (let i = 0; i < password.length; i++) {
-    const char = password.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash = hash & hash
-  }
-  return hash.toString()
+// Mirrors src/utils/resourcePassword.ts's hashResourcePassword() exactly
+// (PBKDF2-SHA256, 100k iterations, random salt) so a hash written here
+// verifies correctly against what the app checks on unlock.
+const PBKDF2_ITERATIONS = 100_000
+const SALT_BYTES = 16
+
+function toBase64(bytes: Uint8Array): string {
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i])
+  return btoa(binary)
+}
+
+async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(SALT_BYTES))
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt, iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  )
+  return `pbkdf2$${PBKDF2_ITERATIONS}$${toBase64(salt)}$${toBase64(new Uint8Array(bits))}`
 }
 
 /**
@@ -77,7 +88,7 @@ Deno.serve(async (req) => {
     }
 
     const column = tokenRow.resource === 'inventory' ? 'inventory_password_hash' : 'sales_password_hash'
-    const hashedPassword = hashPassword(String(new_password))
+    const hashedPassword = await hashPassword(String(new_password))
 
     const { error: updateError } = await admin
       .from('business_info')

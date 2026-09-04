@@ -19,9 +19,9 @@ import {
 } from "@/components/ui/alert-dialog";
 import Receipt from "@/components/receipt/Receipt";
 import { exportSalesToCSV } from "@/utils/salesExport";
-import { getSales, getBusinessInfo, deleteSale } from "@/lib/offline/repository";
+import { getSales, getBusinessInfo, saveBusinessInfo, deleteSale } from "@/lib/offline/repository";
 import { pickFitClass, MONEY_FIT_STEPS_SM } from "@/utils/fitText";
-import { hashResourcePassword } from "@/utils/resourcePassword";
+import { hashResourcePassword, verifyResourcePassword } from "@/utils/resourcePassword";
 import SalesPasswordPrompt from "@/components/sales/SalesPasswordPrompt";
 
 interface SaleItemData {
@@ -111,7 +111,26 @@ const Sales = () => {
 
   const verifySalesPassword = async (password: string): Promise<boolean> => {
     if (!salesPasswordHash) return false;
-    return hashResourcePassword(password) === salesPasswordHash;
+
+    const isCorrect = await verifyResourcePassword(password, salesPasswordHash);
+
+    // Transparently upgrade old, non-cryptographic hashes to the new
+    // PBKDF2 format now that we know the password is correct.
+    if (isCorrect && !salesPasswordHash.startsWith('pbkdf2$') && user) {
+      try {
+        const info = await getBusinessInfo(user.id);
+        if (info) {
+          const upgradedHash = await hashResourcePassword(password);
+          await saveBusinessInfo(user.id, { ...info, sales_password_hash: upgradedHash });
+          setSalesPasswordHash(upgradedHash);
+        }
+      } catch (error) {
+        console.error('Failed to upgrade sales password hash:', error);
+        // Non-fatal - the legacy hash still verifies correctly next time.
+      }
+    }
+
+    return isCorrect;
   };
 
   const handlePasswordSuccess = () => {

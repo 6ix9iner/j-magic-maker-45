@@ -7,7 +7,7 @@ import { Lock, Eye, EyeOff, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { getBusinessInfo, saveBusinessInfo } from "@/lib/offline/repository";
 import { useAuth } from "@/contexts/AuthContext";
-import { hashResourcePassword as hashPassword } from "@/utils/resourcePassword";
+import { hashResourcePassword as hashPassword, verifyResourcePassword } from "@/utils/resourcePassword";
 
 interface InventoryPasswordSettingsProps {
   hasPassword: boolean;
@@ -30,8 +30,7 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
     try {
       const data = await getBusinessInfo(user.id);
 
-      const hashedInput = hashPassword(password);
-      return data?.inventory_password_hash === hashedInput;
+      return verifyResourcePassword(password, data?.inventory_password_hash);
     } catch (error) {
       console.error('Error verifying password:', error);
       return false;
@@ -81,7 +80,7 @@ const InventoryPasswordSettings = ({ hasPassword, onPasswordChange }: InventoryP
       }
 
       // Hash the new password
-      const hashedNewPassword = hashPassword(newPassword);
+      const hashedNewPassword = await hashPassword(newPassword);
 
       // Update or create business info with new password - preserve
       // whatever business info already exists rather than clobbering it

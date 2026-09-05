@@ -19,11 +19,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import Receipt from "@/components/receipt/Receipt";
 import { exportSalesToCSV } from "@/utils/salesExport";
-import { getSales, getBusinessInfo, saveBusinessInfo, deleteSale } from "@/lib/offline/repository";
+import { getSales, getBusinessInfo, deleteSale } from "@/lib/offline/repository";
 import { pickFitClass, MONEY_FIT_STEPS_SM } from "@/utils/fitText";
-import { hashResourcePassword, verifyResourcePassword } from "@/utils/resourcePassword";
 import SalesPasswordPrompt from "@/components/sales/SalesPasswordPrompt";
 import { getErrorMessage } from "@/utils/errors";
+import { useResourceLock } from "@/hooks/useResourceLock";
 
 interface SaleItemData {
   id: string;
@@ -66,84 +66,20 @@ const Sales = () => {
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo | null>(null);
 
-  // Sales history is optionally password-protected, same pattern as
-  // Inventory (see Inventory.tsx / SalesPasswordSettings.tsx).
-  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState(false);
-  const [isSalesUnlocked, setIsSalesUnlocked] = useState(false);
-  const [salesPasswordHash, setSalesPasswordHash] = useState<string | null>(null);
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
-
   const [saleToDelete, setSaleToDelete] = useState<SaleData | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  useEffect(() => {
-    setIsSalesUnlocked(false);
-    if (user) checkSalesPassword();
-  }, [user]);
-
-  useEffect(() => {
-    return () => {
-      setIsSalesUnlocked(false);
-      setIsPasswordPromptOpen(false);
-    };
-  }, []);
-
-  const checkSalesPassword = async () => {
-    if (!user) return;
-    setIsCheckingAccess(true);
-    try {
-      const data = await getBusinessInfo(user.id);
-      const hasPassword = data?.sales_password_hash;
-      setSalesPasswordHash(hasPassword || null);
-      if (hasPassword) {
-        setIsPasswordPromptOpen(true);
-        setIsCheckingAccess(false);
-      } else {
-        setIsSalesUnlocked(true);
-        setIsCheckingAccess(false);
-        fetchSales();
-      }
-    } catch (error) {
-      console.error('Error checking sales password:', error);
-      toast.error('Failed to verify access');
-      navigate('/dashboard');
-    }
-  };
-
-  const verifySalesPassword = async (password: string): Promise<boolean> => {
-    if (!salesPasswordHash) return false;
-
-    const isCorrect = await verifyResourcePassword(password, salesPasswordHash);
-
-    // Transparently upgrade old, non-cryptographic hashes to the new
-    // PBKDF2 format now that we know the password is correct.
-    if (isCorrect && !salesPasswordHash.startsWith('pbkdf2$') && user) {
-      try {
-        const info = await getBusinessInfo(user.id);
-        if (info) {
-          const upgradedHash = await hashResourcePassword(password);
-          await saveBusinessInfo(user.id, { ...info, sales_password_hash: upgradedHash });
-          setSalesPasswordHash(upgradedHash);
-        }
-      } catch (error) {
-        console.error('Failed to upgrade sales password hash:', error);
-        // Non-fatal - the legacy hash still verifies correctly next time.
-      }
-    }
-
-    return isCorrect;
-  };
-
-  const handlePasswordSuccess = () => {
-    setIsSalesUnlocked(true);
-    setIsPasswordPromptOpen(false);
-    fetchSales();
-  };
-
-  const handlePasswordCancel = () => {
-    setIsPasswordPromptOpen(false);
-    navigate('/dashboard');
-  };
+  // Sales history is optionally password-protected, same pattern as
+  // Inventory (see Inventory.tsx / SalesPasswordSettings.tsx) - both
+  // screens share this logic via useResourceLock.
+  const {
+    isUnlocked: isSalesUnlocked,
+    isPasswordPromptOpen,
+    isCheckingAccess,
+    verifyPassword: verifySalesPassword,
+    handlePasswordSuccess,
+    handlePasswordCancel,
+  } = useResourceLock({ resource: 'sales', onUnlocked: () => fetchSales() });
 
   const fetchSales = async () => {
     try {

@@ -1,32 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   getProducts as getProductsFromStore,
   createProduct as createProductInStore,
   updateProduct as updateProductInStore,
   deleteProduct as deleteProductInStore,
   barcodeExists,
-  getBusinessInfo,
-  saveBusinessInfo,
 } from '@/lib/offline/repository';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
-import { hashResourcePassword, verifyResourcePassword } from '@/utils/resourcePassword';
 import { getErrorMessage } from '@/utils/errors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useResourceLock } from '@/hooks/useResourceLock';
 
 import SearchBox from '@/components/inventory/SearchBox';
 import ProductList from '@/components/inventory/ProductList';
@@ -63,88 +60,16 @@ const Inventory = () => {
   });
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [isPasswordPromptOpen, setIsPasswordPromptOpen] = useState<boolean>(false);
-  const [isInventoryUnlocked, setIsInventoryUnlocked] = useState<boolean>(false);
-  const [inventoryPasswordHash, setInventoryPasswordHash] = useState<string | null>(null);
   const { user } = useAuth();
-  const navigate = useNavigate();
 
-  useEffect(() => {
-    // Always reset unlock status when component mounts to force password prompt each time
-    setIsInventoryUnlocked(false);
-    
-    if (user) {
-      checkInventoryPassword();
-    }
-  }, [user]);
-
-  // Reset inventory unlock status when component unmounts to ensure fresh state
-  useEffect(() => {
-    return () => {
-      setIsInventoryUnlocked(false);
-      setIsPasswordPromptOpen(false);
-    };
-  }, []);
-
-  const checkInventoryPassword = async () => {
-    if (!user) return;
-
-    setIsLoading(true);
-    try {
-      const data = await getBusinessInfo(user.id);
-
-      const hasPassword = data?.inventory_password_hash;
-      setInventoryPasswordHash(hasPassword);
-
-      if (hasPassword) {
-        setIsPasswordPromptOpen(true);
-        setIsLoading(false);
-      } else {
-        setIsInventoryUnlocked(true);
-        await fetchProducts();
-      }
-    } catch (error) {
-      console.error('Error checking password:', error);
-      toast.error('Failed to verify access');
-      navigate('/dashboard');
-    }
-  };
-
-  const verifyPassword = async (password: string): Promise<boolean> => {
-    if (!inventoryPasswordHash) return false;
-
-    const isCorrect = await verifyResourcePassword(password, inventoryPasswordHash);
-
-    // Transparently upgrade old, non-cryptographic hashes to the new
-    // PBKDF2 format now that we know the password is correct - the user
-    // never notices, but their stored hash gets meaningfully stronger.
-    if (isCorrect && !inventoryPasswordHash.startsWith('pbkdf2$') && user) {
-      try {
-        const info = await getBusinessInfo(user.id);
-        if (info) {
-          const upgradedHash = await hashResourcePassword(password);
-          await saveBusinessInfo(user.id, { ...info, inventory_password_hash: upgradedHash });
-          setInventoryPasswordHash(upgradedHash);
-        }
-      } catch (error) {
-        console.error('Failed to upgrade inventory password hash:', error);
-        // Non-fatal - the legacy hash still verifies correctly next time.
-      }
-    }
-
-    return isCorrect;
-  };
-
-  const handlePasswordSuccess = () => {
-    setIsInventoryUnlocked(true);
-    setIsPasswordPromptOpen(false);
-    fetchProducts();
-  };
-
-  const handlePasswordCancel = () => {
-    setIsPasswordPromptOpen(false);
-    navigate('/dashboard'); // Redirect to dashboard if they cancel
-  };
+  const {
+    isUnlocked: isInventoryUnlocked,
+    isPasswordPromptOpen,
+    isCheckingAccess,
+    verifyPassword,
+    handlePasswordSuccess,
+    handlePasswordCancel,
+  } = useResourceLock({ resource: 'inventory', onUnlocked: () => fetchProducts() });
 
   const fetchProducts = async () => {
     if (!user) return;
@@ -280,7 +205,7 @@ const Inventory = () => {
           onCancel={handlePasswordCancel}
           onVerifyPassword={verifyPassword}
         />
-        {isLoading && (
+        {isCheckingAccess && (
           <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
             <div className="flex flex-col items-center space-y-4">
               <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>

@@ -1,0 +1,27 @@
+-- Removes two redundant, uncontrolled AFTER INSERT triggers on
+-- public.sale_items (decrement_stock_on_sale, trigger_decrement_stock)
+-- that were both independently calling decrement_product_stock() on every
+-- sale_items insert, on top of the app's own explicit, idempotency-ledger-
+-- backed decrement_stock() RPC call (see syncEngine.ts's sale_create case
+-- and supabase/migrations/20260903_decrement_stock_idempotent.sql).
+--
+-- Net effect in production: every sale made from the native app was
+-- decrementing stock THREE times (two triggers + the RPC) for the same
+-- sale, since sale_items gets inserted once and each of the two triggers
+-- fires independently, plus the RPC is called explicitly right after. Web
+-- sales happened to end up numerically correct by accident - completeSale()
+-- ends with an absolute stock_count SET using a pre-sale cached value,
+-- which silently overwrote whatever the triggers had already done - but
+-- native/mobile sales had no such correction and were genuinely
+-- over-depleting stock on every single sale, not just on retries.
+--
+-- Confirmed via a live integration test before and after this migration:
+-- selling qty 3 from stock 10 produced stock 1 (10 - 3 - 3 - 3) with the
+-- triggers in place, and stock 7 (correct) once they were removed.
+--
+-- decrement_product_stock() also wrote to public.inventory_transactions,
+-- which nothing in the app's frontend reads (verified: not referenced
+-- anywhere outside the generated Supabase types) - so no user-visible
+-- feature is lost by removing the triggers that called it.
+drop trigger if exists decrement_stock_on_sale on public.sale_items;
+drop trigger if exists trigger_decrement_stock on public.sale_items;

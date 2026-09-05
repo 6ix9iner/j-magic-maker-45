@@ -2,8 +2,11 @@ import { v4 as uuidv4 } from 'uuid';
 import { Capacitor } from '@capacitor/core';
 import { Network } from '@capacitor/network';
 import { supabase } from '@/integrations/supabase/client';
-import { offlineDb, LocalProduct, LocalBusinessInfo } from './db';
+import { offlineDb, LocalProduct, LocalBusinessInfo, SyncOpType, SyncPayloadMap, SyncQueueItem } from './db';
 import { drainSyncQueue, refreshPendingCount } from './syncEngine';
+import type { Database } from '@/integrations/supabase/types';
+
+type SaleItemRow = Database['public']['Tables']['sale_items']['Row'];
 
 /**
  * The ONE place every screen goes for products / sales / business info.
@@ -88,7 +91,11 @@ async function isOnline(): Promise<boolean> {
   }
 }
 
-async function enqueue(type: import('./db').SyncOpType, entityId: string, payload: any) {
+async function enqueue<T extends SyncOpType>(type: T, entityId: string, payload: SyncPayloadMap[T]) {
+  // The cast is confined to this one boundary function: TS can't prove a
+  // generically-constructed object literal matches one specific member of
+  // the SyncQueueItem union, even though `payload`'s type is already
+  // pinned to the right shape for this `type` by SyncPayloadMap[T] above.
   await offlineDb.syncQueue.add({
     type,
     entityId,
@@ -96,7 +103,7 @@ async function enqueue(type: import('./db').SyncOpType, entityId: string, payloa
     createdAt: new Date().toISOString(),
     attempts: 0,
     lastError: null,
-  });
+  } as SyncQueueItem);
   // So the "N pending" badge updates the instant something is queued,
   // rather than waiting for the next connectivity check or 60s tick.
   await refreshPendingCount();
@@ -399,7 +406,7 @@ export async function getSales(userId: string): Promise<CompletedSale[]> {
     const saleIds = (sales || []).map((s) => s.id);
     const { data: items } = saleIds.length
       ? await supabase.from('sale_items').select('*').in('sale_id', saleIds)
-      : { data: [] as any[] };
+      : { data: [] as SaleItemRow[] };
     return (sales || []).map((s) => ({
       ...s,
       items: (items || []).filter((it) => it.sale_id === s.id),

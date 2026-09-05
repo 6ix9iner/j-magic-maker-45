@@ -5,6 +5,38 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// The Deno-imported supabase-js client isn't given a Database generic
+// here (that'd mean either duplicating the frontend's generated types
+// into this function or reaching across the src/ boundary, neither of
+// which is worth it for one function) - these match each query's own
+// `.select(...)` column list below, just enough to type what's actually
+// read from the results.
+interface ProductRow {
+  name: string
+  price: number
+  purchase_price: number
+  stock_count: number
+  category: string | null
+  barcode: string
+}
+interface LowStockRow {
+  name: string
+  stock_count: number
+  category: string | null
+}
+interface SaleRow {
+  id: string
+  total_amount: number
+  created_at: string
+}
+interface SaleItemRow {
+  name_at_sale: string
+  price_at_sale: number
+  quantity: number
+  created_at: string
+  product_id: string | null
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -101,44 +133,44 @@ Deno.serve(async (req) => {
         .gte('created_at', thirtyDaysAgo.toISOString()),
     ])
 
-    const products = productsRes.data || []
-    const allSales = allSalesRes.data || []
-    const lowStock = lowStockRes.data || []
-    const todaySales = todaySalesRes.data || []
-    const week7Sales = week7SalesRes.data || []
-    const allSaleItems = saleItemsAllRes.data || []
-    const saleItems30 = saleItems30Res.data || []
+    const products: ProductRow[] = productsRes.data || []
+    const allSales: SaleRow[] = allSalesRes.data || []
+    const lowStock: LowStockRow[] = lowStockRes.data || []
+    const todaySales: SaleRow[] = todaySalesRes.data || []
+    const week7Sales: SaleRow[] = week7SalesRes.data || []
+    const allSaleItems: SaleItemRow[] = saleItemsAllRes.data || []
+    const saleItems30: SaleItemRow[] = saleItems30Res.data || []
 
     // Build purchase price map
     const productPriceMap = new Map<string, number>()
     const productCategoryMap = new Map<string, string>()
-    products.forEach((p: any) => {
-      productPriceMap.set(p.name, parseFloat(p.purchase_price || 0))
+    products.forEach((p) => {
+      productPriceMap.set(p.name, parseFloat(String(p.purchase_price || 0)))
       productCategoryMap.set(p.name, p.category || 'Uncategorised')
     })
 
     // --- All-time totals ---
-    const totalRevenue = allSales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+    const totalRevenue = allSales.reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
     let totalCostAllTime = 0
-    allSaleItems.forEach((item: any) => {
+    allSaleItems.forEach((item) => {
       totalCostAllTime += (productPriceMap.get(item.name_at_sale) || 0) * (item.quantity || 0)
     })
     const grossProfitAllTime = totalRevenue - totalCostAllTime
     const marginAllTime = totalRevenue > 0 ? (grossProfitAllTime / totalRevenue) * 100 : 0
 
     // --- Today totals ---
-    const todayRevenue = todaySales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+    const todayRevenue = todaySales.reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
 
     // --- Last 7 days totals ---
-    const week7Revenue = week7Sales.reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+    const week7Revenue = week7Sales.reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
 
     // --- Last 30 days product breakdown ---
     let revenue30 = 0, cost30 = 0
-    const productMap30 = new Map<string, any>()
+    const productMap30 = new Map<string, { qty: number; revenue: number; cost: number }>()
     const categoryMap30 = new Map<string, number>()
-    saleItems30.forEach((item: any) => {
+    saleItems30.forEach((item) => {
       const qty = item.quantity || 0
-      const price = parseFloat(item.price_at_sale || 0)
+      const price = parseFloat(String(item.price_at_sale || 0))
       const rev = price * qty
       const cost = (productPriceMap.get(item.name_at_sale) || 0) * qty
       revenue30 += rev
@@ -162,10 +194,10 @@ Deno.serve(async (req) => {
 
     // --- Daily sales for last 7 days ---
     const dailyMap = new Map<string, { revenue: number; orders: number }>()
-    week7Sales.forEach((s: any) => {
+    week7Sales.forEach((s) => {
       const day = new Date(s.created_at).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
       const ex = dailyMap.get(day) || { revenue: 0, orders: 0 }
-      dailyMap.set(day, { revenue: ex.revenue + parseFloat(s.total_amount || 0), orders: ex.orders + 1 })
+      dailyMap.set(day, { revenue: ex.revenue + parseFloat(String(s.total_amount || 0)), orders: ex.orders + 1 })
     })
     const dailySales7 = Array.from(dailyMap.entries()).map(([date, d]) => ({ date, ...d }))
 
@@ -217,10 +249,10 @@ SALES BY CATEGORY (LAST 30 DAYS):
 ${categorySales30.map(c => `• ${c.category}: ₦${c.revenue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`).join('\n') || 'No category data.'}
 
 ═══ FULL INVENTORY (${products.length} products) ═══
-${products.map((p: any) => `• ${p.name} | Selling: ₦${parseFloat(p.price || 0).toLocaleString()} | Cost: ₦${parseFloat(p.purchase_price || 0).toLocaleString()} | Stock: ${p.stock_count} | Category: ${p.category || 'None'}`).join('\n') || 'No products.'}
+${products.map((p) => `• ${p.name} | Selling: ₦${parseFloat(String(p.price || 0)).toLocaleString()} | Cost: ₦${parseFloat(String(p.purchase_price || 0)).toLocaleString()} | Stock: ${p.stock_count} | Category: ${p.category || 'None'}`).join('\n') || 'No products.'}
 
 ═══ LOW STOCK ALERTS (< 5 units) ═══
-${lowStock.length > 0 ? lowStock.map((p: any) => `⚠️ ${p.name} (${p.category || 'No category'}): ${p.stock_count} left`).join('\n') : '✅ All items are well stocked.'}`
+${lowStock.length > 0 ? lowStock.map((p) => `⚠️ ${p.name} (${p.category || 'No category'}): ${p.stock_count} left`).join('\n') : '✅ All items are well stocked.'}`
 
     // Build conversation messages array with history
     const conversationMessages = [

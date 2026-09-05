@@ -20,6 +20,12 @@ import { toast } from "sonner";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
+// react-markdown's real per-tag prop types (ComponentPropsWithoutRef<Tag> &
+// ReactMarkdownProps) carry a lot more than these renderers read - node
+// position info, sibling counts, etc. These just cover what's destructured.
+type MdChildrenProps = { children?: React.ReactNode };
+type MdCodeProps = { inline?: boolean; children?: React.ReactNode };
+
 interface Message {
   id: string;
   content: string;
@@ -249,22 +255,22 @@ const AIAccountantChat: React.FC = () => {
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
-                        p: ({ children }: any) => <p className="mb-2.5 last:mb-0 whitespace-pre-wrap break-words">{children}</p>,
-                        ul: ({ children }: any) => <ul className="list-disc pl-5 mb-2.5 space-y-1">{children}</ul>,
-                        ol: ({ children }: any) => <ol className="list-decimal pl-5 mb-2.5 space-y-1">{children}</ol>,
-                        li: ({ children }: any) => <li className="break-words">{children}</li>,
-                        strong: ({ children }: any) => <strong className="font-bold text-slate-900 dark:text-white">{children}</strong>,
-                        h3: ({ children }: any) => <h3 className="font-semibold text-slate-900 dark:text-white mt-3 mb-1.5">{children}</h3>,
-                        table: ({ children }: any) => (
+                        p: ({ children }: MdChildrenProps) => <p className="mb-2.5 last:mb-0 whitespace-pre-wrap break-words">{children}</p>,
+                        ul: ({ children }: MdChildrenProps) => <ul className="list-disc pl-5 mb-2.5 space-y-1">{children}</ul>,
+                        ol: ({ children }: MdChildrenProps) => <ol className="list-decimal pl-5 mb-2.5 space-y-1">{children}</ol>,
+                        li: ({ children }: MdChildrenProps) => <li className="break-words">{children}</li>,
+                        strong: ({ children }: MdChildrenProps) => <strong className="font-bold text-slate-900 dark:text-white">{children}</strong>,
+                        h3: ({ children }: MdChildrenProps) => <h3 className="font-semibold text-slate-900 dark:text-white mt-3 mb-1.5">{children}</h3>,
+                        table: ({ children }: MdChildrenProps) => (
                           <div className="overflow-x-auto w-full my-3 rounded-lg border border-slate-100 dark:border-slate-800">
                             <table className="w-full text-left border-collapse min-w-0 table-auto max-w-full">{children}</table>
                           </div>
                         ),
-                        thead: ({ children }: any) => <thead className="border-b bg-slate-50/50 dark:bg-slate-900/50">{children}</thead>,
-                        tbody: ({ children }: any) => <tbody>{children}</tbody>,
-                        th: ({ children }: any) => <th className="px-3 py-2 font-semibold text-xs text-slate-500 border-b">{children}</th>,
-                        td: ({ children }: any) => <td className="px-3 py-2 text-xs border-b border-slate-100 dark:border-slate-800">{children}</td>,
-                        code: ({ inline, children }: any) => (
+                        thead: ({ children }: MdChildrenProps) => <thead className="border-b bg-slate-50/50 dark:bg-slate-900/50">{children}</thead>,
+                        tbody: ({ children }: MdChildrenProps) => <tbody>{children}</tbody>,
+                        th: ({ children }: MdChildrenProps) => <th className="px-3 py-2 font-semibold text-xs text-slate-500 border-b">{children}</th>,
+                        td: ({ children }: MdChildrenProps) => <td className="px-3 py-2 text-xs border-b border-slate-100 dark:border-slate-800">{children}</td>,
+                        code: ({ inline, children }: MdCodeProps) => (
                           inline ? (
                             <code className={`px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-900 text-xs font-mono break-words whitespace-pre-wrap text-indigo-600 dark:text-indigo-400`}>{children}</code>
                           ) : (

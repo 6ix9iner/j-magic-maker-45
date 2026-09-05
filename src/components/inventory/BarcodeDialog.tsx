@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { motion } from "framer-motion";
 import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import MlKitScanner from '@/components/barcode/MlKitScanner';
 
@@ -32,12 +32,12 @@ const BarcodeDialog = ({ isOpen, onClose, onDetected }: BarcodeDialogProps) => {
   useEffect(() => {
     if (!useMlKit || !isOpen) return;
     let isMounted = true;
-    let mlkitListener: any = null;
-    let resumeListener: any = null;
+    let mlkitListener: PluginListenerHandle | null = null;
+    let resumeListener: PluginListenerHandle | null = null;
 
     (async () => {
       try {
-        mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
+        mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: { code?: string; value?: string }) => {
           const code = (d && (d.code || d.value)) || null;
           if (code && isMounted) {
             onDetected(code);

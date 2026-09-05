@@ -1,5 +1,6 @@
 
 import { useQuery } from '@tanstack/react-query';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { calculateActualCosts, calculateProductProfitability, calculateProfitMetrics, FinancialMetrics, ProductProfitability } from '@/utils/financialUtils';
 import { toast } from 'sonner';
@@ -331,7 +332,7 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
 
     return result;
 
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error fetching dashboard data:', error);
     // Don't show toast error on mobile to avoid UI issues
     if (typeof window !== 'undefined' && window.innerWidth > 768) {
@@ -341,7 +342,7 @@ const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
   }
 };
 
-export const useDashboardData = (user: any) => {
+export const useDashboardData = (user: User | null | undefined) => {
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['dashboardData', user?.id],
     queryFn: () => fetchDashboardData(user.id),

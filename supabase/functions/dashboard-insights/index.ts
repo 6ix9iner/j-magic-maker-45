@@ -90,7 +90,7 @@ ${JSON.stringify(salesData.categorySales || [], null, 2)}
 
 === LOW STOCK PRODUCTS (NEED RESTOCKING) ===
 ${salesData.lowStockProducts && salesData.lowStockProducts.length > 0
-  ? salesData.lowStockProducts.map((p: any) => `- ${p.name}: ${p.stock_count} units left`).join('\n')
+  ? salesData.lowStockProducts.map((p: { name: string; stock_count: number }) => `- ${p.name}: ${p.stock_count} units left`).join('\n')
   : 'All items are well stocked.'}
 
 Please provide two outputs in a single JSON response:

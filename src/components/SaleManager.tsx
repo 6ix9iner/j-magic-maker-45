@@ -10,8 +10,9 @@ import Receipt from './receipt/Receipt';
 import { sendPushNotification } from '@/utils/pushNotificationUtils';
 import { completeSale as completeSaleInStore, getBusinessInfo } from '@/lib/offline/repository';
 import { useOfflineSync } from '@/hooks/useOfflineSync';
+import { getErrorMessage } from '@/utils/errors';
 
-interface Product {
+export interface Product {
   id: string;
   barcode: string;
   name: string;
@@ -19,6 +20,11 @@ interface Product {
   stock_count: number;
   category: string | null;
   user_id?: string;
+}
+
+/** What parents get on their ref - see the useImperativeHandle call below. */
+export interface SaleManagerHandle {
+  addItem: (product: Product, quantity: number) => void;
 }
 
 interface SaleItem {
@@ -56,7 +62,7 @@ interface CompletedSale {
 }
 
 // Use forwardRef to expose functions to parent
-const SaleManager = forwardRef((props, ref) => {
+const SaleManager = forwardRef<SaleManagerHandle>((_props, ref) => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const { user } = useAuth();
@@ -212,9 +218,9 @@ const SaleManager = forwardRef((props, ref) => {
           : "Sale completed successfully!"
       );
       setItems([]);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error completing sale:", error);
-      toast.error(`Error: ${error.message || "Could not complete sale"}`);
+      toast.error(`Error: ${getErrorMessage(error, "Could not complete sale")}`);
     } finally {
       setIsProcessing(false);
     }

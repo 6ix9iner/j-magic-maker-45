@@ -2,6 +2,18 @@
 /**
  * Financial utility functions for calculating profit, loss, and other financial metrics
  */
+import type { SupabaseClient } from '@supabase/supabase-js';
+import type { Database } from '@/integrations/supabase/types';
+
+type TypedSupabaseClient = SupabaseClient<Database>;
+
+/** The minimal shape these functions need from a sale_items row - callers
+ * select extra joined columns (e.g. `sales!inner(...)`) that aren't used
+ * here, so this only requires what's actually read. */
+interface SaleItemForCosting {
+  product_id: string | null;
+  quantity: number;
+}
 
 export interface FinancialMetrics {
   totalRevenue: number;
@@ -73,7 +85,7 @@ export const formatPercentage = (value: number): string => {
 /**
  * Calculate actual costs from sale items using purchase prices with better error handling
  */
-export const calculateActualCosts = async (saleItems: any[], supabase: any): Promise<number> => {
+export const calculateActualCosts = async (saleItems: SaleItemForCosting[], supabase: TypedSupabaseClient): Promise<number> => {
   let totalCost = 0;
   
   // Group sale items by product_id to reduce database queries
@@ -134,7 +146,7 @@ export const calculateActualCosts = async (saleItems: any[], supabase: any): Pro
 /**
  * Calculate profitability for individual products
  */
-export const calculateProductProfitability = async (supabase: any, userId: string): Promise<ProductProfitability[]> => {
+export const calculateProductProfitability = async (supabase: TypedSupabaseClient, userId: string): Promise<ProductProfitability[]> => {
   try {
     // Get all sale items with product details for the user
     const { data: saleItems, error } = await supabase

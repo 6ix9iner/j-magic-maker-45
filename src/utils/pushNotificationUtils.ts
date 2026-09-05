@@ -6,7 +6,7 @@ interface PushNotificationPayload {
   title: string;
   body: string;
   notification_type?: string;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 export const sendPushNotification = async (payload: PushNotificationPayload) => {

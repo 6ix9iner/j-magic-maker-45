@@ -8,6 +8,7 @@ import { Loader } from "lucide-react";
 import { useAuth } from '@/contexts/AuthContext';
 import { getProductByBarcode } from '@/lib/offline/repository';
 import { pickFitClass, MONEY_FIT_STEPS_BASE } from '@/utils/fitText';
+import { getErrorMessage } from '@/utils/errors';
 
 // Define a minimal product interface with only the fields we need
 interface Product {
@@ -62,8 +63,8 @@ const ProductLookup = ({ barcodeValue, onAddToSale }: ProductLookupProps) => {
         } else {
           setError(`No product found with barcode: ${barcodeValue}`);
         }
-      } catch (err: any) {
-        setError(err.message || 'Error looking up product');
+      } catch (err) {
+        setError(getErrorMessage(err, 'Error looking up product'));
         console.error('Product lookup error:', err);
       } finally {
         setLoading(false);

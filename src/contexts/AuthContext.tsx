@@ -7,6 +7,7 @@ import { Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Browser } from '@capacitor/browser';
 import { startSyncEngine } from '@/lib/offline/syncEngine';
+import { getErrorMessage } from '@/utils/errors';
 
 type AuthContextType = {
   user: User | null;
@@ -143,9 +144,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (error) throw error;
         }
         console.log('🔗 OAuth sign-in succeeded');
-      } catch (error: any) {
-        console.error('OAuth callback error:', error?.message || error);
-        toast.error(error?.message || 'Sign-in failed');
+      } catch (error) {
+        console.error('OAuth callback error:', getErrorMessage(error));
+        toast.error(getErrorMessage(error, 'Sign-in failed'));
       } finally {
         Browser.close().catch(() => {});
       }
@@ -169,8 +170,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
       toast.success('Successfully signed in');
-    } catch (error: any) {
-      toast.error(error.message || 'Error signing in');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Error signing in'));
       throw error;
     }
   };
@@ -189,8 +190,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
       toast.success('Registration successful! Please verify your email.');
-    } catch (error: any) {
-      toast.error(error.message || 'Error signing up');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Error signing up'));
       throw error;
     }
   };
@@ -219,7 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(null);
       setSession(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Sign out error:', error);
       toast.error('Error signing out');
     }

@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { hashResourcePassword, verifyResourcePassword } from '@/utils/resourcePassword';
+import { getErrorMessage } from '@/utils/errors';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { 
@@ -102,7 +103,7 @@ const Inventory = () => {
         setIsInventoryUnlocked(true);
         await fetchProducts();
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error checking password:', error);
       toast.error('Failed to verify access');
       navigate('/dashboard');
@@ -152,7 +153,7 @@ const Inventory = () => {
     try {
       const data = await getProductsFromStore(user.id);
       setProducts(data as Product[] || []);
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error fetching products:', error);
       toast.error('Failed to load products');
     } finally {
@@ -242,9 +243,9 @@ const Inventory = () => {
 
       setIsDialogOpen(false);
       fetchProducts();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error saving product:', error);
-      toast.error(error.message || 'Failed to save product');
+      toast.error(getErrorMessage(error, 'Failed to save product'));
     }
   };
 
@@ -263,9 +264,9 @@ const Inventory = () => {
       setIsDeleteDialogOpen(false);
       setProductToDelete(null);
       fetchProducts();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error deleting product:', error);
-      toast.error(error.message || 'Failed to delete product');
+      toast.error(getErrorMessage(error, 'Failed to delete product'));
     }
   };
 

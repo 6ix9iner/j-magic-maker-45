@@ -1,6 +1,10 @@
 import { Network } from '@capacitor/network';
 import { supabase } from '@/integrations/supabase/client';
 import { offlineDb, SyncQueueItem } from './db';
+import { getErrorMessage } from '@/utils/errors';
+import type { Database } from '@/integrations/supabase/types';
+
+type SaleItemRow = Database['public']['Tables']['sale_items']['Row'];
 
 /**
  * Drives the offline sync queue: watches connectivity, and whenever the
@@ -71,7 +75,7 @@ async function applyOne(item: SyncQueueItem): Promise<void> {
       break;
     }
     case 'sale_create': {
-      const { sale, items } = item.payload as { sale: any; items: any[] };
+      const { sale, items } = item.payload;
       const { error: saleError } = await supabase.from('sales').insert(sale);
       if (saleError && saleError.code !== '23505') throw saleError;
 
@@ -112,7 +116,7 @@ async function applyOne(item: SyncQueueItem): Promise<void> {
       // safe no-op if the sale never actually made it to the server (e.g.
       // its 'sale_create' queue item was successfully cancelled instead
       // of syncing), so this is safe to queue unconditionally.
-      const { sale_id } = item.payload as { sale_id: string };
+      const { sale_id } = item.payload;
       const { error } = await supabase.rpc('delete_sale', { p_sale_id: sale_id });
       if (error) throw error;
       break;
@@ -145,8 +149,9 @@ export async function drainSyncQueue(): Promise<void> {
         if (item.id !== undefined) {
           await offlineDb.syncQueue.delete(item.id);
         }
-      } catch (err: any) {
+      } catch (err) {
         const attempts = item.attempts + 1;
+        const errMessage = getErrorMessage(err, String(err));
         if (attempts >= MAX_ATTEMPTS) {
           // Give up on this one so it can't block the rest of the queue
           // forever - it stays visible as a failed item for now.
@@ -154,14 +159,14 @@ export async function drainSyncQueue(): Promise<void> {
           if (item.id !== undefined) {
             await offlineDb.syncQueue.update(item.id, {
               attempts,
-              lastError: err?.message || String(err),
+              lastError: errMessage,
             });
           }
-          state = { ...state, lastError: `Failed to sync ${item.type}: ${err?.message || err}` };
+          state = { ...state, lastError: `Failed to sync ${item.type}: ${errMessage}` };
         } else if (item.id !== undefined) {
           await offlineDb.syncQueue.update(item.id, {
             attempts,
-            lastError: err?.message || String(err),
+            lastError: errMessage,
           });
         }
         // Stop draining on first failure this pass - retry the whole
@@ -207,9 +212,9 @@ export async function pullFromServer(userId: string): Promise<void> {
   // EVERY write already made in that same transaction - which is why
   // products/business info/sales were all silently failing to update
   // together whenever a user had any sales history at all.
-  let saleItems: any[] | null = null;
+  let saleItems: SaleItemRow[] | null = null;
   if (sales && sales.length > 0) {
-    const saleIds = sales.map((s: any) => s.id);
+    const saleIds = sales.map((s) => s.id);
     const { data: items, error: itemsError } = await supabase.from('sale_items').select('*').in('sale_id', saleIds);
     if (itemsError) console.error('pullFromServer: sale_items fetch failed', itemsError);
     saleItems = items ?? null;

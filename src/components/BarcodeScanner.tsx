@@ -9,7 +9,7 @@ import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { BarcodeReader, BarcodeScanner as DynamsoftScanner } from 'dynamsoft-javascript-barcode';
 import { getDynamsoftLicenseKey } from '@/components/barcode/BarcodeConfigUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Capacitor } from '@capacitor/core';
+import { Capacitor, PluginListenerHandle } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import MlKitScanner from '@/components/barcode/MlKitScanner';
 
@@ -96,8 +96,8 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   // scan and listen for its result.
   const startNativeScan = async () => {
     setIsScanning(true);
-    let mlkitListener: any = null;
-    let resumeListener: any = null;
+    let mlkitListener: PluginListenerHandle | null = null;
+    let resumeListener: PluginListenerHandle | null = null;
     const cleanup = () => {
       mlkitListener?.remove?.();
       resumeListener?.remove?.();
@@ -106,7 +106,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       setIsScanning(false);
     };
     try {
-      mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: any) => {
+      mlkitListener = await MlKitScanner.addListener('mlkitBarcodeDetected', (d: { code?: string; value?: string; symbology?: string }) => {
         const code = (d && (d.code || d.value)) || null;
         if (code) {
           handleScan(code, (d && d.symbology) || "ML Kit");

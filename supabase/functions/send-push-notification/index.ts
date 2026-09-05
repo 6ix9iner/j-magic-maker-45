@@ -11,7 +11,7 @@ interface NotificationRequest {
   title: string
   body: string
   notification_type?: string
-  data?: any
+  data?: Record<string, unknown>
 }
 
 Deno.serve(async (req) => {

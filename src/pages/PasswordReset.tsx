@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { getErrorMessage } from '@/utils/errors';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -35,9 +36,9 @@ const PasswordReset = () => {
       
       setIsSent(true);
       toast.success('Password reset instructions sent to your email');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error sending reset email:', error);
-      toast.error(error.message || 'Failed to send reset email');
+      toast.error(getErrorMessage(error, 'Failed to send reset email'));
     } finally {
       setIsSubmitting(false);
     }

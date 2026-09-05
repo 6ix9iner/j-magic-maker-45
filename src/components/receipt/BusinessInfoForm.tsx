@@ -17,6 +17,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { getErrorMessage } from "@/utils/errors";
 
 const businessInfoSchema = z.object({
   businessName: z.string().min(2, "Business name must be at least 2 characters"),
@@ -78,9 +79,9 @@ const BusinessInfoForm = ({ onSaved, initialData }: BusinessInfoFormProps) => {
 
       toast.success("Business information saved successfully");
       onSaved();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving business info:", error);
-      toast.error(error.message || "Failed to save business information");
+      toast.error(getErrorMessage(error, "Failed to save business information"));
     }
   };
 

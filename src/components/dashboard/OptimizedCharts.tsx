@@ -177,8 +177,10 @@ const CategoryChart = memo(({ categorySales, isLoading }: { categorySales: Categ
   
   if (isLoading) return <LoadingSkeleton />;
 
-  // Custom label function that's responsive
-  const renderCustomLabel = ({ name, percent }: any) => {
+  // Custom label function that's responsive. Recharts' actual
+  // PieLabelRenderProps carries many more (mostly geometry) fields - this
+  // only declares the two this callback reads.
+  const renderCustomLabel = ({ name, percent }: { name: string; percent: number }) => {
     const percentage = Number((percent * 100).toFixed(0));
     if (isMobile) {
       // On mobile, only show percentage if it's significant enough

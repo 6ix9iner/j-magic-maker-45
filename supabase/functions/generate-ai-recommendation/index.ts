@@ -5,6 +5,33 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Matches each query's own `.select(...)` below - see the ai-accountant-chat
+// function for why these are hand-written instead of a shared Database type.
+interface ProductRow {
+  id: string
+  name: string
+  price: number
+  purchase_price: number
+  stock_count: number
+  category: string | null
+}
+interface SaleRow {
+  id: string
+  total_amount: number
+  created_at: string
+}
+interface SaleItemRow {
+  name_at_sale: string
+  product_id: string | null
+  price_at_sale: number
+  quantity: number
+  created_at: string
+}
+interface RequestBody {
+  user_id?: string
+  source?: string
+}
+
 /**
  * Generates ONE sharp, numbers-backed, actionable growth recommendation from
  * a merchant's real sales/inventory data, then pushes it as a notification
@@ -42,7 +69,7 @@ Deno.serve(async (req) => {
     let targetUserId: string
     let isCronCall = false
 
-    let body: any = {}
+    let body: RequestBody = {}
     try { body = await req.json() } catch { /* empty body is fine */ }
 
     if (SERVICE_ROLE_KEY && token === SERVICE_ROLE_KEY && body?.user_id) {
@@ -98,10 +125,10 @@ Deno.serve(async (req) => {
         .gte('created_at', day60Ago.toISOString()),
     ])
 
-    const products = productsRes.data || []
+    const products: ProductRow[] = productsRes.data || []
     const businessName = businessInfoRes.data?.business_name || 'your store'
-    const sales60 = sales60Res.data || []
-    const items60 = items60Res.data || []
+    const sales60: SaleRow[] = sales60Res.data || []
+    const items60: SaleItemRow[] = items60Res.data || []
 
     // Not enough history to say anything useful/specific - don't waste a
     // notification (or the AI call) on a business with no data yet.
@@ -116,8 +143,8 @@ Deno.serve(async (req) => {
     const purchasePriceByName = new Map<string, number>()
     const stockByName = new Map<string, number>()
     const categoryByName = new Map<string, string>()
-    products.forEach((p: any) => {
-      purchasePriceByName.set(p.name, parseFloat(p.purchase_price || 0))
+    products.forEach((p) => {
+      purchasePriceByName.set(p.name, parseFloat(String(p.purchase_price || 0)))
       stockByName.set(p.name, p.stock_count ?? 0)
       categoryByName.set(p.name, p.category || 'Uncategorised')
     })
@@ -128,10 +155,10 @@ Deno.serve(async (req) => {
     }
 
     // Revenue: this week vs the week before, this month(30d) vs the 30d before that
-    const rev7 = sales60.filter((s: any) => inRange(s.created_at, day7Ago)).reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
-    const revPrev7 = sales60.filter((s: any) => inRange(s.created_at, day14Ago, day7Ago)).reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
-    const rev30 = sales60.filter((s: any) => inRange(s.created_at, day30Ago)).reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
-    const revPrev30 = sales60.filter((s: any) => inRange(s.created_at, day60Ago, day30Ago)).reduce((sum: number, s: any) => sum + parseFloat(s.total_amount || 0), 0)
+    const rev7 = sales60.filter((s) => inRange(s.created_at, day7Ago)).reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
+    const revPrev7 = sales60.filter((s) => inRange(s.created_at, day14Ago, day7Ago)).reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
+    const rev30 = sales60.filter((s) => inRange(s.created_at, day30Ago)).reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
+    const revPrev30 = sales60.filter((s) => inRange(s.created_at, day60Ago, day30Ago)).reduce((sum, s) => sum + parseFloat(String(s.total_amount || 0)), 0)
 
     // Per-product velocity (last 7 days) to estimate stockout risk, plus
     // 30d revenue/profit for margin-trend and best/worst seller framing.
@@ -139,9 +166,9 @@ Deno.serve(async (req) => {
     const productStats30 = new Map<string, { qty: number; revenue: number; cost: number }>()
     const productStatsPrev30 = new Map<string, { qty: number; revenue: number; cost: number }>()
 
-    items60.forEach((it: any) => {
+    items60.forEach((it) => {
       const qty = it.quantity || 0
-      const price = parseFloat(it.price_at_sale || 0)
+      const price = parseFloat(String(it.price_at_sale || 0))
       const revenue = price * qty
       const cost = (purchasePriceByName.get(it.name_at_sale) || 0) * qty
 
@@ -170,19 +197,19 @@ Deno.serve(async (req) => {
 
     // Stockout risk: selling fast but not much left.
     const stockoutRisk = products
-      .map((p: any) => {
+      .map((p) => {
         const soldLast7 = velocity7.get(p.name) || 0
         const dailyRate = soldLast7 / 7
         const daysLeft = dailyRate > 0 ? p.stock_count / dailyRate : Infinity
         return { name: p.name, stock: p.stock_count, soldLast7, daysLeft }
       })
-      .filter((p: any) => p.soldLast7 > 0 && p.daysLeft <= 7)
-      .sort((a: any, b: any) => a.daysLeft - b.daysLeft)
+      .filter((p) => p.soldLast7 > 0 && p.daysLeft <= 7)
+      .sort((a, b) => a.daysLeft - b.daysLeft)
 
     // Dead stock: sitting in inventory, zero sales in 30 days.
     const deadStock = products
-      .filter((p: any) => p.stock_count > 0 && !(productStats30.get(p.name)?.qty > 0))
-      .map((p: any) => ({ name: p.name, stock: p.stock_count, category: p.category }))
+      .filter((p) => p.stock_count > 0 && !(productStats30.get(p.name)?.qty > 0))
+      .map((p) => ({ name: p.name, stock: p.stock_count, category: p.category }))
       .slice(0, 10)
 
     const topSellers30 = Array.from(productStats30.entries())
@@ -200,10 +227,10 @@ REVENUE
 - Gross margin last 30 days: ${margin30.toFixed(1)}% (previous 30 days: ${marginPrev30.toFixed(1)}%)
 
 STOCKOUT RISK (selling fast, about to run out - fewer than 7 days of stock left at current pace)
-${stockoutRisk.length > 0 ? stockoutRisk.map((p: any) => `- ${p.name}: ${p.stock} left, selling ~${(p.soldLast7 / 7).toFixed(1)}/day → ~${p.daysLeft.toFixed(1)} days until stockout`).join('\n') : 'None currently.'}
+${stockoutRisk.length > 0 ? stockoutRisk.map((p) => `- ${p.name}: ${p.stock} left, selling ~${(p.soldLast7 / 7).toFixed(1)}/day → ~${p.daysLeft.toFixed(1)} days until stockout`).join('\n') : 'None currently.'}
 
 DEAD STOCK (in inventory, zero units sold in the last 30 days)
-${deadStock.length > 0 ? deadStock.map((p: any) => `- ${p.name} (${p.category}): ${p.stock} units sitting unsold`).join('\n') : 'None currently.'}
+${deadStock.length > 0 ? deadStock.map((p) => `- ${p.name} (${p.category}): ${p.stock} units sitting unsold`).join('\n') : 'None currently.'}
 
 TOP 5 SELLERS (last 30 days, by revenue)
 ${topSellers30.length > 0 ? topSellers30.map((p, i) => `${i + 1}. ${p.name}: ${p.qty} sold, ₦${p.revenue.toLocaleString()} revenue, ₦${p.profit.toLocaleString()} profit`).join('\n') : 'No sales yet.'}

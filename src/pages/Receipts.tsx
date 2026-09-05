@@ -69,7 +69,7 @@ const Receipts = () => {
           // No business info found, show setup modal
           setShowSetupModal(true);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching business info:", error);
         toast.error("Failed to load business information");
       } finally {
@@ -90,7 +90,7 @@ const Receipts = () => {
         if (sales.length > 0) {
           setRecentSale(sales[0]);
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Error fetching recent sale:", error);
       }
     };
@@ -110,7 +110,7 @@ const Receipts = () => {
         setShowSetupModal(false);
         setEditMode(false);
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error refreshing business info:", error);
     }
   };

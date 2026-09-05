@@ -79,18 +79,91 @@ export type SyncOpType =
   | 'sale_delete'
   | 'business_info_upsert';
 
-export interface SyncQueueItem {
+/** Exactly what repository.ts hands to Supabase's `.insert()` for a new
+ * product - see createProduct(). */
+export interface ProductCreatePayload {
+  id: string;
+  user_id: string;
+  barcode: string;
+  name: string;
+  price: number;
+  purchase_price: number;
+  stock_count: number;
+  category: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** A partial product update - see updateProduct(). Whatever fields the
+ * caller chose to change, plus the id/timestamp the RPC needs to apply it. */
+export interface ProductUpdatePayload {
+  id: string;
+  updated_at: string;
+  barcode?: string;
+  name?: string;
+  price?: number;
+  purchase_price?: number;
+  stock_count?: number;
+  category?: string | null;
+}
+
+/** See completeSale()'s native branch - the sale row plus its line items,
+ * inserted together and then run through decrement_stock per item. */
+export interface SaleCreatePayload {
+  sale: {
+    id: string;
+    total_amount: number;
+    payment_method: string | null;
+    user_id: string;
+    cashier_id: string;
+  };
+  items: Array<{
+    id: string;
+    sale_id: string;
+    product_id: string | null;
+    quantity: number;
+    price_at_sale: number;
+    barcode_at_sale: string | null;
+    name_at_sale: string | null;
+  }>;
+}
+
+export interface SaleDeletePayload {
+  sale_id: string;
+}
+
+/** See saveBusinessInfo()'s native branch. */
+export type BusinessInfoUpsertPayload = Omit<LocalBusinessInfo, 'pendingSync'> & { pendingSync?: 0 | 1 };
+
+/** Maps each queue op to the shape of payload it actually carries, so
+ * SyncQueueItem below is a real discriminated union - switching on `type`
+ * (as syncEngine.ts's applyOne does) narrows `payload` automatically,
+ * instead of every consumer needing its own `as {...}` cast. */
+export interface SyncPayloadMap {
+  product_create: ProductCreatePayload;
+  product_update: ProductUpdatePayload;
+  product_delete: Record<string, never>;
+  sale_create: SaleCreatePayload;
+  sale_delete: SaleDeletePayload;
+  business_info_upsert: BusinessInfoUpsertPayload;
+}
+
+interface SyncQueueItemBase<T extends SyncOpType, P> {
   /** Auto-incrementing local queue id. */
   id?: number;
-  type: SyncOpType;
+  type: T;
   /** The local row id this operation is about (product id, sale id, ...). */
   entityId: string;
   /** Fully-formed payload ready to send to Supabase. */
-  payload: any;
+  payload: P;
   createdAt: string;
   attempts: number;
   lastError: string | null;
 }
+
+export type SyncQueueItem = {
+  [K in SyncOpType]: SyncQueueItemBase<K, SyncPayloadMap[K]>;
+}[SyncOpType];
 
 class OfflineDatabase extends Dexie {
   products!: Table<LocalProduct, string>;

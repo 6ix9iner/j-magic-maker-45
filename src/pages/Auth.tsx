@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/utils/errors';
 import { motion, AnimatePresence } from 'framer-motion';
 import Logo from '@/components/Logo';
 
@@ -77,9 +78,9 @@ const Auth = () => {
         });
         if (error) throw error;
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error(`${provider} login error:`, error);
-      toast.error(error.message || `Failed to start ${provider} sign-in`);
+      toast.error(getErrorMessage(error, `Failed to start ${provider} sign-in`));
     } finally {
       setIsSubmitting(false);
     }
@@ -105,9 +106,9 @@ const Auth = () => {
       if (error) throw error;
       setOtpSent(true);
       toast.success('Verification code sent! Please check your inbox.');
-    } catch (error: any) {
+    } catch (error) {
       console.error('OTP send error:', error);
-      toast.error(error.message || 'Failed to send verification code');
+      toast.error(getErrorMessage(error, 'Failed to send verification code'));
     } finally {
       setIsSubmitting(false);
     }
@@ -129,9 +130,9 @@ const Auth = () => {
       if (error) throw error;
       toast.success('Successfully authenticated!');
       navigate('/scanner');
-    } catch (error: any) {
+    } catch (error) {
       console.error('OTP verification error:', error);
-      toast.error(error.message || 'Invalid or expired code. Please try again.');
+      toast.error(getErrorMessage(error, 'Invalid or expired code. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -151,9 +152,9 @@ const Auth = () => {
       if (error) throw error;
       toast.success('Password updated successfully');
       navigate('/auth');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error updating password:', error);
-      toast.error(error.message || 'Failed to update password');
+      toast.error(getErrorMessage(error, 'Failed to update password'));
     } finally {
       setIsSubmitting(false);
     }

@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { getErrorMessage } from '@/utils/errors';
 
 export interface AIRecommendation {
   title: string;
@@ -37,10 +38,15 @@ export function useAIRecommendation() {
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled || error || !data) return;
+        const notificationData = data.data;
+        const recType =
+          notificationData && typeof notificationData === 'object' && !Array.isArray(notificationData) && 'rec_type' in notificationData
+            ? String(notificationData.rec_type)
+            : 'general';
         setRecommendation({
           title: String(data.title || '').replace(/^💡\s*/, ''),
           body: data.body || '',
-          type: (data.data as any)?.rec_type || 'general',
+          type: recType,
         });
         setGeneratedAt(data.sent_at);
       });
@@ -63,9 +69,9 @@ export function useAIRecommendation() {
         setGeneratedAt(new Date().toISOString());
         toast.success('New growth tip ready!');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Failed to generate AI recommendation:', err);
-      toast.error(err.message || 'Failed to generate a growth tip');
+      toast.error(getErrorMessage(err, 'Failed to generate a growth tip'));
     } finally {
       setIsLoading(false);
     }

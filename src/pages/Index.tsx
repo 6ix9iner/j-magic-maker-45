@@ -5,7 +5,7 @@ import BarcodeScannerCompat from '@/components/BarcodeScanner';
 import BarcodeScannerInline from '@/components/barcode/BarcodeScanner';
 import ProductLookup from '@/components/ProductLookup';
 import ProductSearchDialog from '@/components/ProductSearchDialog';
-import SaleManager from '@/components/SaleManager';
+import SaleManager, { Product, SaleManagerHandle } from '@/components/SaleManager';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 const Index = () => {
   const [barcodeValue, setBarcodeValue] = useState<string | null>(null);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
-  const [saleManagerRef, setSaleManagerRef] = useState<React.RefObject<any> | null>(null);
+  const [saleManagerRef, setSaleManagerRef] = useState<React.RefObject<SaleManagerHandle> | null>(null);
   const isMobile = useIsMobile();
 
   // Create ref for SaleManager
@@ -48,7 +48,7 @@ const Index = () => {
     setBarcodeValue(barcode);
   }, []);
 
-  const handleAddToSale = useCallback((product: any, quantity: number) => {
+  const handleAddToSale = useCallback((product: Product, quantity: number) => {
     if (saleManagerRef?.current?.addItem) {
       saleManagerRef.current.addItem(product, quantity);
       toast.success(`Added ${quantity} ${product.name} to sale`);

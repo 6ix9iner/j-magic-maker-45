@@ -23,6 +23,7 @@ import { getSales, getBusinessInfo, saveBusinessInfo, deleteSale } from "@/lib/o
 import { pickFitClass, MONEY_FIT_STEPS_SM } from "@/utils/fitText";
 import { hashResourcePassword, verifyResourcePassword } from "@/utils/resourcePassword";
 import SalesPasswordPrompt from "@/components/sales/SalesPasswordPrompt";
+import { getErrorMessage } from "@/utils/errors";
 
 interface SaleItemData {
   id: string;
@@ -255,9 +256,9 @@ const Sales = () => {
       setSales((prev) => prev.filter((s) => s.id !== saleToDelete.id));
       toast.success("Sale deleted - stock has been restored.");
       setSaleToDelete(null);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error deleting sale:", error);
-      toast.error(error.message || "Failed to delete sale");
+      toast.error(getErrorMessage(error, "Failed to delete sale"));
     } finally {
       setIsDeleting(false);
     }

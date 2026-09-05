@@ -2,20 +2,20 @@ import { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+// The plugin package itself declares `Window.plugins.OneSignal` globally
+// (see its index.d.ts), so no local `declare global` is needed here.
+import type { OneSignalPlugin } from 'onesignal-cordova-plugin';
 
-// Import OneSignal according to official docs
-declare global {
-  interface Window {
-    plugins?: {
-      OneSignal?: any;
-    };
-  }
-}
-
-// Import for React/Ionic according to official docs
-let OneSignal: any = null;
+// Import for React/Ionic according to official docs. Deliberately
+// `require()`, not a static `import` - this needs to run conditionally
+// (only on native, only inside the try/catch below) so a web build never
+// even attempts to resolve this Cordova-only package. A static import
+// happens unconditionally at module-evaluation time and can't be guarded
+// like that.
+let OneSignal: OneSignalPlugin | null = null;
 if (Capacitor.isNativePlatform()) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     OneSignal = require('onesignal-cordova-plugin').default;
   } catch (error) {
     console.log('OneSignal not available in this environment');
@@ -117,7 +117,7 @@ export const useOneSignalNotifications = () => {
       // STEP 1: Delete ALL existing tokens for this device (same push token)
       // This ensures only one user can have this device token at a time
       console.log('🧹 Cleaning up all existing tokens for this device...');
-      const { error: deleteAllError } = await (supabase as any)
+      const { error: deleteAllError } = await supabase
         .from('user_push_tokens')
         .delete()
         .eq('push_token', token);
@@ -130,7 +130,7 @@ export const useOneSignalNotifications = () => {
 
       // STEP 2: Delete any existing tokens for this user (in case they logged in on another device)
       console.log('🧹 Cleaning up existing tokens for this user...');
-      const { error: deleteUserError } = await (supabase as any)
+      const { error: deleteUserError } = await supabase
         .from('user_push_tokens')
         .delete()
         .eq('user_id', user!.id);
@@ -143,7 +143,7 @@ export const useOneSignalNotifications = () => {
       
       // STEP 3: Insert the new token for the current user
       console.log('📱 Inserting new token for current user...');
-      const { error: insertError } = await (supabase as any)
+      const { error: insertError } = await supabase
         .from('user_push_tokens')
         .insert({
           user_id: user!.id,

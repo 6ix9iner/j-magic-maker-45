@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import Logo from '@/components/Logo';
 import { motion } from 'framer-motion';
 import { completeResourcePasswordReset, ResourceLock } from '@/utils/resourcePassword';
+import { getErrorMessage } from '@/utils/errors';
 
 const RESOURCE_LABEL: Record<ResourceLock, string> = {
   inventory: 'Inventory',
@@ -56,8 +57,8 @@ const ResetResourcePassword = () => {
       await completeResourcePasswordReset(token, newPassword);
       setIsDone(true);
       toast.success(`Your ${label} password has been reset.`);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to reset password. The link may have expired.');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to reset password. The link may have expired.'));
     } finally {
       setIsSubmitting(false);
     }

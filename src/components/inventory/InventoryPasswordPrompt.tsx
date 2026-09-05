@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Lock, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { requestResourcePasswordReset } from "@/utils/resourcePassword";
+import { getErrorMessage } from "@/utils/errors";
 
 interface InventoryPasswordPromptProps {
   isOpen: boolean;
@@ -25,8 +26,8 @@ const InventoryPasswordPrompt = ({ isOpen, onSuccess, onCancel, onVerifyPassword
     try {
       await requestResourcePasswordReset('inventory');
       toast.success('Check your email for a link to set a new Inventory password.');
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to send reset email. Please try again.');
+    } catch (error) {
+      toast.error(getErrorMessage(error, 'Failed to send reset email. Please try again.'));
     } finally {
       setIsSendingReset(false);
     }

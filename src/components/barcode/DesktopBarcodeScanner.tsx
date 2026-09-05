@@ -14,7 +14,7 @@ const isMobileDevice = () =>
   /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
   (navigator.maxTouchPoints > 1 && /Macintosh/i.test(navigator.userAgent) === false);
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpenChange }) => {
+const DesktopBarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpenChange }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [scanner, setScanner] = useState<DynamsoftScanner | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -280,4 +280,4 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({ onDetected, open, onOpe
   );
 };
 
-export default BarcodeScanner;
+export default DesktopBarcodeScanner;

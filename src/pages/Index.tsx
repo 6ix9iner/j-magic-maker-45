@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { Search, X } from 'lucide-react';
-import BarcodeScannerCompat from '@/components/BarcodeScanner';
-import BarcodeScannerInline from '@/components/barcode/BarcodeScanner';
+import MobileBarcodeScanner from '@/components/MobileBarcodeScanner';
+import DesktopBarcodeScanner from '@/components/barcode/DesktopBarcodeScanner';
 import ProductLookup from '@/components/ProductLookup';
 import ProductSearchDialog from '@/components/ProductSearchDialog';
 import SaleManager, { Product, SaleManagerHandle } from '@/components/SaleManager';
@@ -82,7 +82,7 @@ const Index = () => {
               <Search className="h-4.5 w-4.5 text-white" />
             </button>
             <div className="flex-1 min-w-0">
-              <BarcodeScannerCompat onDetected={handleBarcodeDetected} />
+              <MobileBarcodeScanner onDetected={handleBarcodeDetected} />
             </div>
           </motion.div>
 
@@ -158,7 +158,7 @@ const Index = () => {
             ) : (
               <div className="flex-grow flex flex-col min-h-0 relative rounded-3xl overflow-hidden bg-slate-950/90 dark:bg-slate-950 border border-slate-250/30 dark:border-slate-800 flex-1">
                 <div className="w-full h-full flex-grow min-h-0 flex flex-col relative">
-                  <BarcodeScannerInline onDetected={handleBarcodeDetected} />
+                  <DesktopBarcodeScanner onDetected={handleBarcodeDetected} />
                 </div>
               </div>
             )}

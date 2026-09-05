@@ -25,7 +25,7 @@ interface BarcodeScannerProps {
 // each platform has exactly one scanner engine.
 const useMlKit = Capacitor.isNativePlatform();
 
-const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
+const MobileBarcodeScanner: React.FC<BarcodeScannerProps> = ({
   onDetected,
   onScan,
   open,
@@ -384,4 +384,4 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       )}
     </>;
 };
-export default BarcodeScanner;
+export default MobileBarcodeScanner;

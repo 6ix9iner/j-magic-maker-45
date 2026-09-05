@@ -3,24 +3,35 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import PasswordReset from "./pages/PasswordReset";
-import ResetResourcePassword from "./pages/ResetResourcePassword";
-import NotFound from "./pages/NotFound";
-import Dashboard from "./pages/Dashboard";
-import Inventory from "./pages/Inventory";
-import Settings from "./pages/Settings";
-import Sales from "./pages/Sales";
-import Receipts from "./pages/Receipts";
+import { lazy, Suspense, useState } from "react";
 import Layout from "./components/Layout";
 import LoadingScreen from "./components/LoadingScreen";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import PushNotificationManager from "./components/PushNotificationManager";
-import { useState } from "react";
-import AIAccountant from "@/pages/AIAccountant";
+
+// Each route is its own chunk, loaded on demand - previously every page
+// (Dashboard's charts, the AI accountant chat, receipt PDF generation,
+// barcode scanning, ...) shipped in one ~2.7MB bundle every visitor
+// downloaded up front, regardless of which screens they actually use.
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const PasswordReset = lazy(() => import("./pages/PasswordReset"));
+const ResetResourcePassword = lazy(() => import("./pages/ResetResourcePassword"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Sales = lazy(() => import("./pages/Sales"));
+const Receipts = lazy(() => import("./pages/Receipts"));
+const AIAccountant = lazy(() => import("@/pages/AIAccountant"));
 
 const queryClient = new QueryClient();
+
+const RouteFallback = () => (
+  <div className="flex items-center justify-center h-screen bg-white dark:bg-slate-900">
+    <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+  </div>
+);
 
 // Protected route component
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -70,6 +81,7 @@ const AppRoutes = () => {
   return (
     <>
       <PushNotificationManager />
+      <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route path="/" element={<Layout />}>
           {/* Redirect root to scanner for authenticated users, auth for unauthenticated */}
@@ -123,6 +135,7 @@ const AppRoutes = () => {
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
+      </Suspense>
     </>
   );
 };

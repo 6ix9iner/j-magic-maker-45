@@ -74,19 +74,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
-    supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
-      setLoading(false);
-    }).catch((error) => {
-      // If this rejects (e.g. a cold start with no network, where reading
-      // the session requires a token refresh that can't reach the
-      // server), we must still resolve `loading` - otherwise
-      // ProtectedRoute/PublicRoute (App.tsx) are stuck showing the
-      // spinner forever instead of falling back to whatever's cached.
-      console.error('🔐 getSession() failed (likely offline):', error);
-      setLoading(false);
-    });
+    // Restore whatever session is on disk. On native this is the ONLY
+    // thing standing between a real login and getting kicked back to
+    // /auth on every cold start - and unlike the subscription's `event`
+    // above, there's no event name here to tell a genuine "you're logged
+    // out" apart from "the WebView's network/storage wasn't fully ready
+    // yet when this fired" (both just look like an empty session). So on
+    // native, a first empty result gets one short retry before it's
+    // trusted - if a real session is sitting in storage, that's normally
+    // enough time for it to succeed; if the user is genuinely signed out,
+    // this only costs about a second before /auth shows as before.
+    const hydrateSession = async () => {
+      try {
+        let { data: { session: currentSession } } = await supabase.auth.getSession();
+
+        if (Capacitor.isNativePlatform() && !currentSession) {
+          console.log('🔐 getSession() returned no session on cold start - retrying once before trusting it');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+          currentSession = (await supabase.auth.getSession()).data.session;
+        }
+
+        setSession(currentSession);
+        setUser(currentSession?.user ?? null);
+      } catch (error) {
+        // If this rejects (e.g. a cold start with no network, where reading
+        // the session requires a token refresh that can't reach the
+        // server), fall through and still resolve `loading` below -
+        // otherwise ProtectedRoute/PublicRoute (App.tsx) are stuck showing
+        // the spinner forever instead of falling back to whatever's cached.
+        console.error('🔐 getSession() failed (likely offline):', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    hydrateSession();
 
     return () => subscription.unsubscribe();
   }, []);

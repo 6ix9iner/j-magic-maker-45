@@ -19,6 +19,15 @@ import Logo from '@/components/Logo';
 // target - the browser has to come back through this custom scheme instead.
 const NATIVE_OAUTH_REDIRECT = 'com.posapp.app://login-callback';
 
+// Where the "click to confirm" link in the sign-up email points (see
+// mailer_templates_confirmation_content in the Supabase Auth config).
+// Email links always open in the device's regular browser, never inside
+// this app - so this has to be a real, publicly-reachable HTTPS URL
+// regardless of platform. window.location.origin would work for the web
+// build, but resolves to the useless https://localhost on native (same
+// reasoning as NATIVE_OAUTH_REDIRECT above), so it's hardcoded instead.
+const EMAIL_CONFIRMATION_REDIRECT = 'https://insightinventory.vercel.app/email-confirmed';
+
 const Auth = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -100,7 +109,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
-          emailRedirectTo: `${window.location.origin}/scanner`
+          emailRedirectTo: EMAIL_CONFIRMATION_REDIRECT
         }
       });
       if (error) throw error;

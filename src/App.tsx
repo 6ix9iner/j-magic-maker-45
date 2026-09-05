@@ -17,6 +17,7 @@ const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const PasswordReset = lazy(() => import("./pages/PasswordReset"));
 const ResetResourcePassword = lazy(() => import("./pages/ResetResourcePassword"));
+const EmailConfirmed = lazy(() => import("./pages/EmailConfirmed"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Inventory = lazy(() => import("./pages/Inventory"));
@@ -132,6 +133,7 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } />
           <Route path="/reset-resource-password" element={<ResetResourcePassword />} />
+          <Route path="/email-confirmed" element={<EmailConfirmed />} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

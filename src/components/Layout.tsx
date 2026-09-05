@@ -50,28 +50,37 @@ const Layout = () => {
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">
-      {/* Top Navigation Bar - Transparent floating branding and avatar */}
-      <motion.header 
-        className={cn("w-full bg-transparent border-0 shadow-none z-10", !user && "absolute top-0 left-0")}
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto bg-transparent">
-          <motion.div 
-            className="flex items-center"
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <Link to="/" className="flex items-center gap-2.5">
-              <Logo size={34} />
-              <OfflineStatusBadge />
-            </Link>
-          </motion.div>
+      {/* Top Navigation Bar - Transparent floating branding and avatar.
+          Only rendered once signed in: Auth/PasswordReset/ResetResourcePassword
+          each already show their own full "MySkrib" branding as part of
+          their centered content, so this floating header was pure
+          duplication for them - and worse, on Android, opening the
+          keyboard shrinks the viewport enough that their vertically-
+          centered heading (which itself contains the word "MySkrib")
+          could slide up into this header's fixed position and visually
+          overlap it. Simplest fix: it has nothing to add pre-login, so
+          don't show it there at all. */}
+      {user && (
+        <motion.header
+          className="w-full bg-transparent border-0 shadow-none z-10"
+          initial={{ y: -20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.5 }}
+        >
+          <div className="px-6 h-16 flex items-center justify-between max-w-7xl mx-auto bg-transparent">
+            <motion.div
+              className="flex items-center"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Link to="/" className="flex items-center gap-2.5">
+                <Logo size={34} />
+                <OfflineStatusBadge />
+              </Link>
+            </motion.div>
 
-          {user && (
-            <motion.div 
+            <motion.div
               className="flex items-center gap-2"
               initial={{ x: 20, opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
@@ -79,9 +88,9 @@ const Layout = () => {
             >
               {/* User profile action trigger */}
               <div className="flex">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   className="rounded-full p-0.5 bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-750 shadow-sm shrink-0"
                   onClick={() => setIsMobileMenuOpen(true)}
                 >
@@ -92,10 +101,10 @@ const Layout = () => {
                     </AvatarFallback>
                   </Avatar>
                 </Button>
- 
-                <MobilePopover 
-                  isOpen={isMobileMenuOpen} 
-                  onClose={() => setIsMobileMenuOpen(false)} 
+
+                <MobilePopover
+                  isOpen={isMobileMenuOpen}
+                  onClose={() => setIsMobileMenuOpen(false)}
                   title="Settings & Account"
                 >
                   <div className="flex flex-col h-full py-2">
@@ -112,7 +121,7 @@ const Layout = () => {
                         <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">{user?.email}</p>
                       </div>
                     </div>
-                    
+
                     {/* Embedded Settings panel */}
                     <div className="flex-1 overflow-hidden min-h-0">
                       <SettingsPage isEmbed={true} />
@@ -121,10 +130,10 @@ const Layout = () => {
                 </MobilePopover>
               </div>
             </motion.div>
-          )}
-        </div>
-      </motion.header>
-      
+          </div>
+        </motion.header>
+      )}
+
       {/* Main Content Area */}
       <main className="flex-1 overflow-hidden flex flex-col min-h-0">
         <div className="max-w-5xl w-full mx-auto px-4 sm:px-6 flex-1 flex flex-col overflow-hidden min-h-0 bg-transparent">

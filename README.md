@@ -53,6 +53,27 @@ supabase/
 android/, ios/    Native Capacitor projects
 ```
 
+## Data access: when to use the repository vs. Supabase directly
+
+`products`, `sales`, `sale_items`, and `business_info` - anything a user
+creates, edits, or needs available while offline - go through
+[`src/lib/offline/repository.ts`](src/lib/offline/repository.ts), never a
+direct `supabase.from(...)` call from a page or hook. The repository is
+what decides web (direct Supabase) vs. native (local-first Dexie + sync
+queue) per platform; calling Supabase directly for these tables would
+silently skip the offline path on native.
+
+A handful of read-only, network-inherent features query Supabase directly
+instead: `useDashboardData.ts` (analytics aggregation - reports reasonably
+require connectivity, unlike ringing up a sale), the AI accountant chat and
+`useAIRecommendation.ts` (both need a live AI call regardless), and
+`useOneSignalNotifications.ts` (push token registration, meaningless
+without a network). None of these touch data a user edits or needs while
+offline, so bypassing the repository there is a deliberate choice, not
+drift - if you're adding a new read/write for one of the four core tables
+above, add it to the repository instead of calling Supabase from the
+component.
+
 ## Security notes
 
 - Every table is protected by Postgres Row Level Security, scoped to
